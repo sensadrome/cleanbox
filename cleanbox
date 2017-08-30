@@ -1,0 +1,74 @@
+#!/usr/bin/env ruby
+require 'optparse'
+
+require 'net/imap'
+require 'mail'
+require 'pry'
+require_relative 'lib/connection'
+require_relative 'lib/cleanbox'
+require_relative 'lib/folder_checker'
+require_relative 'lib/message'
+
+options = {
+  host: 'imap.datanauts.co.uk',
+  username: 'simon@sensadrome.com',
+  clean_folders: %w[Panto Friends Family],
+  whitelisted_domains: %w[filmfinances.co.uk datanauts.co.uk],
+  list_domains: %w[facebookmail.com ebay.co.uk],
+  list_folders: %w[Lists Interests Apple Ebay],
+  domain_map: {
+    'facebookmail.com' => 'Facebook'
+  },
+  pretend: false,
+  password: ENV['IMAP_PASSWORD']
+}
+
+action = 'clean!'
+
+parsed_options = OptionParser.new do |opts|
+  opts.banner = 'Usage: cleanbox [options]'
+
+  opts.on('-v', '--verbose', 'Run verbosely') do |v|
+    options[:verbose] = v
+    options[:level] = 'debug'
+  end
+
+  opts.on('-h', '--help', 'Prints this help') do
+    puts opts
+    exit
+  end
+
+  opts.on('-n', '--pretend', 'Only show what would happen') do
+    options[:pretend] = true
+  end
+
+  loglevel_help = 'log level, should be one of debug, info, warn, error'
+  opts.on('-L', '--level loglevel', loglevel_help) do |value|
+    options[:level] = value
+  end
+
+  host_help = "Set the IMAP hostname (default '#{options[:host]}'"
+  opts.on('-H', '--host', host_help) do |val|
+    options[:host] = val
+  end
+
+  opts.on('-u', '--user', 'Set IMAP username') do |val|
+    options[:username] = val
+  end
+
+  opts.on('-p', '--password PASSWORD', 'Set IMAP password') do |val|
+    options[:password] = val
+  end
+
+  opts.on('-L', '--log-file LOGFILE', 'Specify log file (defaults to STDOUT)') do |val|
+    options[:log_file] = val
+  end
+end
+
+parsed_options.parse!
+
+imap = Net::IMAP.new(options.delete(:host), ssl: true)
+imap.authenticate 'PLAIN', options.delete(:username), options.delete(:password)
+
+action = 'show_lists!' if ARGV[0] == 'list'
+Cleanbox.new(imap, options).send(action)

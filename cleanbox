@@ -25,6 +25,7 @@ options = {
 
 action = 'clean!'
 
+# rubocop:disable Metrics/BlockLength
 parsed_options = OptionParser.new do |opts|
   opts.banner = 'Usage: cleanbox [options]'
 
@@ -60,10 +61,12 @@ parsed_options = OptionParser.new do |opts|
     options[:password] = val
   end
 
-  opts.on('-L', '--log-file LOGFILE', 'Specify log file (defaults to STDOUT)') do |val|
+  logfile_help = 'Specify log file (defaults to STDOUT)'
+  opts.on('-L', '--log-file LOGFILE', logfile_help) do |val|
     options[:log_file] = val
   end
 end
+# rubocop:enable Metrics/BlockLength
 
 parsed_options.parse!
 

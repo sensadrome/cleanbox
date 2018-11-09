@@ -1,7 +1,7 @@
 # main class
 class Cleanbox < CleanboxConnection
   attr_accessor :blacklisted_emails, :whitelisted_emails, :list_domains
-  attr_accessor :whitelisted_domains, :domain_map
+  attr_accessor :domain_map
 
   def initialize(imap_connection, options)
     super

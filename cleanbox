@@ -12,7 +12,7 @@ require_relative 'lib/message'
 options = {
   host: 'imap.datanauts.co.uk',
   username: 'simon@sensadrome.com',
-  clean_folders: %w[Panto Friends Family],
+  clean_folders: %w[Admin Panto Friends Family],
   whitelisted_domains: %w[filmfinances.co.uk datanauts.co.uk],
   list_domains: %w[facebookmail.com ebay.co.uk],
   list_folders: %w[Lists Interests Apple Ebay],

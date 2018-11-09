@@ -16,7 +16,7 @@ class Cleanbox < CleanboxConnection
 
   def show_lists!
     build_list_domains!
-    puts domain_map.inspect
+    domain_map.sort.each_pair { |domain, folder| puts "#{domain} > #{folder}" }
   end
 
   def list_folder

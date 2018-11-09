@@ -8,13 +8,10 @@ class CleanboxMessage < SimpleDelegator
   end
 
   def process!
-    if whitelisted?
-      keep!
-    elsif valid_list_email?
-      move!(list_folder)
-    else
-      move!(junk_folder)
-    end
+    return keep! if whitelisted?
+    return move!(list_folder) if valid_list_email?
+    return move!(junk_folder) if blacklisted?
+    move!(junk_folder)
   end
 
   private
@@ -38,6 +35,10 @@ class CleanboxMessage < SimpleDelegator
 
   def keep!
     cleanbox.logger.debug "Keeping mail from #{from_address}"
+  end
+
+  def blacklisted?
+    cleanbox.blacklisted_emails.include?(from_address)
   end
 
   def move!(folder)

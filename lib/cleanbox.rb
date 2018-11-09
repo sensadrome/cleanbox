@@ -9,6 +9,7 @@ class Cleanbox < CleanboxConnection
   end
 
   def clean!
+    build_blacklist!
     build_whitelist!
     build_list_domains!
     clean_inbox!
@@ -16,7 +17,7 @@ class Cleanbox < CleanboxConnection
 
   def show_lists!
     build_list_domains!
-    domain_map.sort.each_pair { |domain, folder| puts "#{domain} > #{folder}" }
+    puts domain_map.inspect
   end
 
   def list_folder
@@ -59,6 +60,17 @@ class Cleanbox < CleanboxConnection
   def logger_object
     return Logger.new(STDOUT) unless options[:log_file]
     Logger.new(options[:log_file], 'monthly')
+  end
+
+  def build_blacklist!
+    logger.info 'Building Junk List....'
+    @blacklisted_emails = blacklist_folders.flat_map do |folder|
+      CleanboxFolderChecker.new(imap_connection, folder: folder).email_addresses
+    end.uniq
+  end
+
+  def blacklist_folders
+    options[:blacklist_folders] || %w[Junk]
   end
 
   def build_whitelist!

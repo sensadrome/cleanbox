@@ -7,11 +7,13 @@ class CleanboxFolderChecker < CleanboxConnection
 
   def email_addresses
     return [] unless folder_exists?
+
     found_addresses.map { |a| [a.mailbox, a.host].join('@').downcase }.sort.uniq
   end
 
   def domains
     return [] unless folder_exists?
+
     found_addresses.map(&:host)
   end
 
@@ -31,7 +33,21 @@ class CleanboxFolderChecker < CleanboxConnection
   end
 
   def message_ids
-    imap_connection.search(%w[NOT DELETED])
+    imap_connection.search(search_terms)
+  end
+
+  def search_terms
+    %w[NOT DELETED] + date_search
+  end
+
+  def date_search
+    return [] unless since
+
+    ['SINCE', since]
+  end
+
+  def since
+    options[:since]
   end
 
   def address

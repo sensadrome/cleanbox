@@ -1,9 +1,10 @@
 #!/usr/bin/env ruby
+
 require 'optparse'
 
+require 'pry'
 require 'net/imap'
 require 'mail'
-require 'pry'
 require_relative 'lib/connection'
 require_relative 'lib/cleanbox'
 require_relative 'lib/folder_checker'
@@ -12,12 +13,14 @@ require_relative 'lib/message'
 options = {
   host: 'imap.datanauts.co.uk',
   username: 'simon@sensadrome.com',
-  clean_folders: %w[Admin Panto Friends Family],
+  clean_folders: %w[Panto Friends Family],
   whitelisted_domains: %w[filmfinances.co.uk datanauts.co.uk],
   list_domains: %w[facebookmail.com ebay.co.uk],
-  list_folders: %w[Lists Interests Apple Ebay],
+  list_folders: %w[Admin Lists Interests Apple Ebay],
   domain_map: {
-    'facebookmail.com' => 'Facebook'
+    'facebookmail.com' => 'Facebook',
+    'ebay.co.uk' => 'Ebay',
+    'apple.com' => 'Apple'
   },
   pretend: false,
   password: ENV['IMAP_PASSWORD']
@@ -62,7 +65,7 @@ parsed_options = OptionParser.new do |opts|
   end
 
   logfile_help = 'Specify log file (defaults to STDOUT)'
-  opts.on('-L', '--log-file LOGFILE', logfile_help) do |val|
+  opts.on('-l', '--log-file LOGFILE', logfile_help) do |val|
     options[:log_file] = val
   end
 end

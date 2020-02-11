@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # message processing class
 class CleanboxMessage < SimpleDelegator
   attr_reader :cleanbox
@@ -11,6 +13,7 @@ class CleanboxMessage < SimpleDelegator
     return keep! if whitelisted?
     return move!(list_folder) if valid_list_email?
     return move!(junk_folder) if blacklisted?
+
     move!(junk_folder)
   end
 
@@ -44,6 +47,7 @@ class CleanboxMessage < SimpleDelegator
   def move!(folder)
     cleanbox.logger.debug "Moving mail from #{from_address} to #{folder}"
     return if pretend?
+
     imap_connection.copy(seqno, folder)
     imap_connection.store(seqno, '+FLAGS', [:Deleted])
   end
@@ -61,11 +65,24 @@ class CleanboxMessage < SimpleDelegator
   end
 
   def valid_list_email?
+    return false if fake_headers?
+
     cleanbox.list_domains.include?(from_domain) || valid_dkim_message?
+  end
+
+  def fake_headers?
+    fake_header_fields.any? do |fake_field|
+      message.header_fields.any? { |field| field == fake_field }
+    end
+  end
+
+  def fake_header_fields
+    %w[X-Antiabuse]
   end
 
   def valid_dkim_message?
     return false unless authentication_result
+
     !(authentication_result =~ /dkim=pass/).nil?
   end
 
@@ -81,6 +98,7 @@ class CleanboxMessage < SimpleDelegator
 
   def folder_from_map
     return unless domain_map.is_a?(Hash)
+
     domain_map[from_domain]
   end
 

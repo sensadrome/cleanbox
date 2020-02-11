@@ -1,4 +1,7 @@
+# frozen_string_literal: true
+
 # main class
+# rubocop:disable Metrics/ClassLength
 class Cleanbox < CleanboxConnection
   attr_accessor :blacklisted_emails, :whitelisted_emails, :list_domains
   attr_accessor :domain_map
@@ -17,7 +20,9 @@ class Cleanbox < CleanboxConnection
 
   def show_lists!
     build_list_domains!
-    puts domain_map.inspect
+    domain_map.sort.to_h.each_pair do |domain, folder|
+      puts "#{domain} > #{folder}"
+    end
   end
 
   def list_folder
@@ -59,6 +64,7 @@ class Cleanbox < CleanboxConnection
 
   def logger_object
     return Logger.new(STDOUT) unless options[:log_file]
+
     Logger.new(options[:log_file], 'monthly')
   end
 
@@ -93,7 +99,8 @@ class Cleanbox < CleanboxConnection
   def sent_emails
     CleanboxFolderChecker.new(imap_connection,
                               folder: sent_folder,
-                              address: :to).email_addresses
+                              address: :to,
+                              since: '01-Jan-2001').email_addresses
   end
 
   def sent_folder
@@ -108,7 +115,8 @@ class Cleanbox < CleanboxConnection
   def domains_from_folders
     list_folders.flat_map do |folder|
       CleanboxFolderChecker.new(imap_connection,
-                                folder: folder).domains.tap do |domains|
+                                folder: folder,
+                                since: last_year).domains.tap do |domains|
         domains.each do |domain|
           domain_map[domain] = folder
         end
@@ -134,4 +142,9 @@ class Cleanbox < CleanboxConnection
     imap_connection.select 'INBOX'
     imap_connection.search(%w[UNSEEN NOT DELETED])
   end
+
+  def last_year
+    (Date.today << 12).strftime('%d-%b-%Y')
+  end
 end
+# rubocop:enable Metrics/ClassLength

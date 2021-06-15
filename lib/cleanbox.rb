@@ -100,11 +100,15 @@ class Cleanbox < CleanboxConnection
     CleanboxFolderChecker.new(imap_connection,
                               folder: sent_folder,
                               address: :to,
-                              since: '01-Jan-2001').email_addresses
+                              since: since).email_addresses
   end
 
   def sent_folder
     options[:sent_folder] || 'Sent'
+  end
+
+  def since
+    (Date.today << 24).strftime('%d-%b-%Y')
   end
 
   def build_list_domains!

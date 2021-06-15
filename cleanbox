@@ -16,14 +16,15 @@ options = {
   clean_folders: %w[Panto Friends Family],
   whitelisted_domains: %w[filmfinances.co.uk datanauts.co.uk],
   list_domains: %w[facebookmail.com ebay.co.uk],
-  list_folders: %w[Admin Lists Interests Apple Ebay],
+  list_folders: ['Admin', 'Lists', 'Interests', 'Apple', 'Ebay', 'TV and Film'],
   domain_map: {
     'facebookmail.com' => 'Facebook',
     'ebay.co.uk' => 'Ebay',
     'apple.com' => 'Apple'
   },
   pretend: false,
-  password: ENV['IMAP_PASSWORD']
+  password: ENV['IMAP_PASSWORD'],
+  sent_folder: 'Sent Messages'
 }
 
 action = 'clean!'

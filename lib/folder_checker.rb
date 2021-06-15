@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Utility class for checking folders
 class CleanboxFolderChecker < CleanboxConnection
   def initialize(imap_connection, options)

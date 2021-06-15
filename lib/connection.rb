@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # base class
 class CleanboxConnection
   attr_accessor :imap_connection, :options

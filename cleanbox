@@ -1,14 +1,17 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 require 'optparse'
 
 require 'pry'
 require 'net/imap'
 require 'mail'
+require_relative 'lib/core_ext'
 require_relative 'lib/connection'
 require_relative 'lib/cleanbox'
 require_relative 'lib/folder_checker'
 require_relative 'lib/message'
+require 'logger'
 
 options = {
   host: 'imap.datanauts.co.uk',
@@ -16,15 +19,17 @@ options = {
   clean_folders: %w[Panto Friends Family],
   whitelisted_domains: %w[filmfinances.co.uk datanauts.co.uk],
   list_domains: %w[facebookmail.com ebay.co.uk],
-  list_folders: ['Admin', 'Lists', 'Interests', 'Apple', 'Ebay', 'TV and Film'],
+  list_folders: ['Admin', 'Lists', 'Interests', 'School', 'Shopping', 'Apple', 'Ebay', 'TV and Film', 'Work', 'Misc'],
   domain_map: {
     'facebookmail.com' => 'Facebook',
+    'developers.facebook.com' => 'Facebook',
     'ebay.co.uk' => 'Ebay',
     'apple.com' => 'Apple'
   },
   pretend: false,
   password: ENV['IMAP_PASSWORD'],
-  sent_folder: 'Sent Messages'
+  sent_folder: 'Sent Messages',
+  move_read: false
 }
 
 action = 'clean!'
@@ -69,6 +74,16 @@ parsed_options = OptionParser.new do |opts|
   opts.on('-l', '--log-file LOGFILE', logfile_help) do |val|
     options[:log_file] = val
   end
+
+  since_help = 'Only apply to messages since <parseable date>'
+  opts.on('-s', '--since DATE', since_help) do |val|
+    options[:since] = val
+  end
+
+  valid_from_help = 'Use addresses found since this date (default 1 year ago)'
+  opts.on('-f', '--valid-from DATE', valid_from_help) do |val|
+    options[:valid_from] = val
+  end
 end
 # rubocop:enable Metrics/BlockLength
 
@@ -77,5 +92,9 @@ parsed_options.parse!
 imap = Net::IMAP.new(options.delete(:host), ssl: true)
 imap.authenticate 'PLAIN', options.delete(:username), options.delete(:password)
 
-action = 'show_lists!' if ARGV[0] == 'list'
+action = 'show_lists!' if ARGV.last == 'list'
+action = 'file_messages!' if %w[file filing].include?(ARGV.last)
+# puts "Action: #{action}"
+# puts "Args: #{ARGV.inspect}"
+
 Cleanbox.new(imap, options).send(action)

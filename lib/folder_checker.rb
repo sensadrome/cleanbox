@@ -30,12 +30,14 @@ class CleanboxFolderChecker < CleanboxConnection
   end
 
   def found_addresses
+    return [] unless message_ids.present?
+
     imap_connection.fetch(message_ids, 'ENVELOPE')
                    .flat_map { |m| m.attr['ENVELOPE'].send(address) }
   end
 
   def message_ids
-    imap_connection.search(search_terms)
+    @message_ids ||= imap_connection.search(search_terms)
   end
 
   def search_terms

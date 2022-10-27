@@ -12,8 +12,8 @@ class CleanboxMessage < SimpleDelegator
   def process!
     return keep! if whitelisted?
     return move!(list_folder) if valid_list_email?
-    return move!(junk_folder) if blacklisted?
 
+    # return move!(junk_folder) if blacklisted?
     move!(junk_folder)
   end
 

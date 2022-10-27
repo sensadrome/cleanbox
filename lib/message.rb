@@ -45,7 +45,7 @@ class CleanboxMessage < SimpleDelegator
   end
 
   def move!(folder)
-    cleanbox.logger.debug "Moving mail from #{from_address} to #{folder}"
+    cleanbox.logger.info "Moving mail from #{from_address} to #{folder}"
     return if pretend?
 
     imap_connection.copy(seqno, folder)

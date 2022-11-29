@@ -17,6 +17,14 @@ class CleanboxMessage < SimpleDelegator
     move!(junk_folder)
   end
 
+  def file!
+    if destination_folder.present? || folder_from_map.present?
+      move!(destination_folder)
+    else
+      keep!
+    end
+  end
+
   private
 
   def whitelisted?
@@ -104,5 +112,9 @@ class CleanboxMessage < SimpleDelegator
 
   def domain_map
     cleanbox.domain_map
+  end
+
+  def destination_folder
+    cleanbox.sender_map[from_address] || folder_from_map
   end
 end

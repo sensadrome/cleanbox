@@ -11,6 +11,10 @@ class CleanboxConnection
   protected
 
   def folders
-    @folders ||= imap_connection.list('', '*').map(&:name)
+    @folders ||= imap_folders.map(&:name)
+  end
+
+  def imap_folders
+    @imap_folders ||= imap_connection.list('', '*')
   end
 end

@@ -19,7 +19,8 @@ options = {
   clean_folders: %w[Panto Friends Family],
   whitelisted_domains: %w[filmfinances.co.uk datanauts.co.uk],
   list_domains: %w[facebookmail.com ebay.co.uk],
-  list_folders: ['Admin', 'Lists', 'Interests', 'School', 'Shopping', 'Apple', 'Ebay', 'TV and Film', 'Work', 'Misc'],
+  list_folders: ['Admin', 'Amazon', 'Lists', 'Interests', 'School',
+                 'Shopping', 'Apple', 'Ebay', 'TV and Film', 'Work', 'Misc'],
   domain_map: {
     'facebookmail.com' => 'Facebook',
     'developers.facebook.com' => 'Facebook',
@@ -88,9 +89,11 @@ end
 # rubocop:enable Metrics/BlockLength
 
 parsed_options.parse!
+# Net::IMAP.debug = true
 
 imap = Net::IMAP.new(options.delete(:host), ssl: true)
 imap.authenticate 'PLAIN', options.delete(:username), options.delete(:password)
+# imap.send(:send_command, 'GETMETADATA', 'Deleted Messages', '/private/specialuse')
 
 action = 'show_lists!' if ARGV.last == 'list'
 action = 'file_messages!' if %w[file filing].include?(ARGV.last)

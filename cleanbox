@@ -13,6 +13,18 @@ require_relative 'lib/folder_checker'
 require_relative 'lib/message'
 require 'logger'
 
+IMAP_SECRET_FILE='/var/run/secrets/imap_password'
+
+def password_from_env_or_secrets
+  ENV['IMAP_PASSWORD'] || password_from_secrets
+end
+
+def password_from_secrets
+  return unless File.exist?(IMAP_SECRET_FILE)
+
+  File.read(IMAP_SECRET_FILE).chomp  
+end
+
 options = {
   host: 'imap.datanauts.co.uk',
   username: 'simon@sensadrome.com',
@@ -28,7 +40,7 @@ options = {
     'apple.com' => 'Apple'
   },
   pretend: false,
-  password: ENV['IMAP_PASSWORD'],
+  password: password_from_env_or_secrets,
   sent_folder: 'Sent Messages',
   move_read: false
 }

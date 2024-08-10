@@ -23,7 +23,7 @@ class Cleanbox < CleanboxConnection
   def show_lists!
     build_list_domains!
     domain_map.sort.to_h.each_pair do |domain, folder|
-      puts "'#{domain}'' => '#{folder}',"
+      puts "'#{domain}' => '#{folder}',"
     end
   end
 
@@ -139,7 +139,7 @@ class Cleanbox < CleanboxConnection
   def domains_from_folders
     list_folders.flat_map do |folder|
       CleanboxFolderChecker.new(imap_connection,
-                                folder: folder,
+                                folder: folder, logger: logger,
                                 since: last_year).domains.tap do |domains|
         domains.each do |domain|
           domain_map[domain] ||= folder

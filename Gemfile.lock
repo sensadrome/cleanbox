@@ -2,19 +2,30 @@ GEM
   remote: https://rubygems.org/
   specs:
     coderay (1.1.3)
+    gmail_xoauth (0.4.3)
+      oauth (>= 0.3.6)
+    hashie (5.0.0)
     mail (2.7.1)
       mini_mime (>= 0.1.1)
     method_source (1.0.0)
     mini_mime (1.1.2)
+    oauth (0.6.2)
+      snaky_hash (~> 2.0)
+      version_gem (~> 1.1)
     pry (0.14.1)
       coderay (~> 1.1)
       method_source (~> 1.0)
+    snaky_hash (2.0.1)
+      hashie
+      version_gem (~> 1.1, >= 1.1.1)
+    version_gem (1.1.4)
 
 PLATFORMS
   x86_64-darwin-18
   x86_64-linux
 
 DEPENDENCIES
+  gmail_xoauth
   mail
   pry
 

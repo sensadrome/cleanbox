@@ -29,11 +29,20 @@ class CleanboxFolderChecker < CleanboxConnection
     folders.include?(folder)
   end
 
+  def logger
+    @logger ||= logger_object
+  end
+
+  def logger_object
+    options[:logger] || Logger.new(STDOUT)
+  end
+
   def found_addresses
     return [] unless message_ids.present?
 
-    imap_connection.fetch(message_ids, 'ENVELOPE')
-                   .flat_map { |m| m.attr['ENVELOPE'].send(address) }
+    logger.debug "Found #{message_ids.length} messages in folder #{folder}"
+
+    all_envelopes.flat_map { |m| m.attr['ENVELOPE'].send(address) }
   end
 
   def message_ids
@@ -52,6 +61,12 @@ class CleanboxFolderChecker < CleanboxConnection
 
   def since
     options[:since]
+  end
+
+  def all_envelopes
+    message_ids.each_slice(800).flat_map do |slice|
+      imap_connection.fetch(slice, 'ENVELOPE')
+    end
   end
 
   def address

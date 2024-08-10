@@ -54,7 +54,7 @@ options = {
     'apple.com' => 'Apple'
   },
   pretend: false,
-  sent_folder: 'Sent Messages',
+  sent_folder: 'Sent Items',
   move_read: false,
   client_id: value_from_env_or_secrets(:client_id),
   client_secret: value_from_env_or_secrets(:client_secret),

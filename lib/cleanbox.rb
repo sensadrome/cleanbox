@@ -81,7 +81,7 @@ class Cleanbox < CleanboxConnection
   def build_blacklist!
     logger.info 'Building Junk List....'
     @blacklisted_emails = blacklist_folders.flat_map do |folder|
-      CleanboxFolderChecker.new(imap_connection, folder: folder).email_addresses
+      CleanboxFolderChecker.new(imap_connection, folder: folder, logger: logger).email_addresses
     end.uniq
   end
 
@@ -98,7 +98,7 @@ class Cleanbox < CleanboxConnection
 
   def email_addresses_from_clean_folders
     whitelist_folders.flat_map do |folder|
-      CleanboxFolderChecker.new(imap_connection, folder: folder).email_addresses
+      CleanboxFolderChecker.new(imap_connection, folder: folder, logger: logger).email_addresses
     end.uniq
   end
 
@@ -109,6 +109,7 @@ class Cleanbox < CleanboxConnection
   def sent_emails
     CleanboxFolderChecker.new(imap_connection,
                               folder: sent_folder,
+                              logger: logger,
                               address: :to,
                               since: since).email_addresses
   end
@@ -181,6 +182,7 @@ class Cleanbox < CleanboxConnection
       logger.debug "  adding addresses from #{folder}"
       CleanboxFolderChecker.new(imap_connection,
                                 folder: folder,
+                                logger: logger,
                                 since: valid_from).email_addresses.each do |email|
         sender_map[email] ||= folder
       end

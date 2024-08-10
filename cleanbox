@@ -25,6 +25,18 @@ require_relative 'lib/microsoft_365_application_token'
 
 require 'logger'
 
+IMAP_SECRET_FILE='/var/run/secrets/imap_password'
+
+def password_from_env_or_secrets
+  ENV['IMAP_PASSWORD'] || password_from_secrets
+end
+
+def password_from_secrets
+  return unless File.exist?(IMAP_SECRET_FILE)
+
+  File.read(IMAP_SECRET_FILE).chomp  
+end
+
 options = {
   host: 'outlook.office365.com',
   username: 'simon@sensadrome.com',
@@ -40,7 +52,11 @@ options = {
     'apple.com' => 'Apple'
   },
   pretend: false,
+<<<<<<< HEAD
   # password: ENV['IMAP_PASSWORD'],
+=======
+  password: password_from_env_or_secrets,
+>>>>>>> 93601f224ea42c3841f6a1a638276ca98eadc9fb
   sent_folder: 'Sent Messages',
   move_read: false,
   client_id: ENV['CLIENT_ID'],

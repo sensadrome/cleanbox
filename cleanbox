@@ -25,16 +25,17 @@ require_relative 'lib/microsoft_365_application_token'
 
 require 'logger'
 
-IMAP_SECRET_FILE='/var/run/secrets/imap_password'
+SECRETS_PATH = '/var/run/secrets/'
 
-def password_from_env_or_secrets
-  ENV['IMAP_PASSWORD'] || password_from_secrets
+def value_from_env_or_secrets(variable)
+  ENV[variable.to_s.upcase] || password_from_secrets(variable.to_s)
 end
 
-def password_from_secrets
-  return unless File.exist?(IMAP_SECRET_FILE)
+def password_from_secrets(variable)
+  secret_file = "#{SECRETS_PATH}#{variable}"
+  return unless File.exist?(secret_file)
 
-  File.read(IMAP_SECRET_FILE).chomp  
+  File.read(secret_file).chomp
 end
 
 options = {
@@ -52,16 +53,12 @@ options = {
     'apple.com' => 'Apple'
   },
   pretend: false,
-<<<<<<< HEAD
-  # password: ENV['IMAP_PASSWORD'],
-=======
-  password: password_from_env_or_secrets,
->>>>>>> 93601f224ea42c3841f6a1a638276ca98eadc9fb
+  password: value_from_env_or_secrets(:password),
   sent_folder: 'Sent Messages',
   move_read: false,
-  client_id: ENV['CLIENT_ID'],
-  client_secret: ENV['CLIENT_SECRET'],
-  tenant_id: ENV['TENANT_ID']
+  client_id: value_from_env_or_secrets(:client_id),
+  client_secret: value_from_env_or_secrets(:client_secret),
+  tenant_id: value_from_env_or_secrets(:tenant_id)
 }
 
 action = 'clean!'

@@ -3,18 +3,30 @@
 
 require 'optparse'
 
-require 'pry'
+require 'rubygems'
+require 'bundler'
+
+ENV['RACK_ENV'] ||= 'development'
+config_env = ENV['RACK_ENV']
+
+bundler_env = ENV['BUNDLER_ENV'] || config_env
+Bundler.require(:default, bundler_env)
+
+# require 'pry'
+# require 'gmail_xoauth'
 require 'net/imap'
-require 'mail'
+# require 'mail'
 require_relative 'lib/core_ext'
 require_relative 'lib/connection'
 require_relative 'lib/cleanbox'
 require_relative 'lib/folder_checker'
 require_relative 'lib/message'
+require_relative 'lib/microsoft_365_application_token'
+
 require 'logger'
 
 options = {
-  host: 'imap.datanauts.co.uk',
+  host: 'outlook.office365.com',
   username: 'simon@sensadrome.com',
   clean_folders: %w[Panto Friends Family],
   whitelisted_domains: %w[filmfinances.co.uk datanauts.co.uk],
@@ -28,9 +40,12 @@ options = {
     'apple.com' => 'Apple'
   },
   pretend: false,
-  password: ENV['IMAP_PASSWORD'],
+  # password: ENV['IMAP_PASSWORD'],
   sent_folder: 'Sent Messages',
-  move_read: false
+  move_read: false,
+  client_id: ENV['CLIENT_ID'],
+  client_secret: ENV['CLIENT_SECRET'],
+  tenant_id: ENV['TENANT_ID']
 }
 
 action = 'clean!'
@@ -59,7 +74,7 @@ parsed_options = OptionParser.new do |opts|
   end
 
   host_help = "Set the IMAP hostname (default '#{options[:host]}'"
-  opts.on('-H', '--host', host_help) do |val|
+  opts.on('-H', '--host HOST', host_help) do |val|
     options[:host] = val
   end
 
@@ -67,8 +82,20 @@ parsed_options = OptionParser.new do |opts|
     options[:username] = val
   end
 
-  opts.on('-p', '--password PASSWORD', 'Set IMAP password') do |val|
-    options[:password] = val
+  # opts.on('-p', '--password PASSWORD', 'Set IMAP password') do |val|
+  #   options[:password] = val
+  # end
+
+  opts.on('-C', '--client_id CLIENT_ID', 'Set client id for ouath2 token') do |val|
+    options[:client_id] = val
+  end
+
+  opts.on('-S', '--client_secret SECRET', 'Set client secret for ouath2 token') do |val|
+    options[:client_secret] = val
+  end
+
+  opts.on('-T', '--tenant_id TENANT_ID', 'Set tenant id for ouath2 token') do |val|
+    options[:tenant_id] = val
   end
 
   logfile_help = 'Specify log file (defaults to STDOUT)'
@@ -91,8 +118,15 @@ end
 parsed_options.parse!
 # Net::IMAP.debug = true
 
+client_id = options.delete(:client_id)
+client_secret = options.delete(:client_secret)
+tenant_id = options.delete(:tenant_id)
+
+token_request = Microsoft365ApplicationToken.new(client_id, client_secret, tenant_id)
 imap = Net::IMAP.new(options.delete(:host), ssl: true)
-imap.authenticate 'PLAIN', options.delete(:username), options.delete(:password)
+imap.authenticate('XOAUTH2', options.delete(:username), token_request.token)
+
+# imap.authenticate 'PLAIN', options.delete(:username), options.delete(:password)
 # imap.send(:send_command, 'GETMETADATA', 'Deleted Messages', '/private/specialuse')
 
 action = 'show_lists!' if ARGV.last == 'list'

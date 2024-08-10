@@ -28,7 +28,7 @@ require 'logger'
 SECRETS_PATH = '/var/run/secrets/'
 
 def value_from_env_or_secrets(variable)
-  ENV[variable.to_s.upcase] || password_from_secrets(variable.to_s)
+  ENV[variable.to_s.upcase].chomp || password_from_secrets(variable.to_s).chomp
 end
 
 def password_from_secrets(variable)

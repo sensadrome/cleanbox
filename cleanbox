@@ -28,7 +28,8 @@ require 'logger'
 SECRETS_PATH = '/var/run/secrets/'
 
 def value_from_env_or_secrets(variable)
-  ENV[variable.to_s.upcase].chomp || password_from_secrets(variable.to_s).chomp
+  val = ENV[variable.to_s.upcase] || password_from_secrets(variable.to_s)
+  val.chomp if val.present?
 end
 
 def password_from_secrets(variable)
@@ -53,7 +54,6 @@ options = {
     'apple.com' => 'Apple'
   },
   pretend: false,
-  password: value_from_env_or_secrets(:password),
   sent_folder: 'Sent Messages',
   move_read: false,
   client_id: value_from_env_or_secrets(:client_id),

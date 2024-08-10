@@ -155,6 +155,7 @@ class Cleanbox < CleanboxConnection
 
   def clean_inbox!
     new_messages.each(&:process!)
+    clear_deleted_messages!
   end
 
   def new_messages
@@ -170,6 +171,11 @@ class Cleanbox < CleanboxConnection
       imap_connection.select 'INBOX'
       imap_connection.search(%w[UNSEEN NOT DELETED])
     end
+  end
+
+  def clear_deleted_messages!
+    imap_connection.select 'INBOX'
+    imap_connection.expunge
   end
 
   def last_year

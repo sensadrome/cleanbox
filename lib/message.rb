@@ -14,7 +14,7 @@ class CleanboxMessage < SimpleDelegator
     return move!(list_folder) if valid_list_email?
 
     # return move!(junk_folder) if blacklisted?
-    move!(junk_folder)
+    move!(junk_folder) unless cleanbox.unjunking?
   end
 
   def file!
@@ -28,6 +28,8 @@ class CleanboxMessage < SimpleDelegator
   private
 
   def whitelisted?
+    return false if cleanbox.unjunking?
+
     cleanbox.whitelisted_emails.include?(from_address) ||
       cleanbox.whitelisted_domains.include?(from_domain)
   end

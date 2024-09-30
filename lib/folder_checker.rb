@@ -54,7 +54,7 @@ class CleanboxFolderChecker < CleanboxConnection
   end
 
   def date_search
-    return [] unless since
+    return [] unless since.present?
 
     ['SINCE', since]
   end

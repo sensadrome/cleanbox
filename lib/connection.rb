@@ -17,4 +17,10 @@ class CleanboxConnection
   def imap_folders
     @imap_folders ||= imap_connection.list('', '*')
   end
+
+  def cleanbox_folders
+    imap_folders.map do |folder|
+      CleanboxFolder.new(folder, imap_connection.status(folder.name, %w[MESSAGES UNSEEN]))
+    end
+  end
 end

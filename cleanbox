@@ -19,6 +19,7 @@ require 'net/imap'
 require_relative 'lib/core_ext'
 require_relative 'lib/connection'
 require_relative 'lib/cleanbox'
+require_relative 'lib/cleanbox_folder'
 require_relative 'lib/folder_checker'
 require_relative 'lib/message'
 require_relative 'lib/microsoft_365_application_token'
@@ -33,10 +34,14 @@ def value_from_env_or_secrets(variable)
 end
 
 def password_from_secrets(variable)
-  secret_file = "#{SECRETS_PATH}#{variable}"
+  secret_file = "#{secrets_path}#{variable}"
   return unless File.exist?(secret_file)
 
   File.read(secret_file).chomp
+end
+
+def secrets_path
+  ENV.fetch('SECRETS_PATH') { SECRETS_PATH }
 end
 
 options = {
@@ -45,7 +50,7 @@ options = {
   clean_folders: %w[Panto Friends Family],
   whitelisted_domains: %w[filmfinances.co.uk datanauts.co.uk],
   list_domains: %w[facebookmail.com ebay.co.uk],
-  list_folders: ['Admin', 'Amazon', 'Lists', 'Interests', 'School',
+  list_folders: ['Admin', 'Amazon', 'Lists', 'Interests', 'Notifications', 'School',
                  'Shopping', 'Apple', 'Ebay', 'TV and Film', 'Work', 'Misc'],
   domain_map: {
     'facebookmail.com' => 'Facebook',
@@ -58,14 +63,17 @@ options = {
   move_read: false,
   client_id: value_from_env_or_secrets(:client_id),
   client_secret: value_from_env_or_secrets(:client_secret),
-  tenant_id: value_from_env_or_secrets(:tenant_id)
+  tenant_id: value_from_env_or_secrets(:tenant_id),
+  unjunk: false,
+  unjunk_folders: [],
+  file_from_folders: []
 }
 
 action = 'clean!'
 
 # rubocop:disable Metrics/BlockLength
 parsed_options = OptionParser.new do |opts|
-  opts.banner = 'Usage: cleanbox [options]'
+  opts.banner = 'Usage: cleanbox [options] [command]'
 
   opts.on('-v', '--verbose', 'Run verbosely') do |v|
     options[:verbose] = v
@@ -125,6 +133,28 @@ parsed_options = OptionParser.new do |opts|
   opts.on('-f', '--valid-from DATE', valid_from_help) do |val|
     options[:valid_from] = val
   end
+
+  opts.on('-J', '--unjunk FOLDER', 'Unjunk based on mail in FOLDER (can use multiple times)') do |folder|
+    options[:unjunk_folders] << folder
+    options[:unjunk] = true
+  end
+
+  opts.on('-F', '--file-from FOLDER', 'File (from the Inbox) based on mail in FOLDER (can use multiple times)') do |folder|
+    options[:file_from_folders] << folder
+  end
+
+  opts.separator ''
+  opts.separator 'Commands:'
+  opts.separator ''
+  opts.separator '  list'
+  opts.separator '    show the mapping of email addresses to folders for filing'
+  opts.separator ''
+  opts.separator '  file'
+  opts.separator '    file any message in the Inbox based on folders (or FOLDER if specified)'
+  opts.separator ''
+  opts.separator '  folders'
+  opts.separator '    list all folders'
+  opts.separator ''
 end
 # rubocop:enable Metrics/BlockLength
 
@@ -146,5 +176,8 @@ action = 'show_lists!' if ARGV.last == 'list'
 action = 'file_messages!' if %w[file filing].include?(ARGV.last)
 # puts "Action: #{action}"
 # puts "Args: #{ARGV.inspect}"
+action = 'show_folders!' if ARGV.last == 'folders'
+
+action = 'unjunk!' if options[:unjunk]
 
 Cleanbox.new(imap, options).send(action)

@@ -28,12 +28,22 @@ class Cleanbox < CleanboxConnection
   end
 
   def file_messages!
-    build_list_domains!
+    build_list_domains! unless file_from_folders.present?
+
     build_sender_map!
     all_messages.each(&:file!)
+    clear_deleted_messages!
   end
 
-  def show_folders!; end
+  def unjunk!
+    build_clean_sender_map!
+    junk_messages.each(&:file!)
+    clear_deleted_messages!
+  end
+
+  def show_folders!
+    cleanbox_folders.each { |folder| puts folder.to_s }
+  end
 
   def list_folder
     options[:list_folder] || 'Lists'
@@ -55,6 +65,10 @@ class Cleanbox < CleanboxConnection
     @logger ||= logger_object.tap do |l|
       l.level = log_level
     end
+  end
+
+  def unjunking?
+    options[:unjunk]
   end
 
   private
@@ -173,8 +187,11 @@ class Cleanbox < CleanboxConnection
     end
   end
 
-  def clear_deleted_messages!
-    imap_connection.select 'INBOX'
+  def clear_deleted_messages!(folder = nil)
+    return if pretending?
+
+    imap_connection.select(folder) if folder.present?
+
     imap_connection.expunge
   end
 
@@ -184,7 +201,7 @@ class Cleanbox < CleanboxConnection
 
   def build_sender_map!
     logger.info 'Building sender maps....'
-    all_folders.each do |folder|
+    folders_to_file.each do |folder|
       logger.debug "  adding addresses from #{folder}"
       CleanboxFolderChecker.new(imap_connection,
                                 folder: folder,
@@ -195,7 +212,25 @@ class Cleanbox < CleanboxConnection
     end
   end
 
-  def valid_from
+  def build_clean_sender_map!
+    unjunk_folders.each do |folder|
+      logger.info "Building sender maps for folder #{folder}"
+      CleanboxFolderChecker.new(imap_connection,
+                                folder: folder,
+                                logger: logger,
+                                since: valid_from(folder)).email_addresses.each do |email|
+        sender_map[email] ||= folder
+      end
+    end
+  end
+
+  def unjunk_folders
+    options[:unjunk_folders]
+  end
+
+  def valid_from(folder = nil)
+    return if whitelist_folders.include?(folder)
+
     valid_from_date.strftime('%d-%b-%Y')
   end
 
@@ -205,13 +240,23 @@ class Cleanbox < CleanboxConnection
     Date.today << 12
   end
 
+  def folders_to_file
+    file_from_folders || all_folders
+  end
+
+  def file_from_folders
+    options[:file_from_folders].presence
+  end
+
   def all_folders
     whitelist_folders + list_folders
   end
 
   def all_messages
-    imap_connection.fetch(all_message_ids, 'BODY.PEEK[HEADER]').map do |m|
-      CleanboxMessage.new(m, self)
+    all_message_ids.each_slice(800).flat_map do |slice|
+      imap_connection.fetch(slice, 'BODY.PEEK[HEADER]').map do |m|
+        CleanboxMessage.new(m, self)
+      end
     end
   end
 
@@ -225,6 +270,18 @@ class Cleanbox < CleanboxConnection
     return [] unless options[:since].present?
 
     ['SINCE', since]
+  end
+
+  def junk_messages
+    imap_connection.fetch(junk_message_ids, 'BODY.PEEK[HEADER]').map do |m|
+      CleanboxMessage.new(m, self)
+    end
+  end
+
+  def junk_message_ids
+    # logger.debug date_search.inspect
+    imap_connection.select imap_junk_folder
+    imap_connection.search(%w[NOT DELETED] + date_search)
   end
 
   def imap_junk_folder

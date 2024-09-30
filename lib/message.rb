@@ -58,6 +58,11 @@ class CleanboxMessage < SimpleDelegator
     cleanbox.logger.info "Moving mail from #{from_address} to #{folder}"
     return if pretend?
 
+    move_message_to_folder(folder)
+  end
+
+  def move_message_to_folder(folder)
+    imap_connection.create(folder) unless cleanbox.folder_exists?(folder)
     imap_connection.copy(seqno, folder)
     imap_connection.store(seqno, '+FLAGS', [:Deleted])
   end

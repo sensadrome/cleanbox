@@ -56,7 +56,8 @@ options = {
     'facebookmail.com' => 'Facebook',
     'developers.facebook.com' => 'Facebook',
     'ebay.co.uk' => 'Ebay',
-    'apple.com' => 'Apple'
+    'apple.com' => 'Apple',
+    'github.com' => 'GitHub'
   },
   pretend: false,
   sent_folder: 'Sent Items',

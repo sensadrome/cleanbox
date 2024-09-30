@@ -8,6 +8,13 @@ class CleanboxConnection
     @options = options
   end
 
+  def add_folder(folder)
+    return if folders.include?(folder)
+
+    imap_connection.create(folder)
+    @folders.concat(folder)
+  end
+
   protected
 
   def folders

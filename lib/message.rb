@@ -62,7 +62,7 @@ class CleanboxMessage < SimpleDelegator
   end
 
   def move_message_to_folder(folder)
-    imap_connection.create(folder) unless folder_exists?(folder)
+    cleanbox.add_folder(folder)
     imap_connection.copy(seqno, folder)
     imap_connection.store(seqno, '+FLAGS', [:Deleted])
   end

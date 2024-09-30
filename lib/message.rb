@@ -76,7 +76,7 @@ class CleanboxMessage < SimpleDelegator
   end
 
   def folder_exists?(folder)
-    imap_connection.send(:folders).include?(folder)
+    cleanbox.send(:folders).include?(folder)
   end
 
   def junk_folder

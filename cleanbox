@@ -47,11 +47,11 @@ end
 options = {
   host: 'outlook.office365.com',
   username: 'simon@sensadrome.com',
-  clean_folders: %w[Panto Friends Family],
+  clean_folders: %w[Panto Friends Family Work],
   whitelisted_domains: %w[filmfinances.co.uk datanauts.co.uk],
   list_domains: %w[facebookmail.com ebay.co.uk],
   list_folders: ['Admin', 'Amazon', 'Lists', 'Interests', 'Notifications', 'School',
-                 'Shopping', 'Apple', 'Ebay', 'TV and Film', 'Work', 'Misc'],
+                 'Shopping', 'Apple', 'Ebay', 'TV and Film', 'Misc'],
   domain_map: {
     'facebookmail.com' => 'Facebook',
     'developers.facebook.com' => 'Facebook',

@@ -334,9 +334,9 @@ parsed_options = OptionParser.new do |opts|
     options[:username] = val
   end
 
-  # opts.on('-p', '--password PASSWORD', 'Set IMAP password') do |val|
-  #   options[:password] = val
-  # end
+  opts.on('-p', '--password PASSWORD', 'Set IMAP password') do |val|
+    options[:password] = val
+  end
 
   opts.on('-C', '--client_id CLIENT_ID', 'Set client id for ouath2 token') do |val|
     options[:client_id] = val

@@ -81,7 +81,16 @@ class CleanboxFolderChecker < CleanboxConnection
     
     # Get the last message date
     last_message = imap_connection.fetch(message_ids.last, 'ENVELOPE').first
-    last_date = last_message.attr['ENVELOPE'].date&.iso8601 || Time.now.iso8601
+    envelope_date = last_message.attr['ENVELOPE'].date
+    
+    # Convert string date to Time object, then to ISO8601
+    last_date = if envelope_date.is_a?(String)
+      Time.parse(envelope_date).iso8601
+    elsif envelope_date.is_a?(Time)
+      envelope_date.iso8601
+    else
+      Time.now.iso8601
+    end
     
     # Count unique email addresses
     email_count = found_addresses.map { |a| [a.mailbox, a.host].join('@').downcase }.uniq.length

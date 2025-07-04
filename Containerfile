@@ -12,6 +12,5 @@ RUN bundle config set --local path vendor/bundle && \
     bundle install
 
 # Now copy the rest of the app
-COPY . .
-
+COPY --chown=1000:1000 . .
 # No default CMD — pass at runtime

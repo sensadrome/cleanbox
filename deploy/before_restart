@@ -13,27 +13,4 @@ def run_dont_care(cmd)
   system "umask 002 && #{cmd}"
 end
 
-def rack_env_from_env
-  hostname = `hostname`
-  case hostname
-  when /obdev|datanauts/
-    'staging'
-  when /.local$/
-    'local'
-  else
-    'production'
-  end
-end
-
-RACK_ENV = ENV['RACK_ENV'] || rack_env_from_env
-
-use_bundler = File.file? 'Gemfile'
-rake_cmd    = use_bundler ? 'bundle exec rake' : 'rake'
-
-if use_bundler
-  bundler_args = ['--deployment']
-
-  # update gem bundle
-  run "bundle install #{bundler_args.join(' ')}"
-end
-
+run "podman build -t cleanbox:latest ."

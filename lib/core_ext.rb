@@ -99,6 +99,19 @@ class Hash
   #
   # @return [true, false]
   alias blank? empty?
+
+  # Recursively merges self with another hash.
+  # If a value is a hash and the same key exists in both, it merges them.
+  # Otherwise, the value from the other hash overwrites the original.
+  def deep_merge(other_hash)
+    merge(other_hash) do |key, oldval, newval|
+      if oldval.is_a?(Hash) && newval.is_a?(Hash)
+        oldval.deep_merge(newval)
+      else
+        newval
+      end
+    end
+  end
 end
 
 class String

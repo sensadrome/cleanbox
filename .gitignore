@@ -1,1 +1,14 @@
 .pry_history
+.bundle
+vendor
+tmp
+log
+*.swp
+*.bak
+*.tmp
+*.env
+*.log
+cleanbox-run
+*.sock
+.idea/
+.vscode/

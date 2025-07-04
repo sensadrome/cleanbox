@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require 'optparse'
+require 'yaml'
 
 require 'rubygems'
 require 'bundler'
@@ -28,6 +29,9 @@ require 'logger'
 
 SECRETS_PATH = '/var/run/secrets/'
 
+# Config file path - can be overridden by CLEANBOX_CONFIG environment variable
+CONFIG_PATH = ENV.fetch('CLEANBOX_CONFIG', File.expand_path('~/.cleanbox.yml'))
+
 def value_from_env_or_secrets(variable)
   val = ENV[variable.to_s.upcase] || password_from_secrets(variable.to_s)
   val.chomp if val.present?
@@ -44,31 +48,67 @@ def secrets_path
   ENV.fetch('SECRETS_PATH') { SECRETS_PATH }
 end
 
+def determine_auth_type(host, auth_type)
+  return auth_type if auth_type.present?
+  
+  # Auto-detect based on host
+  case host
+  when /outlook\.office365\.com/
+    'oauth2_microsoft'
+  when /imap\.gmail\.com/
+    'oauth2_gmail'
+  else
+    'password'  # Default to password auth for other IMAP servers
+  end
+end
+
+def authenticate_imap(imap, options)
+  auth_type = determine_auth_type(options[:host], options[:auth_type])
+  
+  case auth_type
+  when 'oauth2_microsoft'
+    token_request = Microsoft365ApplicationToken.new(
+      options[:client_id], 
+      options[:client_secret], 
+      options[:tenant_id]
+    )
+    imap.authenticate('XOAUTH2', options[:username], token_request.token)
+  when 'oauth2_gmail'
+    # TODO: Implement Gmail OAuth2 when needed
+    raise "Gmail OAuth2 not yet implemented"
+  when 'password'
+    imap.authenticate('PLAIN', options[:username], options[:password])
+  else
+    raise "Unknown authentication type: #{auth_type}"
+  end
+end
+
 options = {
-  host: 'outlook.office365.com',
-  username: 'simon@sensadrome.com',
-  clean_folders: %w[Panto Friends Family Work],
-  whitelisted_domains: %w[filmfinances.co.uk datanauts.co.uk],
-  list_domains: %w[facebookmail.com ebay.co.uk],
-  list_folders: ['Admin', 'Amazon', 'Lists', 'Interests', 'Notifications', 'School',
-                 'Shopping', 'Apple', 'Ebay', 'TV and Film', 'Misc'],
-  domain_map: {
-    'facebookmail.com' => 'Facebook',
-    'developers.facebook.com' => 'Facebook',
-    'ebay.co.uk' => 'Ebay',
-    'apple.com' => 'Apple',
-    'github.com' => 'GitHub'
-  },
+  host: '',
+  username: nil,
+  auth_type: nil,  # oauth2_microsoft, oauth2_gmail, password
+  clean_folders: [],
+  whitelisted_domains: [],
+  list_domains: [],
+  list_folders: [],
+  domain_map: {},
   pretend: false,
   sent_folder: 'Sent Items',
   move_read: false,
   client_id: value_from_env_or_secrets(:client_id),
   client_secret: value_from_env_or_secrets(:client_secret),
   tenant_id: value_from_env_or_secrets(:tenant_id),
+  password: value_from_env_or_secrets(:password),
   unjunk: false,
   unjunk_folders: [],
   file_from_folders: []
 }
+
+# Load config file if it exists
+if File.exist?(CONFIG_PATH)
+  config_options = YAML.load_file(CONFIG_PATH) || {}
+  options = options.deep_merge(config_options)
+end
 
 action = 'clean!'
 
@@ -100,7 +140,7 @@ parsed_options = OptionParser.new do |opts|
     options[:host] = val
   end
 
-  opts.on('-u', '--user', 'Set IMAP username') do |val|
+  opts.on('-u', '--user USERNAME', 'Set IMAP username') do |val|
     options[:username] = val
   end
 
@@ -160,18 +200,39 @@ end
 # rubocop:enable Metrics/BlockLength
 
 parsed_options.parse!
+
+# Validate required options
+if options[:host].blank?
+  puts "Error: IMAP host is required. Set it in ~/.cleanbox.yml or use --host option."
+  exit 1
+end
+
+if options[:username].blank?
+  puts "Error: IMAP username is required. Set it in ~/.cleanbox.yml or use --user option."
+  exit 1
+end
+
+# Validate authentication requirements
+auth_type = determine_auth_type(options[:host], options[:auth_type])
+case auth_type
+when 'oauth2_microsoft'
+  if options[:client_id].blank? || options[:client_secret].blank? || options[:tenant_id].blank?
+    puts "Error: OAuth2 Microsoft requires client_id, client_secret, and tenant_id."
+    puts "Set them in environment variables or secrets."
+    exit 1
+  end
+when 'password'
+  if options[:password].blank?
+    puts "Error: Password authentication requires password."
+    puts "Set it in environment variables or secrets."
+    exit 1
+  end
+end
+
 # Net::IMAP.debug = true
 
-client_id = options.delete(:client_id)
-client_secret = options.delete(:client_secret)
-tenant_id = options.delete(:tenant_id)
-
-token_request = Microsoft365ApplicationToken.new(client_id, client_secret, tenant_id)
 imap = Net::IMAP.new(options.delete(:host), ssl: true)
-imap.authenticate('XOAUTH2', options.delete(:username), token_request.token)
-
-# imap.authenticate 'PLAIN', options.delete(:username), options.delete(:password)
-# imap.send(:send_command, 'GETMETADATA', 'Deleted Messages', '/private/specialuse')
+authenticate_imap(imap, options)
 
 action = 'show_lists!' if ARGV.last == 'list'
 action = 'file_messages!' if %w[file filing].include?(ARGV.last)

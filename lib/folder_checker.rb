@@ -21,7 +21,9 @@ class CleanboxFolderChecker < CleanboxConnection
   def domains
     return [] unless folder_exists?
 
-    found_addresses.map(&:host)
+    # Use cached email addresses if available, otherwise fetch
+    emails = email_addresses
+    emails.map { |email| email.split('@').last }.uniq
   end
 
   private

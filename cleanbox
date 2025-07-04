@@ -83,6 +83,196 @@ def authenticate_imap(imap, options)
   end
 end
 
+def load_config
+  return {} unless File.exist?(CONFIG_PATH)
+  config = YAML.load_file(CONFIG_PATH) || {}
+  # Convert string keys to symbols for consistency with options hash
+  config.transform_keys(&:to_sym)
+end
+
+def save_config(config)
+  FileUtils.mkdir_p(File.dirname(CONFIG_PATH))
+  File.write(CONFIG_PATH, config.to_yaml)
+  puts "Configuration saved to #{CONFIG_PATH}"
+end
+
+def handle_config_command(args)
+  command = args.first
+  
+  case command
+  when 'show'
+    config = load_config
+    if config.empty?
+      puts "No configuration file found at #{CONFIG_PATH}"
+    else
+      puts "Configuration from #{CONFIG_PATH}:"
+      puts config.to_yaml
+    end
+  
+  when 'get'
+    key = args[1]&.to_sym
+    if key.nil?
+      puts "Usage: cleanbox config get <key>"
+      exit 1
+    end
+    
+    config = load_config
+    value = config[key]
+    if value.nil?
+      puts "Key '#{key}' not found in configuration"
+    else
+      puts value.to_yaml
+    end
+  
+  when 'set'
+    key = args[1]&.to_sym
+    value = args[2]
+    
+    if key.nil? || value.blank?
+      puts "Usage: cleanbox config set <key> <value>"
+      puts "For complex values, edit the config file directly: #{CONFIG_PATH}"
+      exit 1
+    end
+    
+    config = load_config
+    
+    # Try to parse value as YAML for complex types
+    begin
+      parsed_value = YAML.load(value)
+      config[key] = parsed_value
+    rescue
+      # If YAML parsing fails, treat as string
+      config[key] = value
+    end
+    
+    save_config(config)
+  
+  when 'add'
+    key = args[1]&.to_sym
+    value = args[2]
+    
+    if key.nil? || value.blank?
+      puts "Usage: cleanbox config add <key> <value>"
+      puts "This will append to arrays or merge with hashes"
+      exit 1
+    end
+    
+    config = load_config
+    
+    # Try to parse value as YAML for complex types
+    begin
+      parsed_value = YAML.load(value)
+    rescue
+      # If YAML parsing fails, treat as string
+      parsed_value = value
+    end
+    
+    # Handle different types
+    if config[key].is_a?(Array)
+      # Append to array
+      config[key] << parsed_value
+      puts "Added '#{parsed_value}' to #{key}"
+    elsif config[key].is_a?(Hash) && parsed_value.is_a?(Hash)
+      # Merge with hash
+      config[key] = config[key].deep_merge(parsed_value)
+      puts "Merged hash into #{key}"
+    elsif config[key].nil?
+      # Create new array or hash based on value type
+      if parsed_value.is_a?(Hash)
+        config[key] = parsed_value
+        puts "Created new hash for #{key}"
+      else
+        config[key] = [parsed_value]
+        puts "Created new array for #{key} with '#{parsed_value}'"
+      end
+    else
+      puts "Cannot add to #{key} (type: #{config[key].class})"
+      exit 1
+    end
+    
+    save_config(config)
+  
+  when 'remove'
+    key = args[1]&.to_sym
+    value = args[2]
+    
+    if key.nil? || value.blank?
+      puts "Usage: cleanbox config remove <key> <value>"
+      puts "This will remove from arrays or delete keys from hashes"
+      exit 1
+    end
+    
+    config = load_config
+    
+    # Try to parse value as YAML for complex types
+    begin
+      parsed_value = YAML.load(value)
+    rescue
+      # If YAML parsing fails, treat as string
+      parsed_value = value
+    end
+    
+    # Handle different types
+    if config[key].is_a?(Array)
+      # Remove from array
+      if config[key].include?(parsed_value)
+        config[key].delete(parsed_value)
+        puts "Removed '#{parsed_value}' from #{key}"
+      else
+        puts "Value '#{parsed_value}' not found in #{key}"
+      end
+    elsif config[key].is_a?(Hash) && parsed_value.is_a?(Hash)
+      # Remove keys from hash
+      removed_keys = []
+      parsed_value.each_key do |k|
+        if config[key].key?(k)
+          config[key].delete(k)
+          removed_keys << k
+        end
+      end
+      if removed_keys.any?
+        puts "Removed keys #{removed_keys.join(', ')} from #{key}"
+      else
+        puts "No matching keys found in #{key}"
+      end
+    elsif config[key].nil?
+      puts "Key '#{key}' not found in configuration"
+      exit 1
+    else
+      puts "Cannot remove from #{key} (type: #{config[key].class})"
+      exit 1
+    end
+    
+    save_config(config)
+  
+  when 'init'
+    if File.exist?(CONFIG_PATH)
+      puts "Configuration file already exists at #{CONFIG_PATH}"
+      puts "Use 'cleanbox config show' to view it"
+    else
+      default_config = {
+        'host' => 'outlook.office365.com',
+        'username' => 'your-email@example.com',
+        'auth_type' => 'oauth2_microsoft',
+        'clean_folders' => ['Work', 'Personal'],
+        'whitelisted_domains' => ['example.com'],
+        'list_folders' => ['Lists', 'Notifications'],
+        'domain_map' => {
+          'example.com' => 'Example'
+        }
+      }
+      save_config(default_config)
+      puts "Initial configuration created at #{CONFIG_PATH}"
+      puts "Please edit it with your actual settings"
+    end
+  
+  else
+    puts "Unknown config command: #{command}"
+    puts "Available commands: show, get, set, add, remove, init"
+    exit 1
+  end
+end
+
 options = {
   host: '',
   username: nil,
@@ -106,7 +296,7 @@ options = {
 
 # Load config file if it exists
 if File.exist?(CONFIG_PATH)
-  config_options = YAML.load_file(CONFIG_PATH) || {}
+  config_options = load_config
   options = options.deep_merge(config_options)
 end
 
@@ -196,6 +386,9 @@ parsed_options = OptionParser.new do |opts|
   opts.separator '  folders'
   opts.separator '    list all folders'
   opts.separator ''
+  opts.separator '  config'
+  opts.separator '    manage configuration file'
+  opts.separator ''
 end
 # rubocop:enable Metrics/BlockLength
 
@@ -230,6 +423,12 @@ when 'password'
 end
 
 # Net::IMAP.debug = true
+
+# Handle config commands first
+if ARGV.first == 'config'
+  handle_config_command(ARGV[1..-1])
+  exit 0
+end
 
 imap = Net::IMAP.new(options.delete(:host), ssl: true)
 authenticate_imap(imap, options)

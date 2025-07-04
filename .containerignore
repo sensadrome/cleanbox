@@ -1,0 +1,17 @@
+.git
+.bundle
+vendor
+tmp
+log
+test
+spec
+*.swp
+*.bak
+*.tmp
+*.env
+*.log
+cleanbox-run
+*.sock
+.idea/
+.vscode/
+.pry_history

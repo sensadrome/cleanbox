@@ -51,7 +51,7 @@ class CleanboxFolderChecker < CleanboxConnection
     return nil unless cache
     
     current_stats = get_folder_stats
-    return nil unless self.class.cache_valid?(folder, current_stats[:email_count], current_stats[:last_message_date])
+    return nil unless self.class.cache_valid?(folder, current_stats)
     
     logger.debug "Using cached email addresses for folder #{folder}"
     cache['emails']
@@ -67,8 +67,7 @@ class CleanboxFolderChecker < CleanboxConnection
       current_stats = get_folder_stats
       cache_data = {
         'emails' => emails,
-        'email_count' => emails.length,
-        'last_message_date' => current_stats[:last_message_date],
+        'stats' => current_stats,
         'cached_at' => Time.now.iso8601
       }
       self.class.save_folder_cache(folder, cache_data)
@@ -79,25 +78,16 @@ class CleanboxFolderChecker < CleanboxConnection
   end
 
   def get_folder_stats
-    return { email_count: 0, last_message_date: Time.now.iso8601 } unless message_ids.present?
+    return { messages: 0, uidnext: 0, uidvalidity: 0 } unless folder_exists?
     
-    # Get the last message date
-    last_message = imap_connection.fetch(message_ids.last, 'ENVELOPE').first
-    envelope_date = last_message.attr['ENVELOPE'].date
+    # Get IMAP folder status - much faster than processing messages
+    status = imap_connection.status(folder, %w[MESSAGES UIDNEXT UIDVALIDITY])
     
-    # Convert string date to Time object, then to ISO8601
-    last_date = if envelope_date.is_a?(String)
-      Time.parse(envelope_date).iso8601
-    elsif envelope_date.is_a?(Time)
-      envelope_date.iso8601
-    else
-      Time.now.iso8601
-    end
-    
-    # Count unique email addresses
-    email_count = found_addresses.map { |a| [a.mailbox, a.host].join('@').downcase }.uniq.length
-    
-    { email_count: email_count, last_message_date: last_date }
+    {
+      messages: status['MESSAGES']&.to_i || 0,
+      uidnext: status['UIDNEXT']&.to_i || 0,
+      uidvalidity: status['UIDVALIDITY']&.to_i || 0
+    }
   end
 
   def cache_enabled?
@@ -166,21 +156,38 @@ class CleanboxFolderChecker < CleanboxConnection
       File.write(cache_file, cache_data.to_yaml)
     end
 
-    def cache_valid?(folder_name, current_email_count, current_last_message_date)
+    def cache_valid?(folder_name, current_stats)
       cache = load_folder_cache(folder_name)
       return false unless cache
       
-      # Check if email count matches
-      return false unless cache['email_count'] == current_email_count
+      cached_stats = cache['stats']
+      return false unless cached_stats
       
-      # Check if last message date is the same or newer
-      cached_date = Time.parse(cache['last_message_date']) rescue nil
-      current_date = Time.parse(current_last_message_date) rescue nil
-      
-      return false unless cached_date && current_date
-      return false unless current_date <= cached_date
+      # Check if any of the IMAP status values have changed
+      return false unless cached_stats['messages'] == current_stats[:messages]
+      return false unless cached_stats['uidnext'] == current_stats[:uidnext]
+      return false unless cached_stats['uidvalidity'] == current_stats[:uidvalidity]
       
       true
+    end
+
+    def update_cache_stats(folder_name, imap_connection)
+      cache = load_folder_cache(folder_name)
+      return unless cache
+      
+      # Get current folder stats
+      status = imap_connection.status(folder_name, %w[MESSAGES UIDNEXT UIDVALIDITY])
+      current_stats = {
+        messages: status['MESSAGES']&.to_i || 0,
+        uidnext: status['UIDNEXT']&.to_i || 0,
+        uidvalidity: status['UIDVALIDITY']&.to_i || 0
+      }
+      
+      # Update cache with new stats (keep existing emails)
+      cache['stats'] = current_stats
+      cache['cached_at'] = Time.now.iso8601
+      
+      save_folder_cache(folder_name, cache)
     end
   end
 end

@@ -65,6 +65,9 @@ class CleanboxMessage < SimpleDelegator
     cleanbox.add_folder(folder)
     imap_connection.copy(seqno, folder)
     imap_connection.store(seqno, '+FLAGS', [:Deleted])
+    
+    # Update cache stats for the destination folder since we just added a message
+    CleanboxFolderChecker.update_cache_stats(folder, imap_connection)
   end
 
   def pretend?

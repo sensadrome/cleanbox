@@ -164,9 +164,9 @@ class CleanboxFolderChecker < CleanboxConnection
       return false unless cached_stats
       
       # Check if any of the IMAP status values have changed
-      return false unless cached_stats['messages'] == current_stats[:messages]
-      return false unless cached_stats['uidnext'] == current_stats[:uidnext]
-      return false unless cached_stats['uidvalidity'] == current_stats[:uidvalidity]
+      return false unless cached_stats[:messages] == current_stats[:messages]
+      return false unless cached_stats[:uidnext] == current_stats[:uidnext]
+      return false unless cached_stats[:uidvalidity] == current_stats[:uidvalidity]
       
       true
     end

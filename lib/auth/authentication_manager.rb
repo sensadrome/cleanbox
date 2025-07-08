@@ -4,9 +4,10 @@ require_relative '../microsoft_365_application_token'
 
 module Auth
   class AuthenticationManager
-    def self.determine_auth_type(host, auth_type)
-      return auth_type if auth_type.present?
-      
+    class << self
+      def determine_auth_type(host, auth_type)
+        return auth_type if auth_type.present?
+        
         # Auto-detect based on host
         case host
         when /outlook\.office365\.com/
@@ -18,7 +19,7 @@ module Auth
         end
       end
 
-      def self.authenticate_imap(imap, options)
+      def authenticate_imap(imap, options)
         auth_type = determine_auth_type(options[:host], options[:auth_type])
         
         case auth_type
@@ -35,22 +36,23 @@ module Auth
 
       private
 
-      def self.authenticate_microsoft_oauth2(imap, options)
+      def authenticate_microsoft_oauth2(imap, options)
         token_request = Microsoft365ApplicationToken.new(
           options[:client_id], 
           options[:client_secret], 
           options[:tenant_id]
-          )
+        )
         imap.authenticate('XOAUTH2', options[:username], token_request.token)
       end
 
-      def self.authenticate_gmail_oauth2(imap, options)
+      def authenticate_gmail_oauth2(imap, options)
         # TODO: Implement Gmail OAuth2 when needed
         raise "Gmail OAuth2 not yet implemented"
       end
 
-      def self.authenticate_password(imap, options)
+      def authenticate_password(imap, options)
         imap.authenticate('PLAIN', options[:username], options[:password])
       end
     end
-  end 
+  end
+end 

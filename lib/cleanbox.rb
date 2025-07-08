@@ -4,11 +4,11 @@
 # rubocop:disable Metrics/ClassLength
 class Cleanbox < CleanboxConnection
   attr_accessor :blacklisted_emails, :whitelisted_emails, :list_domains
-  attr_accessor :domain_map, :sender_map
+  attr_accessor :list_domain_map, :sender_map
 
   def initialize(imap_connection, options)
     super
-    @domain_map = options.delete(:domain_map) || {}
+    @list_domain_map = options.delete(:list_domain_map) || {}
     @sender_map = options.delete(:sender_map) || {}
   end
 
@@ -22,7 +22,7 @@ class Cleanbox < CleanboxConnection
 
   def show_lists!
     build_list_domains!
-    domain_map.sort.to_h.each_pair do |domain, folder|
+    list_domain_map.sort.to_h.each_pair do |domain, folder|
       puts "'#{domain}' => '#{folder}',"
     end
   end
@@ -106,18 +106,18 @@ class Cleanbox < CleanboxConnection
   def build_whitelist!
     logger.info 'Building White List....'
     @whitelisted_emails = (
-      email_addresses_from_clean_folders + sent_emails
+      email_addresses_from_whitelist_folders + sent_emails
     ).uniq
   end
 
-  def email_addresses_from_clean_folders
+  def email_addresses_from_whitelist_folders
     whitelist_folders.flat_map do |folder|
       CleanboxFolderChecker.new(imap_connection, folder: folder, logger: logger).email_addresses
     end.uniq
   end
 
   def whitelist_folders
-    options[:clean_folders] || []
+    options[:whitelist_folders] || []
   end
 
   def sent_emails
@@ -125,25 +125,16 @@ class Cleanbox < CleanboxConnection
                               folder: sent_folder,
                               logger: logger,
                               address: :to,
-                              since: since).email_addresses
+                              since: sent_since_date).email_addresses
   end
 
   def sent_folder
     options[:sent_folder] || imap_sent_folder || 'Sent'
   end
 
-  def since
-    since_date.strftime('%d-%b-%Y')
-  end
-
-  def since_date
-    Date.parse(options[:since])
-  rescue StandardError
-    default_since_date
-  end
-
-  def default_since_date
-    Date.today << 24
+  def sent_since_date
+    months = options[:sent_since_months] || 24
+    (Date.today << months).strftime('%d-%b-%Y')
   end
 
   def build_list_domains!
@@ -155,9 +146,9 @@ class Cleanbox < CleanboxConnection
     list_folders.flat_map do |folder|
       CleanboxFolderChecker.new(imap_connection,
                                 folder: folder, logger: logger,
-                                since: last_year).domains.tap do |domains|
+                                since: list_since_date).domains.tap do |domains|
         domains.each do |domain|
-          domain_map[domain] ||= folder
+          list_domain_map[domain] ||= folder
         end
       end
     end
@@ -195,8 +186,9 @@ class Cleanbox < CleanboxConnection
     imap_connection.expunge
   end
 
-  def last_year
-    (Date.today << 12).strftime('%d-%b-%Y')
+  def list_since_date
+    months = options[:list_since_months] || 12
+    (Date.today << months).strftime('%d-%b-%Y')
   end
 
   def build_sender_map!
@@ -237,7 +229,8 @@ class Cleanbox < CleanboxConnection
   def valid_from_date
     Date.parse(options[:valid_from])
   rescue StandardError
-    Date.today << 12
+    months = options[:valid_since_months] || 12
+    Date.today << months
   end
 
   def folders_to_file
@@ -263,13 +256,14 @@ class Cleanbox < CleanboxConnection
   def all_message_ids
     logger.debug date_search.inspect
     imap_connection.select 'INBOX'
-    imap_connection.search(%w[NOT DELETED] + date_search)
+    search_terms = %w[NOT DELETED] + date_search
+    # If file_unread is false (default), only file read messages (add 'SEEN')
+    search_terms << 'SEEN' unless options[:file_unread]
+    imap_connection.search(search_terms)
   end
 
   def date_search
-    return [] unless options[:since].present?
-
-    ['SINCE', since]
+    ['SINCE', list_since_date]
   end
 
   def junk_messages
@@ -279,7 +273,6 @@ class Cleanbox < CleanboxConnection
   end
 
   def junk_message_ids
-    # logger.debug date_search.inspect
     imap_connection.select imap_junk_folder
     imap_connection.search(%w[NOT DELETED] + date_search)
   end

@@ -39,6 +39,10 @@ module CLI
         @options[:pretend] = true
       end
 
+      opts.on('-c', '--config CONFIG_FILE', 'Specify configuration file (default: ~/.cleanbox.yml)') do |val|
+        @options[:config_file] = val
+      end
+
       loglevel_help = 'log level, should be one of debug, info, warn, error'
       opts.on('-L', '--level loglevel', loglevel_help) do |value|
         @options[:level] = value
@@ -78,11 +82,6 @@ module CLI
     end
 
     def setup_processing_options(opts)
-      since_help = 'Only apply to messages since <parseable date>'
-      opts.on('-s', '--since DATE', since_help) do |val|
-        @options[:since] = val
-      end
-
       valid_from_help = 'Use addresses found since this date (default 1 year ago)'
       opts.on('-f', '--valid-from DATE', valid_from_help) do |val|
         @options[:valid_from] = val
@@ -101,6 +100,9 @@ module CLI
     def setup_commands_help(opts)
       opts.separator ''
       opts.separator 'Commands:'
+      opts.separator ''
+      opts.separator '  setup'
+      opts.separator '    interactive setup wizard - analyzes your email and configures Cleanbox'
       opts.separator ''
       opts.separator '  list'
       opts.separator '    show the mapping of email addresses to folders for filing'

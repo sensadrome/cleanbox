@@ -119,13 +119,13 @@ class CleanboxMessage < SimpleDelegator
   end
 
   def folder_from_map
-    return unless domain_map.is_a?(Hash)
+    return unless list_domain_map.is_a?(Hash)
 
-    domain_map[from_domain]
+    list_domain_map[from_domain]
   end
 
-  def domain_map
-    cleanbox.domain_map
+  def list_domain_map
+    cleanbox.list_domain_map
   end
 
   def destination_folder

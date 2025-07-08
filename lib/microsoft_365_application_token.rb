@@ -21,7 +21,21 @@ class Microsoft365ApplicationToken
   private
 
   def token_request_result
-    @token_request_result ||= JSON.parse(token_request_response)
+    @token_request_result ||= begin
+      response_body = token_request_response
+      puts "DEBUG: Token response status: #{@response_code}" if ENV['CLEANBOX_DEBUG']
+      puts "DEBUG: Token response body: #{response_body}" if ENV['CLEANBOX_DEBUG']
+      
+      if response_body.empty?
+        raise "Empty response from Microsoft OAuth endpoint"
+      end
+      
+      JSON.parse(response_body)
+    rescue JSON::ParserError => e
+      puts "ERROR: Failed to parse OAuth response: #{e.message}"
+      puts "Response body: #{response_body}" if defined?(response_body)
+      raise "Invalid OAuth response from Microsoft: #{e.message}"
+    end
   end
 
   def token_request_response
@@ -31,8 +45,10 @@ class Microsoft365ApplicationToken
 
     request = Net::HTTP::Post.new(url)
     request.body = token_request_body
+    request['Content-Type'] = 'application/x-www-form-urlencoded'
 
     response = https.request(request)
+    @response_code = response.code
     response.read_body
   end
 

@@ -112,9 +112,14 @@ class CleanboxFolderChecker < CleanboxConnection
   end
 
   def date_search
-    return [] unless since.present?
-
-    ['SINCE', since]
+    # Use valid_from if present, otherwise use valid_since_months (default 12 months)
+    date = if options[:valid_from].present?
+      Date.parse(options[:valid_from])
+    else
+      months = options[:valid_since_months] || 12
+      Date.today << months
+    end
+    ['SINCE', date.strftime('%d-%b-%Y')]
   end
 
   def since

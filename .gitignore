@@ -12,3 +12,6 @@ cleanbox-run
 *.sock
 .idea/
 .vscode/
+.cleanbox.yml
+.secret
+cache/

@@ -1,6 +1,6 @@
 # Containerfile
 
-FROM ubi/ruby-26-bundler-2.2.9
+FROM registry.redhat.io/ubi8/ruby-27
 
 WORKDIR /opt/app-root/src
 

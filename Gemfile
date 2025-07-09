@@ -12,3 +12,12 @@ gem 'pry'
 gem 'pry-byebug'
 gem 'dotenv'
 # gem 'selenium-webdriver'
+
+# Testing gems
+group :test, :development do
+  gem 'rspec'
+  gem 'rspec-mocks'
+  gem 'webmock'
+  gem 'vcr'
+  gem 'simplecov', require: false
+end

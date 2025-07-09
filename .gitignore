@@ -15,3 +15,6 @@ cleanbox-run
 .cleanbox.yml
 .secret
 cache/
+coverage/
+.sublime-ai
+.ruby-version

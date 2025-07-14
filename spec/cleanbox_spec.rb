@@ -22,6 +22,9 @@ RSpec.describe Cleanbox do
   let(:cleanbox) { described_class.new(mock_imap, options) }
 
   before do
+    # Mock the logger to prevent output during tests
+    allow(cleanbox).to receive(:logger).and_return(double('logger', info: nil, debug: nil, warn: nil, error: nil))
+    
     # Mock IMAP connection behavior
     allow(mock_imap).to receive(:select)
     allow(mock_imap).to receive(:search).and_return([])

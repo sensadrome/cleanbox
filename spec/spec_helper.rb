@@ -55,6 +55,9 @@ require 'cleanbox'
 require 'folder_checker'
 
 RSpec.configure do |config|
+  # Disable profiling output completely
+  config.profile_examples = nil
+
   # rspec-expectations config goes here. You can use an alternate
   # assertion/expectation library such as wrong or the stdlib/minitest
   # assertions if you prefer.
@@ -118,11 +121,6 @@ RSpec.configure do |config|
     # (e.g. via a command-line flag).
     config.default_formatter = "doc"
   end
-
-  # Print the 10 slowest examples and example groups at the
-  # end of the spec run, to help surface which specs are running
-  # particularly slow.
-  config.profile_examples = 10
 
   # Run specs in random order to surface order dependencies. If you find an
   # order dependency and want to debug it, you can fix the order by providing

@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'yaml'
+
 # Utility class for checking folders
 class CleanboxFolderChecker < CleanboxConnection
   def initialize(imap_connection, options)
@@ -151,7 +153,7 @@ class CleanboxFolderChecker < CleanboxConnection
       return nil unless File.exist?(cache_file)
       
       YAML.load_file(cache_file)
-    rescue
+    rescue Psych::SyntaxError, StandardError
       nil
     end
 

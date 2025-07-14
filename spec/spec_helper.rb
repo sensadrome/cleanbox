@@ -1,3 +1,12 @@
+require 'tmpdir'
+require 'securerandom'
+require 'logger'
+require 'yaml'
+
+# Main application entry point
+require_relative '../lib/connection'
+require_relative '../lib/cleanbox'
+
 # Start SimpleCov for code coverage reporting
 require 'simplecov'
 SimpleCov.start do

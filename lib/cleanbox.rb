@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'logger'
+
 # main class
 # rubocop:disable Metrics/ClassLength
 class Cleanbox < CleanboxConnection
@@ -54,7 +56,7 @@ class Cleanbox < CleanboxConnection
   end
 
   def pretending?
-    options[:pretend]
+    !!options[:pretend]
   end
 
   def whitelisted_domains
@@ -68,7 +70,7 @@ class Cleanbox < CleanboxConnection
   end
 
   def unjunking?
-    options[:unjunk]
+    !!options[:unjunk]
   end
 
   private

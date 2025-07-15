@@ -6,10 +6,11 @@ require 'uri'
 class Microsoft365ApplicationToken
   attr_accessor :client_id, :client_secret, :tenant_id
 
-  def initialize(client_id, client_secret, tenant_id)
+  def initialize(client_id, client_secret, tenant_id, logger: nil)
     @client_id = client_id
     @client_secret = client_secret
     @tenant_id = tenant_id
+    @logger = logger || Logger.new(STDOUT)
   end
 
   def token
@@ -23,8 +24,8 @@ class Microsoft365ApplicationToken
   def token_request_result
     @token_request_result ||= begin
       response_body = token_request_response
-      puts "DEBUG: Token response status: #{@response_code}" if ENV['CLEANBOX_DEBUG']
-      puts "DEBUG: Token response body: #{response_body}" if ENV['CLEANBOX_DEBUG']
+      @logger.debug "Token response status: #{@response_code}" if ENV['CLEANBOX_DEBUG']
+      @logger.debug "Token response body: #{response_body}" if ENV['CLEANBOX_DEBUG']
       
       if response_body.empty?
         raise "Empty response from Microsoft OAuth endpoint"
@@ -32,8 +33,8 @@ class Microsoft365ApplicationToken
       
       JSON.parse(response_body)
     rescue JSON::ParserError => e
-      puts "ERROR: Failed to parse OAuth response: #{e.message}"
-      puts "Response body: #{response_body}" if defined?(response_body)
+      @logger.error "Failed to parse OAuth response: #{e.message}"
+      @logger.error "Response body: #{response_body}" if defined?(response_body)
       raise "Invalid OAuth response from Microsoft: #{e.message}"
     end
   end

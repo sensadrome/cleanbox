@@ -40,7 +40,8 @@ module Auth
         token_request = Microsoft365ApplicationToken.new(
           options[:client_id], 
           options[:client_secret], 
-          options[:tenant_id]
+          options[:tenant_id],
+          logger: options[:logger]
         )
         imap.authenticate('XOAUTH2', options[:username], token_request.token)
       end

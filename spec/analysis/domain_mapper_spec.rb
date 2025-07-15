@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
+require 'fileutils'
 
 RSpec.describe Analysis::DomainMapper do
   let(:folders) do
@@ -28,6 +29,89 @@ RSpec.describe Analysis::DomainMapper do
   
   let(:mapper) { described_class.new(folders) }
   
+  describe 'domain rules file resolution' do
+    let(:user_file) { File.expand_path('~/.cleanbox/domain_rules.yml') }
+    let(:default_file) { File.expand_path('../../../config/domain_rules.yml', __FILE__) }
+    let(:custom_user_rules) do
+      {
+        'domain_patterns' => {
+          'custom\.com' => ['custom1.com', 'custom2.com']
+        },
+        'folder_patterns' => {
+          '^custom$' => ['custom1.com', 'custom2.com']
+        }
+      }
+    end
+    let(:custom_default_rules) do
+      {
+        'domain_patterns' => {
+          'default\.com' => ['default1.com']
+        },
+        'folder_patterns' => {
+          '^default$' => ['default1.com']
+        }
+      }
+    end
+    let(:empty_rules) { { 'domain_patterns' => {}, 'folder_patterns' => {} } }
+
+    before do
+      # Prevent actual file system access
+      allow(File).to receive(:exist?).and_call_original
+      allow(YAML).to receive(:load_file).and_call_original
+    end
+
+    after do
+      # Clean up any stubs
+      RSpec::Mocks.space.proxy_for(File).reset
+      RSpec::Mocks.space.proxy_for(YAML).reset
+    end
+
+    it 'loads the user file if present' do
+      allow(File).to receive(:exist?).with(user_file).and_return(true)
+      allow(YAML).to receive(:load_file).with(user_file).and_return(custom_user_rules)
+      allow(File).to receive(:exist?).with(default_file).and_return(true)
+      # Should use user file, not default
+      domain_mapper = described_class.new([])
+      expect(domain_mapper.send(:domain_rules)).to eq(custom_user_rules)
+    end
+
+    it 'loads the default file if user file is absent' do
+      allow(File).to receive(:exist?).with(user_file).and_return(false)
+      allow(File).to receive(:exist?).with(default_file).and_return(true)
+      allow(YAML).to receive(:load_file).with(default_file).and_return(custom_default_rules)
+      domain_mapper = described_class.new([])
+      expect(domain_mapper.send(:domain_rules)).to eq(custom_default_rules)
+    end
+
+    it 'returns empty rules and logs warning if neither file exists' do
+      allow(File).to receive(:exist?).with(user_file).and_return(false)
+      allow(File).to receive(:exist?).with(default_file).and_return(false)
+      
+      logger = double('logger')
+      allow(logger).to receive(:debug)
+      allow(logger).to receive(:warn)
+      
+      domain_mapper = described_class.new([], logger: logger)
+      expect(domain_mapper.send(:domain_rules)).to eq(empty_rules)
+      expect(logger).to have_received(:warn).with('No domain rules files found. Domain mapping will be disabled.')
+      expect(logger).to have_received(:warn).with("Run 'cleanbox config init-domain-rules' to create a default configuration.")
+    end
+
+    it 'returns empty rules when YAML file is corrupted' do
+      allow(File).to receive(:exist?).with(user_file).and_return(false)
+      allow(File).to receive(:exist?).with(default_file).and_return(true)
+      allow(YAML).to receive(:load_file).with(default_file).and_raise(Psych::SyntaxError, 'Invalid YAML')
+      
+      logger = double('logger')
+      allow(logger).to receive(:debug)
+      allow(logger).to receive(:warn)
+      
+      domain_mapper = described_class.new([], logger: logger)
+      expect(domain_mapper.send(:domain_rules)).to eq(empty_rules)
+      expect(logger).to have_received(:warn).with(/Failed to load domain rules from/)
+    end
+  end
+
   describe '#initialize' do
     it 'creates a new domain mapper with folders' do
       expect(mapper.instance_variable_get(:@folders)).to eq(folders)

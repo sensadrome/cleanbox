@@ -1,9 +1,13 @@
 # frozen_string_literal: true
 
 require 'logger'
+require 'yaml'
 
 module Analysis
   class DomainMapper
+    DEFAULT_DOMAIN_RULES_FILE = File.expand_path('../../../config/domain_rules.yml', __FILE__)
+    USER_DOMAIN_RULES_FILE = File.expand_path('~/.cleanbox/domain_rules.yml')
+    
     def initialize(folders, logger: nil)
       @folders = folders
       @logger = logger || Logger.new(STDOUT)
@@ -37,79 +41,64 @@ module Analysis
     
     private
     
-    def find_related_domains(domain)
-      case domain.downcase
-      when /github\.com/
-        ['githubusercontent.com', 'github.io', 'githubapp.com']
-      when /facebook\.com/
-        ['facebookmail.com', 'fb.com', 'messenger.com']
-      when /amazon\.(com|co\.uk|de|fr|ca|com\.au)/
-        # If we find any Amazon domain, suggest other Amazon domains
-        ['amazon.com', 'amazon.co.uk', 'amazon.de', 'amazon.fr', 'amazon.ca', 'amazon.com.au']
-      when /ebay\.(com|co\.uk|de|fr|com\.au)/
-        # If we find any eBay domain, suggest other eBay domains
-        ['ebay.com', 'ebay.co.uk', 'ebay.de', 'ebay.fr', 'ebay.com.au']
-      when /paypal\.(com|co\.uk|de|fr)/
-        # If we find any PayPal domain, suggest other PayPal domains
-        ['paypal.com', 'paypal.co.uk', 'paypal.de', 'paypal.fr']
-      when /apple\.com/
-        ['email.apple.com', 'appleid.apple.com']
-      when /shopify\.com/
-        ['shopifyemail.com', 'm.shopifyemail.com']
-      when /stripe\.com/
-        ['stripe.com', 'mail.stripe.com']
-      when /linkedin\.com/
-        ['linkedinmail.com']
-      when /twitter\.com/
-        ['t.co']
-      when /instagram\.com/
-        ['mail.instagram.com']
-      when /netflix\.com/
-        ['members.netflix.com']
-      when /spotify\.com/
-        ['email.spotify.com']
-      when /google\.com/
-        ['accounts.google.com', 'mail.google.com']
-      when /microsoft\.com/
-        ['outlook.com', 'office365.com']
+    def domain_rules
+      @domain_rules ||= load_domain_rules
+    end
+    
+    def load_domain_rules
+      # Try user custom file first
+      if File.exist?(USER_DOMAIN_RULES_FILE)
+        @logger.debug "Loading domain rules from user file: #{USER_DOMAIN_RULES_FILE}"
+        load_yaml_file(USER_DOMAIN_RULES_FILE)
+      # Fall back to repo default file
+      elsif File.exist?(DEFAULT_DOMAIN_RULES_FILE)
+        @logger.debug "Loading domain rules from default file: #{DEFAULT_DOMAIN_RULES_FILE}"
+        load_yaml_file(DEFAULT_DOMAIN_RULES_FILE)
+      # Fall back to empty rules with warning
       else
-        [] # No known variations
+        @logger.warn "No domain rules files found. Domain mapping will be disabled."
+        @logger.warn "Run 'cleanbox config init-domain-rules' to create a default configuration."
+        { 'domain_patterns' => {}, 'folder_patterns' => {} }
       end
     end
     
-    def suggest_domains_for_folder(folder_name)
-      case folder_name.downcase
-      when /^facebook$/i
-        ['facebookmail.com', 'fb.com', 'messenger.com', 'developers.facebook.com']
-      when /^github$/i
-        ['githubusercontent.com', 'github.io', 'githubapp.com']
-      when /^amazon$/i
-        ['amazon.co.uk', 'amazon.de', 'amazon.fr', 'amazon.ca', 'amazon.com.au']
-      when /^apple$/i
-        ['appleid.apple.com', 'email.apple.com', 'apple.com']
-      when /^ebay$/i
-        ['ebay.co.uk', 'ebay.de', 'ebay.fr', 'ebay.com.au']
-      when /^paypal$/i
-        ['paypal.co.uk', 'paypal.de', 'paypal.fr']
-      when /^linkedin$/i
-        ['linkedin.com', 'linkedinmail.com']
-      when /^twitter$/i
-        ['twitter.com', 't.co']
-      when /^instagram$/i
-        ['instagram.com', 'mail.instagram.com']
-      when /^netflix$/i
-        ['netflix.com', 'members.netflix.com']
-      when /^spotify$/i
-        ['spotify.com', 'email.spotify.com']
-      when /^youtube$/i
-        ['youtube.com', 'noreply@youtube.com']
-      when /^google$/i
-        ['google.com', 'accounts.google.com', 'mail.google.com']
-      when /^microsoft$/i, /^outlook$/i
-        ['microsoft.com', 'outlook.com', 'office365.com']
-      else
-        [] # No known suggestions for this folder
+    def domain_mappings
+      domain_rules['domain_patterns'] || {}
+    end
+    
+    def folder_suggestions
+      domain_rules['folder_patterns'] || {}
+    end
+    
+    def load_yaml_file(file_path)
+      YAML.load_file(file_path)
+    rescue => e
+      @logger.warn "Failed to load domain rules from #{file_path}: #{e.message}"
+      { 'domain_patterns' => {}, 'folder_patterns' => {} }
+    end
+    
+    def find_related_domains(domain)
+      domain_lower = domain.downcase
+      
+      domain_mappings.each do |pattern, related_domains|
+        if domain_lower.match?(pattern)
+          return related_domains
+        end
       end
+      
+      [] # No known variations
+    end
+    
+    def suggest_domains_for_folder(folder_name)
+      folder_lower = folder_name.downcase
+      
+      folder_suggestions.each do |pattern, suggested_domains|
+        if folder_lower.match?(pattern)
+          return suggested_domains
+        end
+      end
+      
+      [] # No known suggestions for this folder
     end
     
     def has_folder_for_domain?(domain)

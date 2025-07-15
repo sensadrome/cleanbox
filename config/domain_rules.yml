@@ -1,0 +1,170 @@
+# Domain Rules for Cleanbox
+# This file defines patterns for automatically filing related email domains
+#
+# domain_patterns: When Cleanbox finds emails from a domain, suggest these related domains
+# folder_patterns: When Cleanbox has a folder with this name, suggest these domains
+
+domain_patterns:
+  # GitHub domains
+  github\.com:
+    - githubusercontent.com
+    - github.io
+    - githubapp.com
+  
+  # Facebook domains
+  facebook\.com:
+    - facebookmail.com
+    - fb.com
+    - messenger.com
+  
+  # Amazon domains (international)
+  amazon\.(com|co\.uk|de|fr|ca|com\.au):
+    - amazon.com
+    - amazon.co.uk
+    - amazon.de
+    - amazon.fr
+    - amazon.ca
+    - amazon.com.au
+  
+  # eBay domains (international)
+  ebay\.(com|co\.uk|de|fr|com\.au):
+    - ebay.com
+    - ebay.co.uk
+    - ebay.de
+    - ebay.fr
+    - ebay.com.au
+  
+  # PayPal domains (international)
+  paypal\.(com|co\.uk|de|fr):
+    - paypal.com
+    - paypal.co.uk
+    - paypal.de
+    - paypal.fr
+  
+  # Apple domains
+  apple\.com:
+    - email.apple.com
+    - appleid.apple.com
+  
+  # Shopify domains
+  shopify\.com:
+    - shopifyemail.com
+    - m.shopifyemail.com
+  
+  # Stripe domains
+  stripe\.com:
+    - stripe.com
+    - mail.stripe.com
+  
+  # LinkedIn domains
+  linkedin\.com:
+    - linkedinmail.com
+  
+  # Twitter domains
+  twitter\.com:
+    - t.co
+  
+  # Instagram domains
+  instagram\.com:
+    - mail.instagram.com
+  
+  # Netflix domains
+  netflix\.com:
+    - members.netflix.com
+  
+  # Spotify domains
+  spotify\.com:
+    - email.spotify.com
+  
+  # Google domains
+  google\.com:
+    - accounts.google.com
+    - mail.google.com
+  
+  # Microsoft domains
+  microsoft\.com:
+    - outlook.com
+    - office365.com
+
+folder_patterns:
+  # Facebook folder
+  ^facebook$:
+    - facebookmail.com
+    - fb.com
+    - messenger.com
+    - developers.facebook.com
+  
+  # GitHub folder
+  ^github$:
+    - githubusercontent.com
+    - github.io
+    - githubapp.com
+  
+  # Amazon folder
+  ^amazon$:
+    - amazon.co.uk
+    - amazon.de
+    - amazon.fr
+    - amazon.ca
+    - amazon.com.au
+  
+  # Apple folder
+  ^apple$:
+    - appleid.apple.com
+    - email.apple.com
+    - apple.com
+  
+  # eBay folder
+  ^ebay$:
+    - ebay.co.uk
+    - ebay.de
+    - ebay.fr
+    - ebay.com.au
+  
+  # PayPal folder
+  ^paypal$:
+    - paypal.co.uk
+    - paypal.de
+    - paypal.fr
+  
+  # LinkedIn folder
+  ^linkedin$:
+    - linkedin.com
+    - linkedinmail.com
+  
+  # Twitter folder
+  ^twitter$:
+    - twitter.com
+    - t.co
+  
+  # Instagram folder
+  ^instagram$:
+    - instagram.com
+    - mail.instagram.com
+  
+  # Netflix folder
+  ^netflix$:
+    - netflix.com
+    - members.netflix.com
+  
+  # Spotify folder
+  ^spotify$:
+    - spotify.com
+    - email.spotify.com
+  
+  # YouTube folder
+  ^youtube$:
+    - youtube.com
+    - noreply@youtube.com
+  
+  # Google folder
+  ^google$:
+    - google.com
+    - accounts.google.com
+    - mail.google.com
+  
+  # Microsoft/Outlook folder
+  ^microsoft$|^outlook$:
+    - microsoft.com
+    - outlook.com
+    - office365.com 

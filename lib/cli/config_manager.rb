@@ -167,6 +167,33 @@ module CLI
         end
       end
 
+      def init_domain_rules
+        default_domain_rules_path = File.expand_path('../../../config/domain_rules.yml', __FILE__)
+        user_domain_rules_path = File.expand_path('~/.cleanbox/domain_rules.yml')
+
+        if File.exist?(user_domain_rules_path)
+          puts "Domain rules file already exists at #{user_domain_rules_path}"
+          puts "Edit it to customize your domain mappings"
+        else
+          unless File.exist?(default_domain_rules_path)
+            puts "Error: Default domain rules file not found at #{default_domain_rules_path}"
+            exit 1
+          end
+          
+          FileUtils.mkdir_p(File.dirname(user_domain_rules_path))
+          FileUtils.cp(default_domain_rules_path, user_domain_rules_path)
+          puts "✅ Domain rules file created at #{user_domain_rules_path}"
+          puts ""
+          puts "This file contains patterns for automatically filing related email domains."
+          puts "Edit it to customize your domain mappings, then restart cleanbox."
+          puts ""
+          puts "Examples of what you can customize:"
+          puts "  - Add new domain patterns for your favorite services"
+          puts "  - Modify existing patterns to match your email organization"
+          puts "  - Add company-specific domains for automatic filing"
+        end
+      end
+
       def load_config
         return {} unless File.exist?(@config_path)
         config = YAML.load_file(@config_path) || {}
@@ -225,9 +252,11 @@ module CLI
           remove(key, value)
         when 'init'
           init
+        when 'init-domain-rules'
+          init_domain_rules
         else
           puts "Unknown config command: #{command}"
-          puts "Available commands: show, get, set, add, remove, init"
+          puts "Available commands: show, get, set, add, remove, init, init-domain-rules"
           exit 1
         end
       end

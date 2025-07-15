@@ -41,6 +41,9 @@ RSpec.describe CLI::CleanboxCLI do
         allow(cli).to receive(:exit)
         # Mock the execute_action to prevent network calls
         allow(cli).to receive(:execute_action)
+        # Mock ARGV to be empty
+        allow(ARGV).to receive(:empty?).and_return(true)
+        allow(ARGV).to receive(:include?).and_return(false)
       end
 
       it 'shows help' do
@@ -54,6 +57,9 @@ RSpec.describe CLI::CleanboxCLI do
         ARGV.replace(['setup'])
         allow(CLI::SetupWizard).to receive(:new).and_return(double(run: nil))
         allow(cli).to receive(:exit)
+        # Mock puts to suppress CLI output during tests
+        allow($stdout).to receive(:puts)
+        allow($stderr).to receive(:puts)
       end
 
       after do

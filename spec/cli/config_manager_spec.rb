@@ -61,6 +61,9 @@ RSpec.describe CLI::ConfigManager do
     end
 
     it 'saves configuration to file' do
+      # Mock puts to suppress output during tests
+      allow($stdout).to receive(:puts)
+      
       config_manager.save_config(test_config)
       
       expect(File.exist?(temp_config_path)).to be true

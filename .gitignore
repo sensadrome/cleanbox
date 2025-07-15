@@ -18,3 +18,4 @@ cache/
 coverage/
 .sublime-ai
 .ruby-version
+spec/examples.txt

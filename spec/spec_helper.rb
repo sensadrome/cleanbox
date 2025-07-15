@@ -58,6 +58,21 @@ RSpec.configure do |config|
   # Disable profiling output completely
   config.profile_examples = nil
 
+  # Set log level to FATAL to suppress DEBUG/INFO messages during tests
+  config.before(:suite) do
+    # Override Logger to use FATAL level during tests
+    Logger.class_eval do
+      alias_method :original_initialize, :initialize
+      def initialize(*args)
+        original_initialize(*args)
+        self.level = Logger::FATAL
+      end
+    end
+    
+    # Suppress Ruby warnings from gems
+    $VERBOSE = nil
+  end
+
   # rspec-expectations config goes here. You can use an alternate
   # assertion/expectation library such as wrong or the stdlib/minitest
   # assertions if you prefer.

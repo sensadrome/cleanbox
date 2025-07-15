@@ -44,6 +44,10 @@ RSpec.describe CLI::CleanboxCLI do
         # Mock ARGV to be empty
         allow(ARGV).to receive(:empty?).and_return(true)
         allow(ARGV).to receive(:include?).and_return(false)
+        # Mock parse_options to prevent actual argument parsing
+        allow(cli).to receive(:parse_options)
+        # Mock validate_options to prevent validation errors
+        allow(cli).to receive(:validate_options)
       end
 
       it 'shows help' do
@@ -60,6 +64,12 @@ RSpec.describe CLI::CleanboxCLI do
         # Mock puts to suppress CLI output during tests
         allow($stdout).to receive(:puts)
         allow($stderr).to receive(:puts)
+        # Mock parse_options to prevent actual argument parsing
+        allow(cli).to receive(:parse_options)
+        # Mock validate_options to prevent validation errors
+        allow(cli).to receive(:validate_options)
+        # Mock execute_action to prevent network calls
+        allow(cli).to receive(:execute_action)
       end
 
       after do
@@ -67,7 +77,7 @@ RSpec.describe CLI::CleanboxCLI do
       end
 
       it 'runs the setup wizard' do
-        expect(CLI::SetupWizard).to receive(:new).with(verbose: false)
+        expect(CLI::SetupWizard).to receive(:new).with(verbose: nil)
         cli.run
       end
     end

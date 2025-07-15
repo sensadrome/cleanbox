@@ -4,6 +4,9 @@ require 'net/imap'
 require_relative 'config_manager'
 require_relative 'secrets_manager'
 require_relative '../auth/authentication_manager'
+require_relative '../analysis/email_analyzer'
+require_relative '../analysis/folder_categorizer'
+require_relative '../analysis/domain_mapper'
 
 module CLI
   class SetupWizard
@@ -13,6 +16,8 @@ module CLI
       @config_manager = ConfigManager.new
       @analysis_results = {}
       @verbose = verbose
+      @logger = Logger.new(STDOUT)
+      @logger.level = verbose ? Logger::DEBUG : Logger::INFO
     end
 
     def run
@@ -190,15 +195,22 @@ module CLI
       puts "For each folder, I'll show you my analysis and ask for confirmation."
       puts ""
       
-      @analysis_results[:folders] = analyze_folders
+      # Use the new EmailAnalyzer
+      analyzer = Analysis::EmailAnalyzer.new(
+        @imap_connection, 
+        logger: @logger,
+        folder_categorizer_class: Analysis::FolderCategorizer
+      )
+      
+      @analysis_results[:folders] = analyzer.analyze_folders
       
       # Analyze sent items
       puts "📧 Analyzing your sent emails..."
-      @analysis_results[:sent_items] = analyze_sent_items
+      @analysis_results[:sent_items] = analyzer.analyze_sent_items
       
       # Analyze domain patterns
       puts "🔍 Analyzing domain patterns..."
-      @analysis_results[:domain_patterns] = analyze_domain_patterns
+      @analysis_results[:domain_patterns] = analyzer.analyze_domain_patterns
       
       puts "✅ Analysis complete!"
       puts ""
@@ -305,9 +317,15 @@ module CLI
       puts ""
       puts "📁 Analyzing folder \"#{name}\" (#{message_count} messages)"
       
-      # Determine initial categorization
-      initial_categorization = determine_folder_categorization(folder)
-      reason = get_categorization_reason(folder, initial_categorization)
+      # Use the new FolderCategorizer
+      categorizer = Analysis::FolderCategorizer.new(
+        folder, 
+        imap_connection: @imap_connection, 
+        logger: @logger
+      )
+      
+      initial_categorization = categorizer.categorization
+      reason = categorizer.categorization_reason
       
       puts "  → Detected as #{initial_categorization.upcase} folder (#{reason})"
       
@@ -530,25 +548,17 @@ module CLI
       puts "🤖 Generating recommendations..."
       puts ""
 
-      recommendations = {
-        whitelist_folders: [],
-        list_folders: [],
-        domain_mappings: {},
-        frequent_correspondents: @analysis_results[:sent_items][:frequent_correspondents] || []
-      }
-
-      # Use the categorization from interactive analysis
-      @analysis_results[:folders].each do |folder|
-        case folder[:categorization]
-        when :whitelist
-          recommendations[:whitelist_folders] << folder[:name]
-        when :list
-          recommendations[:list_folders] << folder[:name]
-        end
-      end
-
-      # Generate domain mappings from list folders
-      recommendations[:domain_mappings] = generate_domain_mappings
+      # Use the new EmailAnalyzer to generate recommendations
+      analyzer = Analysis::EmailAnalyzer.new(
+        @imap_connection, 
+        logger: @logger,
+        folder_categorizer_class: Analysis::FolderCategorizer
+      )
+      
+      # Set the analysis results so the analyzer can use them
+      analyzer.instance_variable_set(:@analysis_results, @analysis_results)
+      
+      recommendations = analyzer.generate_recommendations(domain_mapper_class: Analysis::DomainMapper)
 
       recommendations
     end

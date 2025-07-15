@@ -13,14 +13,14 @@ module CLI
 
       def validate_host!(options)
         if options[:host].blank?
-          puts "Error: IMAP host is required. Set it in ~/.cleanbox.yml or use --host option."
+          $stderr.puts "Error: IMAP host is required. Set it in ~/.cleanbox.yml or use --host option."
           exit 1
         end
       end
 
       def validate_username!(options)
         if options[:username].blank?
-          puts "Error: IMAP username is required. Set it in ~/.cleanbox.yml or use --user option."
+          $stderr.puts "Error: IMAP username is required. Set it in ~/.cleanbox.yml or use --user option."
           exit 1
         end
       end
@@ -38,16 +38,16 @@ module CLI
 
       def validate_microsoft_oauth2!(options)
         if options[:client_id].blank? || options[:client_secret].blank? || options[:tenant_id].blank?
-          puts "Error: OAuth2 Microsoft requires client_id, client_secret, and tenant_id."
-          puts "Set them in environment variables or secrets."
+          $stderr.puts "Error: OAuth2 Microsoft requires client_id, client_secret, and tenant_id."
+          $stderr.puts "Set them in environment variables or secrets."
           exit 1
         end
       end
 
       def validate_password_auth!(options)
         if options[:password].blank?
-          puts "Error: Password authentication requires password."
-          puts "Set it in environment variables or secrets."
+          $stderr.puts "Error: Password authentication requires password."
+          $stderr.puts "Set it in environment variables or secrets."
           exit 1
         end
       end

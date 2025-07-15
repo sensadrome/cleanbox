@@ -131,8 +131,10 @@ module CLI
           # Remove keys from hash
           removed_keys = []
           parsed_value.each_key do |k|
-            if config[key].key?(k)
-              config[key].delete(k)
+            # Convert string key to symbol to match config keys
+            symbol_key = k.to_sym
+            if config[key].key?(symbol_key)
+              config[key].delete(symbol_key)
               removed_keys << k
             end
           end

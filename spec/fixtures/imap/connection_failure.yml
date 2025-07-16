@@ -1,0 +1,7 @@
+auth:
+  success: false
+  error: "Invalid credentials"
+  error_type: "authentication_failed"
+  username: "test@example.com"
+
+# No folders since connection fails before we get to folder analysis 

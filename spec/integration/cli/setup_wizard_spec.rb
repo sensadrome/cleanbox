@@ -115,6 +115,118 @@ RSpec.describe 'SetupWizard Integration' do
     end
   end
 
+  describe 'interactive categorization' do
+    it 'handles user input for folder categorization and domain mappings' do
+      # Mock IMAP to use our test fixture
+      mock_imap_with_fixture('interactive_categorization')
+      
+      # Capture output
+      output = StringIO.new
+      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
+      allow($stdout).to receive(:print) { |msg| output.print(msg) }
+
+      # Run the setup wizard
+      wizard = CLI::SetupWizard.new(verbose: false)
+      
+      # Mock gets on the specific wizard instance for interactive categorization
+      allow(wizard).to receive(:gets).and_return(
+        'outlook.office365.com',  # IMAP Host
+        'test@example.com',       # Email Address
+        '1',                      # OAuth2 authentication
+        'valid_client_id',        # Client ID
+        'valid_client_secret',    # Client Secret
+        'valid_tenant_id',        # Tenant ID
+        '',                       # Accept default categorization for Inbox (Y)
+        '',                       # Accept default categorization for GitHub (Y)
+        '',                       # Accept default categorization for Amazon (Y)
+        '',                       # Accept default categorization for Facebook (Y)
+        '',                       # Accept default categorization for Work (Y)
+        '',                       # Accept default categorization for Sent Items (Y)
+        '',                       # No additional whitelist folders
+        '',                       # No additional list folders
+        '',                       # Accept default domain mappings (Enter)
+        'n'                       # Don't preview (N)
+      )
+      
+      wizard.run
+
+      # Verify successful completion
+      expect(output.string).to include('🎉 Setup complete!')
+      expect(output.string).to include('✅ Connected successfully!')
+      expect(output.string).to include('📁 Analyzing your email folders')
+      expect(output.string).to include('✅ Analysis complete!')
+      expect(output.string).to include('💾 Saving configuration')
+      
+      # Verify folder analysis output
+      expect(output.string).to include('Analyzing folder "Inbox" (50 messages)')
+      expect(output.string).to include('Analyzing folder "GitHub" (45 messages)')
+      expect(output.string).to include('Analyzing folder "Amazon" (80 messages)')
+      expect(output.string).to include('Analyzing folder "Facebook" (30 messages)')
+      expect(output.string).to include('Analyzing folder "Work" (120 messages)')
+      
+      # Verify domain mappings were shown
+      expect(output.string).to include('🔗 Domain Mappings')
+      expect(output.string).to include('Suggested mappings:')
+      
+      # Verify configuration was saved
+      expect(File.exist?(config_path)).to be true
+      expect(File.exist?(env_path)).to be true
+    end
+
+    it 'handles user overriding folder categorizations' do
+      # Mock IMAP to use our test fixture
+      mock_imap_with_fixture('interactive_categorization')
+      
+      # Capture output
+      output = StringIO.new
+      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
+      allow($stdout).to receive(:print) { |msg| output.print(msg) }
+
+      # Run the setup wizard
+      wizard = CLI::SetupWizard.new(verbose: false)
+      
+      # Mock gets on the specific wizard instance with overrides
+      allow(wizard).to receive(:gets).and_return(
+        'outlook.office365.com',  # IMAP Host
+        'test@example.com',       # Email Address
+        '1',                      # OAuth2 authentication
+        'valid_client_id',        # Client ID
+        'valid_client_secret',    # Client Secret
+        'valid_tenant_id',        # Tenant ID
+        '',                       # Accept default categorization for Inbox (Y)
+        'w',                      # Override GitHub to whitelist
+        '',                       # Accept default categorization for Amazon (Y)
+        'l',                      # Override Facebook to list
+        '',                       # Accept default categorization for Work (Y)
+        '',                       # Accept default categorization for Sent Items (Y)
+        '',                       # No additional whitelist folders
+        '',                       # No additional list folders
+        '',                       # Accept default domain mappings (Enter)
+        'n'                       # Don't preview (N)
+      )
+      
+      wizard.run
+
+      # Verify successful completion
+      expect(output.string).to include('🎉 Setup complete!')
+      expect(output.string).to include('✅ Connected successfully!')
+      expect(output.string).to include('📁 Analyzing your email folders')
+      expect(output.string).to include('✅ Analysis complete!')
+      expect(output.string).to include('💾 Saving configuration')
+      
+      # Verify folder analysis output
+      expect(output.string).to include('Analyzing folder "Inbox" (50 messages)')
+      expect(output.string).to include('Analyzing folder "GitHub" (45 messages)')
+      expect(output.string).to include('Analyzing folder "Amazon" (80 messages)')
+      expect(output.string).to include('Analyzing folder "Facebook" (30 messages)')
+      expect(output.string).to include('Analyzing folder "Work" (120 messages)')
+      
+      # Verify configuration was saved
+      expect(File.exist?(config_path)).to be true
+      expect(File.exist?(env_path)).to be true
+    end
+  end
+
   private
 
   def mock_imap_with_fixture(fixture_name)

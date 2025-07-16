@@ -1,0 +1,28 @@
+auth:
+  success: true
+
+folders:
+  - name: "Inbox"
+    message_count: 50
+    senders: ["friend@example.com", "work@company.com"]
+    domains: ["example.com", "company.com"]
+  - name: "GitHub"
+    message_count: 45
+    senders: ["noreply@github.com", "issues@github.com", "pull-requests@github.com"]
+    domains: ["github.com"]
+  - name: "Amazon"
+    message_count: 80
+    senders: ["orders@amazon.com", "support@amazon.com", "deals@amazon.com"]
+    domains: ["amazon.com"]
+  - name: "Facebook"
+    message_count: 30
+    senders: ["notifications@facebook.com", "security@facebook.com"]
+    domains: ["facebook.com"]
+  - name: "Work"
+    message_count: 120
+    senders: ["colleague@company.com", "client@business.com", "meeting@company.com"]
+    domains: ["company.com", "business.com"]
+  - name: "Sent Items"
+    message_count: 60
+    senders: ["me@myemail.com"]
+    domains: ["myemail.com"] 

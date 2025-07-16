@@ -202,7 +202,11 @@ module CLI
         folder_categorizer_class: Analysis::FolderCategorizer
       )
       
-      @analysis_results[:folders] = analyzer.analyze_folders
+      # Get the raw folder data first
+      raw_folders = analyzer.analyze_folders
+      
+      # Now do interactive categorization
+      @analysis_results[:folders] = interactive_folder_categorization(raw_folders)
       
       # Analyze sent items
       puts "📧 Analyzing your sent emails..."
@@ -234,178 +238,79 @@ module CLI
     end
 
     def analyze_folders
-      folders = []
-      skipped_folders = []
-      
-      # Get all folders
-      imap_folders = @imap_connection.list('', '*')
-      total_folders = imap_folders.length
-      
-      puts "Found #{total_folders} folders to analyze..."
-      puts ""
-      
-      imap_folders.each_with_index do |folder, index|
-        next if folder.name == 'INBOX' # Skip inbox for now
-        
-        # Check if this is a system folder to skip silently
-        if should_skip_folder?(folder.name.downcase)
-          skipped_folders << folder.name
-          next
-        end
-        
-        # Show progress for non-system folders
-        progress_msg = "📁 Analyzing folder \"#{folder.name}\" (#{index + 1}/#{total_folders})"
-        print "\r#{progress_msg.ljust(80)}"
-        
-        begin
-          # Get folder status
-          status = @imap_connection.status(folder.name, %w[MESSAGES UNSEEN])
-          message_count = status['MESSAGES']&.to_i || 0
-          
-          # Skip folders with very few messages
-          if message_count < 5
-            skipped_folders << "#{folder.name} (low volume: #{message_count} messages)"
-            next
-          end
-          
-          # Analyze senders in this folder (sample)
-          senders = analyze_folder_senders(folder.name, message_count)
-          
-          folder_data = {
-            name: folder.name,
-            message_count: message_count,
-            senders: senders,
-            domains: senders.map { |s| s.split('@').last }.uniq,
-            attributes: folder.attr
-          }
-          
-          # Interactive categorization
-          categorization = interactive_folder_categorization(folder_data)
-          if categorization != :skip
-            folder_data[:categorization] = categorization
-            folders << folder_data
-          else
-            skipped_folders << folder.name
-          end
-          
-        rescue => e
-          # Skip folders we can't access
-          progress_msg = "📁 Skipping folder \"#{folder.name}\" (access denied) (#{index + 1}/#{total_folders})"
-          print "\r#{progress_msg.ljust(80)}"
-          skipped_folders << "#{folder.name} (access denied)"
-          next
-        end
-      end
-      
-      puts "\r" + " " * 80 + "\r" # Clear the progress line
-      
-      # Show summary in verbose mode
-      if @verbose
-        show_analysis_summary(folders, skipped_folders)
-      end
-      
-      folders.sort_by { |f| -f[:message_count] }
-    end
-
-    def interactive_folder_categorization(folder)
-      name = folder[:name]
-      message_count = folder[:message_count]
-      
-      # Clear the progress line first
-      print "\r" + " " * 80 + "\r"
-      
-      puts ""
-      puts "📁 Analyzing folder \"#{name}\" (#{message_count} messages)"
-      
-      # Use the new FolderCategorizer
-      categorizer = Analysis::FolderCategorizer.new(
-        folder, 
-        imap_connection: @imap_connection, 
-        logger: @logger
+      # Use the EmailAnalyzer that was already created in connect_and_analyze
+      analyzer = Analysis::EmailAnalyzer.new(
+        @imap_connection, 
+        logger: @logger,
+        folder_categorizer_class: Analysis::FolderCategorizer
       )
       
-      initial_categorization = categorizer.categorization
-      reason = categorizer.categorization_reason
+      analyzer.analyze_folders
+    end
+
+    def interactive_folder_categorization(folders)
+      categorized_folders = []
       
-      puts "  → Detected as #{initial_categorization.upcase} folder (#{reason})"
-      
-      # Interactive prompt
-      puts "  Accept this categorization? (Y/n/l/w/s) [#{initial_categorization[0].upcase}]: "
-      response = gets.chomp.strip.downcase
-      
-      case response
-      when '', 'y', 'yes'
-        return initial_categorization
-      when 'n', 'no'
-        puts "  How should this folder be categorized? (l=List, w=Whitelist, s=Skip): "
-        choice = gets.chomp.strip.downcase
-        case choice
+      folders.each do |folder|
+        name = folder[:name]
+        message_count = folder[:message_count]
+        
+        puts ""
+        puts "📁 Analyzing folder \"#{name}\" (#{message_count} messages)"
+        
+        # Use the FolderCategorizer to get initial categorization
+        categorizer = Analysis::FolderCategorizer.new(
+          folder, 
+          imap_connection: @imap_connection, 
+          logger: @logger
+        )
+        
+        initial_categorization = categorizer.categorization
+        reason = categorizer.categorization_reason
+        
+        puts "  → Detected as #{initial_categorization.upcase} folder (#{reason})"
+        
+        # Interactive prompt
+        puts "  Accept this categorization? (Y/n/l/w/s) [#{initial_categorization[0].upcase}]: "
+        response = gets.chomp.strip.downcase
+        
+        final_categorization = case response
+        when '', 'y', 'yes'
+          initial_categorization
+        when 'n', 'no'
+          puts "  How should this folder be categorized? (l=List, w=Whitelist, s=Skip): "
+          choice = gets.chomp.strip.downcase
+          case choice
+          when 'l'
+            :list
+          when 'w'
+            :whitelist
+          when 's'
+            :skip
+          else
+            puts "  Invalid choice, using default: #{initial_categorization}"
+            initial_categorization
+          end
         when 'l'
-          return :list
+          :list
         when 'w'
-          return :whitelist
+          :whitelist
         when 's'
-          return :skip
+          :skip
         else
           puts "  Invalid choice, using default: #{initial_categorization}"
-          return initial_categorization
+          initial_categorization
         end
-      when 'l'
-        return :list
-      when 'w'
-        return :whitelist
-      when 's'
-        return :skip
-      else
-        puts "  Invalid choice, using default: #{initial_categorization}"
-        return initial_categorization
+        
+        # Update the folder with the final categorization
+        folder[:categorization] = final_categorization
+        categorized_folders << folder
       end
+      
+      categorized_folders
     end
 
-    def determine_folder_categorization(folder)
-      name = folder[:name].downcase
-      
-      # Check email headers for bulk indicators (strongest signal)
-      if analyze_folder_headers(folder[:name])
-        return :list
-      end
-      
-      # Identify list/newsletter folders by name patterns
-      if is_list_folder?(name)
-        return :list
-      end
-      
-      # Identify whitelist folders by name patterns
-      if is_whitelist_folder?(name)
-        return :whitelist
-      end
-      
-      # Default categorization based on sender patterns
-      categorize_by_senders(folder)
-    end
 
-    def get_categorization_reason(folder, categorization)
-      name = folder[:name].downcase
-      
-      case categorization
-      when :list
-        if analyze_folder_headers(folder[:name])
-          return "found newsletter/bulk email headers"
-        elsif is_list_folder?(name)
-          return "folder name suggests list/newsletter content"
-        else
-          return "sender patterns suggest list/newsletter content"
-        end
-      when :whitelist
-        if is_whitelist_folder?(name)
-          return "folder name suggests personal/professional emails"
-        else
-          return "sender patterns suggest personal correspondence"
-        end
-      when :skip
-        return "low volume or system folder"
-      end
-    end
 
     def show_analysis_summary(folders, skipped_folders)
       puts ""
@@ -563,164 +468,7 @@ module CLI
       recommendations
     end
 
-    def analyze_folder_for_recommendation(folder)
-      name = folder[:name].downcase
-      message_count = folder[:message_count]
-      
-      # Skip system/special folders
-      return :skip if should_skip_folder?(name)
-      
-      # Skip folders with very few messages (likely not important)
-      return :skip if message_count < 5
-      
-      # Check email headers for bulk indicators (strongest signal)
-      if analyze_folder_headers(folder[:name])
-        return :list  # Strong signal from headers
-      end
-      
-      # Identify list/newsletter folders by name patterns
-      if is_list_folder?(name)
-        return :list
-      end
-      
-      # Identify whitelist folders by name patterns
-      if is_whitelist_folder?(name)
-        return :whitelist
-      end
-      
-      # Default categorization based on sender patterns
-      categorize_by_senders(folder)
-    end
 
-    def analyze_folder_headers(folder_name, sample_size = 20)
-      begin
-        @imap_connection.select(folder_name)
-        message_ids = @imap_connection.search(['ALL']).last(sample_size)
-        
-        return false if message_ids.empty?
-        
-        bulk_indicators = 0
-        message_ids.each do |id|
-          # Fetch specific headers that indicate bulk emails
-          headers = @imap_connection.fetch(id, 'BODY.PEEK[HEADER]').first
-          if has_bulk_headers?(headers)
-            bulk_indicators += 1
-          end
-        end
-        
-        # If more than 30% of sampled emails have bulk headers, it's likely a list folder
-        (bulk_indicators.to_f / message_ids.length) > 0.3
-      rescue => e
-        false # Default to false if we can't analyze
-      end
-    end
-
-    def has_bulk_headers?(headers)
-      header_text = headers.attr['BODY[HEADER]']
-      
-      bulk_patterns = [
-        /^List-Unsubscribe:/i,
-        /^Precedence:\s*bulk/i,
-        /^X-Mailer:.*(mailing|newsletter|campaign)/i,
-        /^X-Campaign:/i,
-        /^X-Mailing-List:/i,
-        /^Feedback-ID:/i,
-        /^X-Auto-Response-Suppress:/i
-      ]
-      
-      bulk_patterns.any? { |pattern| header_text.match?(pattern) }
-    end
-
-    def should_skip_folder?(name)
-      # System and special folders that should never be suggested
-      skip_patterns = [
-        /^sent/i,           # Sent folders
-        /^drafts?$/i,       # Drafts
-        /^outbox$/i,        # Outbox
-        /^trash$/i,         # Trash
-        /^deleted/i,        # Deleted items
-        /^junk/i,           # Junk/spam
-        /^calendar/i,       # Calendar folders
-        /^contacts$/i,      # Contacts
-        /^notes$/i,         # Notes
-        /^tasks$/i,         # Tasks
-        /^templates$/i,     # Templates
-        /^archive$/i,       # Archive
-        /^conversation/i,   # Conversation history
-        /^journal$/i,       # Journal
-        /^apple mail to do$/i, # Apple Mail To Do
-        /^notes_\d+$/i,     # Notes_0, Notes_1, etc.
-        /^_unsubscribed$/i, # Unsubscribed
-        /^old$/i,           # Old folders
-        /^misc$/i           # Misc folders
-      ]
-      
-      skip_patterns.any? { |pattern| name.match?(pattern) }
-    end
-
-    def is_list_folder?(name)
-      # Patterns that indicate list/newsletter folders
-      list_patterns = [
-        # Major social media platforms
-        /^facebook$/i, /^twitter$/i, /^linkedin$/i, /^instagram$/i,
-        
-        # Major e-commerce platforms
-        /^amazon$/i, /^ebay$/i, /^paypal$/i,
-        
-        # Development and technology platforms
-        /^github$/i, /^stackoverflow$/i, /^gitlab$/i,
-        
-        # Content categories that typically contain newsletters/notifications
-        /^shopping/i, /^entertainment/i, /^movies/i, /^tv/i, /^streaming/i,
-        /^lists?/i, /^newsletters?/i, /^notifications?/i, /^alerts/i,
-        /^marketing/i, /^promotions/i, /^ads/i, /^deals/i,
-        /^updates/i
-      ]
-      
-      list_patterns.any? { |pattern| name.match?(pattern) }
-    end
-
-    def is_whitelist_folder?(name)
-      # Patterns that indicate important personal/professional folders
-      whitelist_patterns = [
-        # Personal and family correspondence
-        /^family/i, /^friends/i, /^personal/i, /^private/i,
-        
-        # Professional and business correspondence
-        /^work/i, /^business/i, /^clients/i, /^customers/i,
-        
-        # High-priority and urgent communications
-        /^important/i, /^urgent/i, /^priority/i, /^critical/i,
-        
-        # Professional project and meeting communications
-        /^projects/i, /^meetings/i, /^appointments/i
-      ]
-      
-      whitelist_patterns.any? { |pattern| name.match?(pattern) }
-    end
-
-    def categorize_by_senders(folder)
-      # Analyze sender patterns to determine folder type
-      senders = folder[:senders]
-      return :skip if senders.empty?
-      
-      # Count unique domains
-      domains = senders.map { |s| s.split('@').last }.uniq
-      
-      # If mostly single domain, likely a list folder
-      if domains.length <= 2 && folder[:message_count] > 50
-        return :list
-      end
-      
-      # If diverse senders with personal names, likely whitelist
-      personal_domains = senders.count { |s| s.split('@').first.match?(/^[a-z]+\.[a-z]+$/) }
-      if personal_domains > senders.length * 0.3
-        return :whitelist
-      end
-      
-      # Default to list for high-volume folders
-      folder[:message_count] > 100 ? :list : :skip
-    end
 
     def generate_domain_mappings
       # Use the new DomainMapper class instead of hardcoded logic

@@ -30,7 +30,7 @@ RSpec.describe 'SetupWizard Integration' do
   end
 
   describe 'connection failure' do
-    it 'handles authentication failure gracefully', :vcr => false do
+    it 'handles authentication failure gracefully' do
       # Mock IMAP to use our test fixture
       mock_imap_with_fixture('connection_failure')
       
@@ -59,6 +59,59 @@ RSpec.describe 'SetupWizard Integration' do
       expect(output.string).to include('❌ Connection failed')
       expect(output.string).to include('Invalid credentials')
       expect(output.string).to include('Please check your credentials and try again')
+    end
+  end
+
+  describe 'happy path' do
+    it 'completes setup successfully with folder analysis' do
+      # Mock IMAP to use our test fixture
+      mock_imap_with_fixture('happy_path')
+      
+      # Capture output
+      output = StringIO.new
+      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
+      allow($stdout).to receive(:print) { |msg| output.print(msg) }
+
+      # Run the setup wizard
+      wizard = CLI::SetupWizard.new(verbose: false)
+      
+      # Mock gets on the specific wizard instance for happy path
+      allow(wizard).to receive(:gets).and_return(
+        'outlook.office365.com',  # IMAP Host
+        'test@example.com',       # Email Address
+        '1',                      # OAuth2 authentication
+        'valid_client_id',        # Client ID
+        'valid_client_secret',    # Client Secret
+        'valid_tenant_id',        # Tenant ID
+        '',                       # Accept default categorization for Inbox (Y)
+        '',                       # Accept default categorization for Newsletters (Y)
+        '',                       # Accept default categorization for Family (Y)
+        '',                       # Accept default categorization for Work (Y)
+        '',                       # Accept default categorization for Sent Items (Y)
+        '',                       # No additional whitelist folders
+        '',                       # No additional list folders
+        '',                       # No custom domain mappings
+        'n'                       # Don't preview (N)
+      )
+      
+      wizard.run
+
+      # Verify successful completion
+      expect(output.string).to include('🎉 Setup complete!')
+      expect(output.string).to include('✅ Connected successfully!')
+      expect(output.string).to include('📁 Analyzing your email folders')
+      expect(output.string).to include('✅ Analysis complete!')
+      expect(output.string).to include('💾 Saving configuration')
+      
+      # Verify folder analysis output
+      expect(output.string).to include('Analyzing folder "Inbox" (50 messages)')
+      expect(output.string).to include('Analyzing folder "Newsletters" (120 messages)')
+      expect(output.string).to include('Analyzing folder "Family" (30 messages)')
+      expect(output.string).to include('Analyzing folder "Work" (80 messages)')
+      
+      # Verify configuration was saved
+      expect(File.exist?(config_path)).to be true
+      expect(File.exist?(env_path)).to be true
     end
   end
 

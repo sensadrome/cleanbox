@@ -1,0 +1,24 @@
+auth:
+  success: true
+
+folders:
+  - name: "Inbox"
+    message_count: 50
+    senders: ["friend@example.com", "work@company.com", "family@home.com"]
+    domains: ["example.com", "company.com", "home.com"]
+  - name: "Newsletters"
+    message_count: 120
+    senders: ["newsletter@news.com", "promo@shop.com", "updates@service.com"]
+    domains: ["news.com", "shop.com", "service.com"]
+  - name: "Family"
+    message_count: 30
+    senders: ["mom@family.com", "dad@family.com", "sister@family.com"]
+    domains: ["family.com"]
+  - name: "Work"
+    message_count: 80
+    senders: ["colleague@company.com", "client@business.com", "meeting@company.com"]
+    domains: ["company.com", "business.com"]
+  - name: "Sent Items"
+    message_count: 45
+    senders: ["me@myemail.com"]
+    domains: ["myemail.com"] 

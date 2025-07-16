@@ -237,17 +237,6 @@ module CLI
       CLI::SecretsManager.value_from_env_or_secrets(name)
     end
 
-    def analyze_folders
-      # Use the EmailAnalyzer that was already created in connect_and_analyze
-      analyzer = Analysis::EmailAnalyzer.new(
-        @imap_connection, 
-        logger: @logger,
-        folder_categorizer_class: Analysis::FolderCategorizer
-      )
-      
-      analyzer.analyze_folders
-    end
-
     def interactive_folder_categorization(folders)
       categorized_folders = []
       
@@ -310,145 +299,6 @@ module CLI
       categorized_folders
     end
 
-
-
-    def show_analysis_summary(folders, skipped_folders)
-      puts ""
-      puts "📊 Analysis Summary:"
-      puts "✅ Analyzed #{folders.length} folders interactively"
-      
-      if skipped_folders.any?
-        puts "⏭️  Skipped #{skipped_folders.length} folders:"
-        skipped_folders.each do |folder|
-          puts "   - #{folder}"
-        end
-      end
-      
-      whitelist_count = folders.count { |f| f[:categorization] == :whitelist }
-      list_count = folders.count { |f| f[:categorization] == :list }
-      
-      puts "📊 Final categorization: #{whitelist_count} whitelist folders, #{list_count} list folders"
-      puts ""
-    end
-
-    def analyze_folder_senders(folder_name, message_count)
-      return [] if message_count == 0
-      
-      begin
-        @imap_connection.select(folder_name)
-        
-        # Sample up to 100 messages for analysis
-        sample_size = [message_count, 100].min
-        message_ids = @imap_connection.search(['ALL']).last(sample_size)
-        
-        return [] if message_ids.empty?
-        
-        # Fetch envelope data
-        envelopes = @imap_connection.fetch(message_ids, 'ENVELOPE')
-        
-        senders = envelopes.map do |env|
-          envelope = env.attr['ENVELOPE']
-          next unless envelope&.from&.first
-          
-          mailbox = envelope.from.first.mailbox
-          host = envelope.from.first.host
-          "#{mailbox}@#{host}".downcase
-        end.compact.uniq
-        
-        senders
-      rescue => e
-        # Return empty array if we can't analyze this folder
-        []
-      end
-    end
-
-    def analyze_sent_items
-      sent_folder = detect_sent_folder
-      return { frequent_correspondents: [], total_sent: 0 } unless sent_folder
-      
-      begin
-        @imap_connection.select(sent_folder)
-        message_count = @imap_connection.search(['ALL']).length
-        
-        # Sample recent sent emails
-        sample_size = [message_count, 200].min
-        message_ids = @imap_connection.search(['ALL']).last(sample_size)
-        
-        return { frequent_correspondents: [], total_sent: message_count } if message_ids.empty?
-        
-        # Fetch envelope data
-        envelopes = @imap_connection.fetch(message_ids, 'ENVELOPE')
-        
-        # Extract recipients
-        recipients = envelopes.map do |env|
-          envelope = env.attr['ENVELOPE']
-          next unless envelope&.to&.first
-          
-          mailbox = envelope.to.first.mailbox
-          host = envelope.to.first.host
-          "#{mailbox}@#{host}".downcase
-        end.compact
-        
-        # Count frequency
-        frequency = recipients.group_by(&:itself).transform_values(&:length)
-        frequent_correspondents = frequency.sort_by { |_, count| -count }.first(20)
-        
-        {
-          frequent_correspondents: frequent_correspondents,
-          total_sent: message_count,
-          sample_size: sample_size
-        }
-      rescue => e
-        { frequent_correspondents: [], total_sent: 0 }
-      end
-    end
-
-    def analyze_domain_patterns
-      all_domains = @analysis_results[:folders].flat_map { |f| f[:domains] }.uniq
-      
-      patterns = {}
-      
-      all_domains.each do |domain|
-        # Categorize domains
-        category = categorize_domain(domain)
-        patterns[domain] = category
-      end
-      
-      patterns
-    end
-
-    def categorize_domain(domain)
-      case domain.downcase
-      when /facebook\.com|twitter\.com|instagram\.com|linkedin\.com|tiktok\.com/
-        'social'
-      when /github\.com|gitlab\.com|bitbucket\.org|stackoverflow\.com/
-        'development'
-      when /newsletter|mailchimp|constantcontact|mailerlite|convertkit/
-        'newsletter'
-      when /amazon\.com|ebay\.com|etsy\.com|shopify\.com/
-        'shopping'
-      when /bank|paypal|stripe|square/
-        'financial'
-      when /google\.com|microsoft\.com|apple\.com|adobe\.com/
-        'tech_company'
-      else
-        'other'
-      end
-    end
-
-    def detect_sent_folder
-      sent_folders = ['Sent Items', 'Sent', '[Gmail]/Sent Mail', 'Sent Mail']
-      
-      sent_folders.find do |folder_name|
-        begin
-          @imap_connection.select(folder_name)
-          true
-        rescue
-          false
-        end
-      end
-    end
-
     def generate_recommendations
       puts "🤖 Generating recommendations..."
       puts ""
@@ -466,15 +316,6 @@ module CLI
       recommendations = analyzer.generate_recommendations(domain_mapper_class: Analysis::DomainMapper)
 
       recommendations
-    end
-
-
-
-    def generate_domain_mappings
-      # Use the new DomainMapper class instead of hardcoded logic
-      list_folders = @analysis_results[:folders].select { |f| f[:categorization] == :list }
-      domain_mapper = Analysis::DomainMapper.new(list_folders, logger: @logger)
-      domain_mapper.generate_mappings
     end
 
     def interactive_configuration(recommendations)

@@ -87,8 +87,8 @@ module CLI
 
       puts ""
       puts "🎉 Setup complete! You can now run:"
-      puts "  ./cleanbox --pretend  # Preview what will happen"
-      puts "  ./cleanbox            # Start cleaning your inbox"
+      puts "  ./cleanbox clean --pretend  # Preview what will happen"
+      puts "  ./cleanbox clean            # Start cleaning your inbox"
     end
 
     private
@@ -466,7 +466,7 @@ module CLI
       if preview == 'y' || preview == 'yes'
         puts ""
         puts "🔍 Running preview..."
-        system("./cleanbox --pretend --verbose")
+        system("./cleanbox clean --pretend --verbose")
       end
     end
 

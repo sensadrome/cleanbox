@@ -5,6 +5,7 @@ GEM
       public_suffix (>= 2.0.2, < 7.0)
     bigdecimal (3.2.2)
     byebug (11.1.3)
+    climate_control (1.2.0)
     coderay (1.1.3)
     crack (1.0.0)
       bigdecimal
@@ -66,6 +67,7 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
+  climate_control
   dotenv
   gmail_xoauth
   mail

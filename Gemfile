@@ -20,4 +20,5 @@ group :test, :development do
   gem 'webmock'
   gem 'vcr'
   gem 'simplecov', require: false
+  gem 'climate_control'
 end

@@ -25,14 +25,16 @@ class TestImapService
     auth_data = @fixture_data['auth']
     
     if auth_data['success'] == false
-      raise Net::IMAP::NoResponseError.new(auth_data['error'])
+      raise Net::IMAP::NoResponseError.new(mock_imap_error_response(auth_data['error']))
     end
     
     # Simulate successful authentication
+    @authenticated = true
     true
   end
 
   def list(prefix, pattern)
+    confirm_authenticated!
     folders = @fixture_data['folders'] || []
     folders.map do |folder_data|
       # Create a mock folder object that responds to .name
@@ -44,11 +46,12 @@ class TestImapService
   end
 
   def select(folder_name)
+    confirm_authenticated!
     @current_folder = folder_name
     folder_data = find_folder(folder_name)
     
     unless folder_data
-      raise Net::IMAP::NoResponseError.new("Folder not found: #{folder_name}")
+      raise Net::IMAP::NoResponseError.new(mock_imap_error_response("Folder not found: #{folder_name}"))
     end
     
     # Simulate successful folder selection
@@ -56,6 +59,7 @@ class TestImapService
   end
 
   def search(criteria)
+    confirm_authenticated!
     folder_data = find_folder(@current_folder)
     return [] unless folder_data
     
@@ -64,31 +68,26 @@ class TestImapService
   end
 
   def fetch(message_ids, data_items)
+    confirm_authenticated!
     folder_data = find_folder(@current_folder)
     return [] unless folder_data
-    
+
     message_ids.map do |id|
       message_data = find_message(folder_data, id)
       next unless message_data
-      
-      # Create a mock fetch response
-      response = Object.new
-      
+
+      response = OpenStruct.new
       if data_items.include?('ENVELOPE')
-        response.define_singleton_method(:attr) do
-          { 'ENVELOPE' => create_envelope(message_data) }
-        end
+        response.attr = { 'ENVELOPE' => build_envelope(message_data) }
       elsif data_items.include?('BODY.PEEK[HEADER]')
-        response.define_singleton_method(:attr) do
-          { 'BODY[HEADER]' => message_data['headers'] || '' }
-        end
+        response.attr = { 'BODY[HEADER]' => message_data['headers'] || '' }
       end
-      
       response
     end.compact
   end
 
   def status(folder_name, items)
+    confirm_authenticated!
     folder_data = find_folder(folder_name)
     return {} unless folder_data
     
@@ -104,8 +103,6 @@ class TestImapService
     
     status_data
   end
-
-  private
 
   def load_fixture(fixture_name)
     fixture_path = File.join(File.dirname(__FILE__), 'fixtures', 'imap', "#{fixture_name}.yml")
@@ -127,27 +124,30 @@ class TestImapService
     messages.find { |m| m['id'] == message_id }
   end
 
-  def create_envelope(message_data)
-    # Create a mock envelope object
-    envelope = Object.new
-    
-    # Mock 'from' field
-    from = Object.new
-    from.define_singleton_method(:mailbox) { message_data['sender'].split('@').first }
-    from.define_singleton_method(:host) { message_data['sender'].split('@').last }
-    from.define_singleton_method(:name) { nil }
-    
-    # Mock 'to' field (for sent items)
-    to = Object.new
-    to.define_singleton_method(:mailbox) { message_data['recipient']&.split('@')&.first || 'recipient' }
-    to.define_singleton_method(:host) { message_data['recipient']&.split('@')&.last || 'example.com' }
-    to.define_singleton_method(:name) { nil }
-    
-    envelope.define_singleton_method(:from) { [from] }
-    envelope.define_singleton_method(:to) { [to] }
-    envelope.define_singleton_method(:subject) { message_data['subject'] || 'Test Subject' }
-    envelope.define_singleton_method(:date) { message_data['date'] || Time.now }
-    
-    envelope
+  private
+
+  def build_envelope(message_data)
+    from = OpenStruct.new(
+      mailbox: message_data['sender'].split('@').first,
+      host: message_data['sender'].split('@').last,
+      name: nil
+    )
+    to = OpenStruct.new(
+      mailbox: message_data['recipient']&.split('@')&.first || 'recipient',
+      host: message_data['recipient']&.split('@')&.last || 'example.com',
+      name: nil
+    )
+    OpenStruct.new(
+      from: [from],
+      to: [to],
+      subject: message_data['subject'] || 'Test Subject',
+      date: message_data['date'] || Time.now
+    )
+  end
+
+  def confirm_authenticated!
+    unless @authenticated
+      raise Net::IMAP::NoResponseError.new(mock_imap_error_response("Not authenticated"))
+    end
   end
 end 

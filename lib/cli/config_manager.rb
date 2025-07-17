@@ -170,7 +170,13 @@ module CLI
 
       def init_domain_rules
         default_domain_rules_path = File.expand_path('../../../config/domain_rules.yml', __FILE__)
-        user_domain_rules_path = File.expand_path('~/.cleanbox/domain_rules.yml')
+        
+        # Determine the user domain rules path based on data directory
+        user_domain_rules_path = if @data_dir
+          File.join(@data_dir, 'domain_rules.yml')
+        else
+          File.expand_path('~/.cleanbox/domain_rules.yml')
+        end
 
         if File.exist?(user_domain_rules_path)
           puts "Domain rules file already exists at #{user_domain_rules_path}"

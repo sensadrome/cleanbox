@@ -6,7 +6,26 @@ require 'yaml'
 module Analysis
   class DomainMapper
     DEFAULT_DOMAIN_RULES_FILE = File.expand_path('../../../config/domain_rules.yml', __FILE__)
-    USER_DOMAIN_RULES_FILE = File.expand_path('~/.cleanbox/domain_rules.yml')
+    
+    class << self
+      def data_dir=(dir)
+        @data_dir = dir
+      end
+
+      def data_dir
+        @data_dir
+      end
+
+      def user_domain_rules_file
+        if data_dir && File.exist?(File.join(data_dir, 'domain_rules.yml'))
+          File.join(data_dir, 'domain_rules.yml')
+        elsif File.exist?(File.expand_path('~/.cleanbox/domain_rules.yml'))
+          File.expand_path('~/.cleanbox/domain_rules.yml')
+        else
+          nil
+        end
+      end
+    end
     
     def initialize(folders, logger: nil)
       @folders = folders
@@ -46,10 +65,11 @@ module Analysis
     end
     
     def load_domain_rules
-      # Try user custom file first
-      if File.exist?(USER_DOMAIN_RULES_FILE)
-        @logger.debug "Loading domain rules from user file: #{USER_DOMAIN_RULES_FILE}"
-        load_yaml_file(USER_DOMAIN_RULES_FILE)
+      # Try user custom file first (data directory or home directory)
+      user_file = self.class.user_domain_rules_file
+      if user_file
+        @logger.debug "Loading domain rules from user file: #{user_file}"
+        load_yaml_file(user_file)
       # Fall back to repo default file
       elsif File.exist?(DEFAULT_DOMAIN_RULES_FILE)
         @logger.debug "Loading domain rules from default file: #{DEFAULT_DOMAIN_RULES_FILE}"

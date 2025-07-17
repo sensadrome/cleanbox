@@ -120,6 +120,9 @@ module CLI
       # Set the data directory for cache operations
       CleanboxFolderChecker.data_dir = data_dir
       
+      # Set the data directory for domain rules
+      Analysis::DomainMapper.data_dir = data_dir
+      
       Cleanbox.new(imap, @options).send(action)
     end
 

@@ -54,6 +54,11 @@ require 'connection'
 require 'cleanbox'
 require 'folder_checker'
 
+# Helper method for creating mock IMAP error responses
+def mock_imap_error_response(text)
+  OpenStruct.new(data: OpenStruct.new(text: text))
+end
+
 RSpec.configure do |config|
   # Disable profiling output completely
   config.profile_examples = nil

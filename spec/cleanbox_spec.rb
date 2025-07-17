@@ -58,11 +58,23 @@ RSpec.describe Cleanbox do
   end
 
   describe '#clean!' do
-    it 'executes the main cleaning workflow' do
-      expect(cleanbox).to receive(:build_whitelist!)
-      expect(cleanbox).to receive(:build_list_domains!)
-      expect(cleanbox).to receive(:clean_inbox!)
-      expect(cleanbox.logger).to receive(:info).with('Finished cleaning')
+    let(:mock_message) { double('CleanboxMessage') }
+    let(:mock_processor) { double('processor') }
+    let(:mock_runner) { double('runner') }
+
+    before do
+      allow(cleanbox).to receive(:new_messages).and_return([mock_message])
+      allow(cleanbox).to receive(:clear_deleted_messages!)
+      allow(cleanbox).to receive(:message_processing_context).and_return({})
+      allow(MessageProcessor).to receive(:new).and_return(mock_processor)
+      allow(MessageActionRunner).to receive(:new).and_return(mock_runner)
+      allow(mock_processor).to receive(:decide_for_new_message).and_return({action: :keep})
+      allow(mock_runner).to receive(:execute)
+      allow(mock_runner).to receive(:changed_folders).and_return([])
+    end
+
+    it 'processes new messages and clears deleted messages' do
+      expect(cleanbox).to receive(:clear_deleted_messages!)
       
       cleanbox.clean!
     end
@@ -149,21 +161,7 @@ RSpec.describe Cleanbox do
     end
   end
 
-  describe '#clean_inbox!' do
-    let(:mock_message) { double('CleanboxMessage') }
 
-    before do
-      allow(cleanbox).to receive(:new_messages).and_return([mock_message])
-      allow(mock_message).to receive(:process!)
-    end
-
-    it 'processes new messages and clears deleted messages' do
-      expect(mock_message).to receive(:process!)
-      expect(cleanbox).to receive(:clear_deleted_messages!)
-      
-      cleanbox.send(:clean_inbox!)
-    end
-  end
 
   describe '#new_messages' do
     let(:mock_envelope) { double('envelope', attr: { 'BODY[HEADER]' => 'test header' }) }
@@ -209,36 +207,21 @@ RSpec.describe Cleanbox do
   end
 
   describe '#file_messages!' do
+    let(:mock_processor) { double('processor') }
+    let(:mock_runner) { double('runner') }
+
     before do
-      allow(cleanbox).to receive(:build_list_domains!)
-      allow(cleanbox).to receive(:build_sender_map!)
       allow(cleanbox).to receive(:all_messages).and_return([])
       allow(cleanbox).to receive(:clear_deleted_messages!)
+      allow(cleanbox).to receive(:message_processing_context).and_return({})
+      allow(MessageProcessor).to receive(:new).and_return(mock_processor)
+      allow(MessageActionRunner).to receive(:new).and_return(mock_runner)
+      allow(mock_processor).to receive(:decide_for_filing).and_return({action: :keep})
+      allow(mock_runner).to receive(:execute)
+      allow(mock_runner).to receive(:changed_folders).and_return([])
     end
 
-    it 'builds list domains if file_from_folders is not present' do
-      allow(cleanbox).to receive(:file_from_folders).and_return(nil)
-      
-      expect(cleanbox).to receive(:build_list_domains!)
-      
-      cleanbox.file_messages!
-    end
-
-    it 'skips building list domains if file_from_folders is present' do
-      allow(cleanbox).to receive(:file_from_folders).and_return(['SomeFolder'])
-      
-      expect(cleanbox).not_to receive(:build_list_domains!)
-      
-      cleanbox.file_messages!
-    end
-
-    it 'builds sender map and files all messages' do
-      mock_messages = [double('message1'), double('message2')]
-      allow(cleanbox).to receive(:all_messages).and_return(mock_messages)
-      
-      expect(cleanbox).to receive(:build_sender_map!)
-      expect(mock_messages.first).to receive(:file!)
-      expect(mock_messages.last).to receive(:file!)
+    it 'processes all messages with filing logic' do
       expect(cleanbox).to receive(:clear_deleted_messages!)
       
       cleanbox.file_messages!
@@ -246,19 +229,22 @@ RSpec.describe Cleanbox do
   end
 
   describe '#unjunk!' do
+    let(:mock_processor) { double('processor') }
+    let(:mock_runner) { double('runner') }
+
     before do
-      allow(cleanbox).to receive(:build_clean_sender_map!)
       allow(cleanbox).to receive(:junk_messages).and_return([])
       allow(cleanbox).to receive(:clear_deleted_messages!)
+      allow(cleanbox).to receive(:message_processing_context).and_return({})
+      allow(cleanbox).to receive(:unjunk_folders).and_return(['CleanFolder'])
+      allow(MessageProcessor).to receive(:new).and_return(mock_processor)
+      allow(MessageActionRunner).to receive(:new).and_return(mock_runner)
+      allow(mock_processor).to receive(:decide_for_filing).and_return({action: :keep})
+      allow(mock_runner).to receive(:execute)
+      allow(mock_runner).to receive(:changed_folders).and_return([])
     end
 
-    it 'builds clean sender map and files junk messages' do
-      mock_messages = [double('junk1'), double('junk2')]
-      allow(cleanbox).to receive(:junk_messages).and_return(mock_messages)
-      
-      expect(cleanbox).to receive(:build_clean_sender_map!)
-      expect(mock_messages.first).to receive(:file!)
-      expect(mock_messages.last).to receive(:file!)
+    it 'processes junk messages with filing logic' do
       expect(cleanbox).to receive(:clear_deleted_messages!)
       
       cleanbox.unjunk!

@@ -29,19 +29,7 @@ class Cleanbox < CleanboxConnection
     end
   end
 
-  def file_messages!
-    build_list_domains! unless file_from_folders.present?
 
-    build_sender_map!
-    all_messages.each(&:file!)
-    clear_deleted_messages!
-  end
-
-  def unjunk!
-    build_clean_sender_map!
-    junk_messages.each(&:file!)
-    clear_deleted_messages!
-  end
 
   def show_folders!
     cleanbox_folders.each { |folder| puts folder.to_s }
@@ -73,7 +61,22 @@ class Cleanbox < CleanboxConnection
     !!options[:unjunk]
   end
 
+  def file_messages!
+    build_list_domains! unless file_from_folders.present?
+    build_sender_map!
+    process_messages(all_messages, :decide_for_filing)
+  end
+
+  def unjunk!
+    build_clean_sender_map!
+    process_messages(junk_messages, :decide_for_filing)
+  end
+
   private
+
+  def clean_inbox!
+    process_messages(new_messages, :decide_for_new_message)
+  end
 
   def log_level
     case options[:level]
@@ -160,9 +163,33 @@ class Cleanbox < CleanboxConnection
     [*options[:list_folders] || list_folder]
   end
 
-  def clean_inbox!
-    new_messages.each(&:process!)
+  def process_messages(messages, decision_method)
+    context = message_processing_context
+    processor = MessageProcessor.new(context)
+    runner = MessageActionRunner.new(imap: imap_connection, junk_folder: junk_folder)
+
+    messages.each do |message|
+      decision = processor.send(decision_method, message)
+      runner.execute(decision, message)
+    end
+
+    runner.changed_folders.each do |folder|
+      CleanboxFolderChecker.update_cache_stats(folder, imap_connection)
+    end
+
     clear_deleted_messages!
+  end
+
+  def message_processing_context
+    {
+      whitelisted_emails: whitelisted_emails,
+      whitelisted_domains: whitelisted_domains,
+      list_domains: list_domains,
+      list_domain_map: list_domain_map,
+      sender_map: sender_map,
+      list_folder: list_folder,
+      unjunking: unjunking?
+    }
   end
 
   def new_messages

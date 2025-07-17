@@ -15,83 +15,21 @@ RSpec.describe CleanboxMessage do
   let(:mock_imap_message) { double('IMAPMessage', message_data) }
   let(:message) { described_class.new(mock_imap_message, cleanbox) }
 
-  before do
-    # Mock basic cleanbox behavior
-    allow(cleanbox).to receive(:whitelisted_emails).and_return([])
-    allow(cleanbox).to receive(:whitelisted_domains).and_return([])
-    allow(cleanbox).to receive(:list_domains).and_return([])
-    allow(cleanbox).to receive(:list_domain_map).and_return({})
-    allow(cleanbox).to receive(:list_folder).and_return('Lists')
-    allow(cleanbox).to receive(:junk_folder).and_return('Junk')
-    allow(cleanbox).to receive(:unjunking?).and_return(false)
-    allow(cleanbox).to receive(:pretending?).and_return(false)
-    allow(cleanbox).to receive(:logger).and_return(double('Logger', debug: nil, info: nil))
-    
-    # Mock the IMAP operations
-    allow(message).to receive(:move_message_to_folder)
-    allow(message).to receive(:keep!)
-  end
-
-  describe '#process!' do
-    context 'when email is from a whitelisted sender' do
-      before do
-        allow(cleanbox).to receive(:whitelisted_emails).and_return(['friend@example.com'])
-        allow(message).to receive(:from_address).and_return('friend@example.com')
-      end
-
-      it 'keeps the message in inbox' do
-        expect(message).to receive(:keep!)
-        expect(message).not_to receive(:move_message_to_folder)
-        message.process!
-      end
-    end
-
-    context 'when email is from a whitelisted domain' do
-      before do
-        allow(cleanbox).to receive(:whitelisted_domains).and_return(['trusted.com'])
-        allow(message).to receive(:from_domain).and_return('trusted.com')
-      end
-
-      it 'keeps the message in inbox' do
-        expect(message).to receive(:keep!)
-        expect(message).not_to receive(:move_message_to_folder)
-        message.process!
-      end
-    end
-
-    context 'when email is from a list domain' do
-      before do
-        allow(cleanbox).to receive(:list_domains).and_return(['newsletter.com'])
-        allow(message).to receive(:from_domain).and_return('newsletter.com')
-        allow(message).to receive(:valid_list_email?).and_return(true)
-      end
-
-      it 'moves the message to list folder' do
-        expect(message).to receive(:move_message_to_folder).with('Lists')
-        message.process!
-      end
-    end
-
-    context 'when email is from an unknown sender' do
-      before do
-        allow(message).to receive(:from_address).and_return('unknown@spam.com')
-        allow(message).to receive(:valid_list_email?).and_return(false)
-      end
-
-      it 'moves the message to junk folder' do
-        expect(message).to receive(:move_message_to_folder).with('Junk')
-        message.process!
-      end
-    end
-  end
-
   describe '#from_address' do
     it 'extracts the from address from the message' do
       allow(message).to receive(:message).and_return(
         double('Mail', from: ['test@example.com'])
       )
       
-      expect(message.send(:from_address)).to eq('test@example.com')
+      expect(message.from_address).to eq('test@example.com')
+    end
+
+    it 'converts address to lowercase' do
+      allow(message).to receive(:message).and_return(
+        double('Mail', from: ['TEST@EXAMPLE.COM'])
+      )
+      
+      expect(message.from_address).to eq('test@example.com')
     end
   end
 
@@ -99,7 +37,85 @@ RSpec.describe CleanboxMessage do
     it 'extracts the domain from the from address' do
       allow(message).to receive(:from_address).and_return('user@example.com')
       
-      expect(message.send(:from_domain)).to eq('example.com')
+      expect(message.from_domain).to eq('example.com')
+    end
+
+    it 'handles complex domains' do
+      allow(message).to receive(:from_address).and_return('user@sub.example.com')
+      
+      expect(message.from_domain).to eq('sub.example.com')
+    end
+  end
+
+  describe '#message' do
+    it 'parses the IMAP message header data' do
+      expect(Mail).to receive(:read_from_string).with("From: test@example.com\r\nSubject: Test Email\r\n\r\n")
+      
+      message.message
+    end
+
+    it 'caches the parsed message' do
+      expect(Mail).to receive(:read_from_string).once.and_return(double('Mail'))
+      
+      message.message
+      message.message # Should not call Mail.read_from_string again
+    end
+  end
+
+  describe '#authentication_result' do
+    it 'finds Authentication-Results header' do
+      mock_mail = double('Mail')
+      mock_header = double('Header', name: 'Authentication-Results', to_s: 'dkim=pass')
+      allow(mock_mail).to receive(:header_fields).and_return([mock_header])
+      allow(message).to receive(:message).and_return(mock_mail)
+      
+      expect(message.authentication_result).to eq(mock_header)
+    end
+
+    it 'returns nil when no Authentication-Results header' do
+      mock_mail = double('Mail')
+      allow(mock_mail).to receive(:header_fields).and_return([])
+      allow(message).to receive(:message).and_return(mock_mail)
+      
+      expect(message.authentication_result).to be_nil
+    end
+
+    it 'caches the result' do
+      mock_mail = double('Mail')
+      mock_header = double('Header', name: 'Authentication-Results')
+      allow(mock_mail).to receive(:header_fields).and_return([mock_header])
+      allow(message).to receive(:message).and_return(mock_mail)
+      
+      message.authentication_result
+      message.authentication_result # Should not search header_fields again
+    end
+  end
+
+  describe '#has_fake_headers?' do
+    it 'detects X-Antiabuse header' do
+      mock_mail = double('Mail')
+      mock_header = double('Header', name: 'X-Antiabuse')
+      allow(mock_mail).to receive(:header_fields).and_return([mock_header])
+      allow(message).to receive(:message).and_return(mock_mail)
+      
+      expect(message.has_fake_headers?).to be true
+    end
+
+    it 'returns false when no fake headers present' do
+      mock_mail = double('Mail')
+      allow(mock_mail).to receive(:header_fields).and_return([])
+      allow(message).to receive(:message).and_return(mock_mail)
+      
+      expect(message.has_fake_headers?).to be false
+    end
+
+    it 'ignores other headers' do
+      mock_mail = double('Mail')
+      mock_header = double('Header', name: 'Subject')
+      allow(mock_mail).to receive(:header_fields).and_return([mock_header])
+      allow(message).to receive(:message).and_return(mock_mail)
+      
+      expect(message.has_fake_headers?).to be false
     end
   end
 end 

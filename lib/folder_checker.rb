@@ -140,8 +140,16 @@ class CleanboxFolderChecker < CleanboxConnection
 
   # Class methods for cache management
   class << self
+    def data_dir=(dir)
+      @data_dir = dir
+    end
+
+    def data_dir
+      @data_dir || Dir.pwd
+    end
+
     def cache_dir
-      File.join(Dir.pwd, 'cache', 'folder_emails')
+      File.join(data_dir, 'cache', 'folder_emails')
     end
 
     def cache_file_for_folder(folder_name)

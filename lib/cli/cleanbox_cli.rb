@@ -116,6 +116,10 @@ module CLI
     def execute_action
       action = determine_action
       imap = create_imap_connection
+      
+      # Set the data directory for cache operations
+      CleanboxFolderChecker.data_dir = data_dir
+      
       Cleanbox.new(imap, @options).send(action)
     end
 

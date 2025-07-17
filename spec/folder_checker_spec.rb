@@ -9,7 +9,10 @@ RSpec.describe CleanboxFolderChecker do
   let(:temp_cache_dir) { File.join(Dir.tmpdir, "cleanbox_test_cache_#{SecureRandom.hex(8)}") }
 
   before do
-    # Mock the cache directory to use a temporary location
+    # Reset the data directory before each test
+    described_class.data_dir = nil
+    
+    # Mock the cache directory to use a temporary location for tests that need it
     allow(described_class).to receive(:cache_dir).and_return(temp_cache_dir)
     
     # Mock IMAP connection behavior
@@ -174,9 +177,43 @@ RSpec.describe CleanboxFolderChecker do
   end
 
   describe 'cache management' do
+    describe '.data_dir=' do
+      it 'sets the data directory' do
+        data_dir = '/custom/data/dir'
+        described_class.data_dir = data_dir
+        expect(described_class.data_dir).to eq(data_dir)
+      end
+    end
+
+    describe '.data_dir' do
+      it 'returns the set data directory' do
+        data_dir = '/custom/data/dir'
+        described_class.data_dir = data_dir
+        expect(described_class.data_dir).to eq(data_dir)
+      end
+
+      it 'returns working directory when not set' do
+        described_class.data_dir = nil
+        expect(described_class.data_dir).to eq(Dir.pwd)
+      end
+    end
+
     describe '.cache_dir' do
-      it 'returns the default cache directory' do
-        expect(described_class.cache_dir).to eq(temp_cache_dir)
+      it 'returns cache directory based on data directory' do
+        data_dir = '/custom/data/dir'
+        described_class.data_dir = data_dir
+        # Don't use the mocked cache_dir for this test
+        allow(described_class).to receive(:cache_dir).and_call_original
+        expected_path = File.join(data_dir, 'cache', 'folder_emails')
+        expect(described_class.cache_dir).to eq(expected_path)
+      end
+
+      it 'returns default cache directory when data_dir not set' do
+        described_class.data_dir = nil
+        # Don't use the mocked cache_dir for this test
+        allow(described_class).to receive(:cache_dir).and_call_original
+        expected_path = File.join(Dir.pwd, 'cache', 'folder_emails')
+        expect(described_class.cache_dir).to eq(expected_path)
       end
     end
 

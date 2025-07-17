@@ -21,4 +21,30 @@ folders:
   - name: "Sent Items"
     message_count: 45
     senders: ["me@myemail.com"]
-    domains: ["myemail.com"] 
+    domains: ["myemail.com"]
+    messages:
+      - id: 1
+        sender: "me@myemail.com"
+        recipient: "friend@example.com"
+        subject: "Hello Friend"
+        date: "2024-01-15"
+      - id: 2
+        sender: "me@myemail.com"
+        recipient: "colleague@company.com"
+        subject: "Work Update"
+        date: "2024-01-16"
+      - id: 3
+        sender: "me@myemail.com"
+        recipient: "family@home.com"
+        subject: "Family News"
+        date: "2024-01-17"
+      - id: 4
+        sender: "me@myemail.com"
+        recipient: "client@business.com"
+        subject: "Project Status"
+        date: "2024-01-18"
+      - id: 5
+        sender: "me@myemail.com"
+        recipient: "friend@example.com"
+        subject: "Weekend Plans"
+        date: "2024-01-19" 

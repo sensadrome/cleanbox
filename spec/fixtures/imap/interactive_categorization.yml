@@ -25,4 +25,17 @@ folders:
   - name: "Sent Items"
     message_count: 60
     senders: ["me@myemail.com"]
-    domains: ["myemail.com"] 
+    domains: ["myemail.com"]
+    messages:
+      - id: 1
+        sender: "me@myemail.com"
+        recipient: "friend@example.com"
+        subject: "Test email"
+      - id: 2
+        sender: "me@myemail.com"
+        recipient: "colleague@company.com"
+        subject: "Work email"
+      - id: 3
+        sender: "me@myemail.com"
+        recipient: "friend@example.com"
+        subject: "Another test" 

@@ -239,7 +239,8 @@ RSpec.describe 'SetupWizard Integration' do
     # Mock the authentication manager to use our test service's auth methods
     allow(Auth::AuthenticationManager).to receive(:authenticate_imap) do |imap, options|
       if test_imap.auth_success?
-        # Simulate successful authentication
+        # Simulate successful authentication by calling authenticate on the test service
+        test_imap.authenticate('oauth2', 'test@example.com', 'token')
         true
       else
         # Simulate authentication failure

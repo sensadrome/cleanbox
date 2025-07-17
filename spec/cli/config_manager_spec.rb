@@ -55,6 +55,8 @@ RSpec.describe CLI::ConfigManager do
 
       before do
         File.write(temp_config_path, sample_config.to_yaml)
+        # Ensure the file exists
+        expect(File.exist?(temp_config_path)).to be true
       end
 
       it 'shows recognized keys' do

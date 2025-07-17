@@ -29,7 +29,7 @@ RSpec.describe CLI::ConfigManager do
 
     context 'without config path' do
       it 'uses default path from environment' do
-        allow(ENV).to receive(:fetch).with('CLEANBOX_CONFIG', anything).and_return('/default/config.yml')
+        allow(ENV).to receive(:[]).with('CLEANBOX_CONFIG').and_return('/default/config.yml')
         manager = described_class.new
         expect(manager.instance_variable_get(:@config_path)).to eq('/default/config.yml')
       end

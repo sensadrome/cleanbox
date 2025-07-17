@@ -43,6 +43,10 @@ module CLI
         @options[:config_file] = val
       end
 
+      opts.on('-D', '--data-dir DATA_DIR', 'Specify data directory for config, cache, and logs') do |val|
+        @options[:data_dir] = val
+      end
+
       loglevel_help = 'log level, should be one of debug, info, warn, error'
       opts.on('-L', '--level loglevel', loglevel_help) do |value|
         @options[:level] = value

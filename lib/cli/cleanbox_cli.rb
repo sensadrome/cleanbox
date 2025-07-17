@@ -11,8 +11,9 @@ require_relative '../auth/authentication_manager'
 module CLI
   class CleanboxCLI
     def initialize
-      @config_manager = ConfigManager.new
       @options = default_options
+      parse_options
+      @config_manager = ConfigManager.new(nil, data_dir)
       load_config
     end
 
@@ -27,6 +28,20 @@ module CLI
     end
 
     private
+
+    def resolve_data_dir
+      # If explicitly set, use it (convert to absolute if relative)
+      if @options[:data_dir]
+        File.expand_path(@options[:data_dir])
+      else
+        # Otherwise, fall back to working directory
+        Dir.pwd
+      end
+    end
+
+    def data_dir
+      @data_dir ||= resolve_data_dir
+    end
 
     def default_options
       {
@@ -50,20 +65,21 @@ module CLI
         file_from_folders: [],
         sent_since_months: 24,
         valid_since_months: 12,
-        list_since_months: 12
+        list_since_months: 12,
+        data_dir: nil
       }
     end
 
-      def load_config
-        config_options = @config_manager.load_config
-        @options = @options.deep_merge(config_options)
-      end
+    def load_config
+      config_options = @config_manager.load_config
+      @options = @options.deep_merge(config_options)
+    end
 
-      def parse_options
-        CLI::CLIParser.new(@options).parse!
-      end
+    def parse_options
+      CLI::CLIParser.new(@options).parse!
+    end
 
-          def handle_config_command
+    def handle_config_command
       return unless ARGV.first == 'config'
       
       # Extract config subcommand and arguments
@@ -93,17 +109,17 @@ module CLI
       exit 0
     end
 
-      def validate_options
-        CLI::Validator.validate_required_options!(@options)
-      end
+    def validate_options
+      CLI::Validator.validate_required_options!(@options)
+    end
 
-      def execute_action
-        action = determine_action
-        imap = create_imap_connection
-        Cleanbox.new(imap, @options).send(action)
-      end
+    def execute_action
+      action = determine_action
+      imap = create_imap_connection
+      Cleanbox.new(imap, @options).send(action)
+    end
 
-          def determine_action
+    def determine_action
       return 'unjunk!' if @options[:unjunk]
       return 'show_lists!' if ARGV.last == 'list'
       return 'file_messages!' if %w[file filing].include?(ARGV.last)
@@ -112,51 +128,51 @@ module CLI
       'clean!'  # default action
     end
 
-      def create_imap_connection
-        host = @options.delete(:host)
-        imap = Net::IMAP.new(host, ssl: true)
-        Auth::AuthenticationManager.authenticate_imap(imap, @options)
-        imap
-      end
-
-      def update_config_manager_if_needed
-        return unless @options[:config_file]
-        
-        # Create new config manager with specified config file
-        @config_manager = ConfigManager.new(@options[:config_file])
-        load_config
-      end
-
-      def show_help
-        puts "Cleanbox - Intelligent Email Management"
-        puts "======================================="
-        puts ""
-        puts "Cleanbox learns from your existing email organization to automatically"
-        puts "clean your inbox, file messages, and manage spam."
-        puts ""
-        puts "Quick Start:"
-        puts "  ./cleanbox setup          # Interactive setup wizard"
-        puts "  ./cleanbox --pretend      # Preview what would happen"
-        puts "  ./cleanbox clean          # Clean your inbox"
-        puts ""
-        puts "Common Commands:"
-        puts "  ./cleanbox --help         # Show detailed help"
-        puts "  ./cleanbox setup          # Interactive setup wizard"
-        puts "  ./cleanbox config show    # Show current configuration"
-        puts "  ./cleanbox --pretend      # Preview without making changes"
-        puts "  ./cleanbox clean          # Clean your inbox"
-        puts "  ./cleanbox file           # File existing inbox messages"
-        puts "  ./cleanbox list           # Show email-to-folder mappings"
-        puts "  ./cleanbox folders        # List all folders"
-        puts ""
-        puts "For detailed help and all options:"
-        puts "  ./cleanbox --help"
-        puts ""
-      end
-
-      # Secret retrieval method
-      def secret(name)
-        CLI::SecretsManager.value_from_env_or_secrets(name)
-      end
+    def create_imap_connection
+      host = @options.delete(:host)
+      imap = Net::IMAP.new(host, ssl: true)
+      Auth::AuthenticationManager.authenticate_imap(imap, @options)
+      imap
     end
-  end 
+
+    def update_config_manager_if_needed
+      return unless @options[:config_file]
+      
+      # Create new config manager with specified config file
+      @config_manager = ConfigManager.new(@options[:config_file], data_dir)
+      load_config
+    end
+
+    def show_help
+      puts "Cleanbox - Intelligent Email Management"
+      puts "======================================="
+      puts ""
+      puts "Cleanbox learns from your existing email organization to automatically"
+      puts "clean your inbox, file messages, and manage spam."
+      puts ""
+      puts "Quick Start:"
+      puts "  ./cleanbox setup          # Interactive setup wizard"
+      puts "  ./cleanbox --pretend      # Preview what would happen"
+      puts "  ./cleanbox clean          # Clean your inbox"
+      puts ""
+      puts "Common Commands:"
+      puts "  ./cleanbox --help         # Show detailed help"
+      puts "  ./cleanbox setup          # Interactive setup wizard"
+      puts "  ./cleanbox config show    # Show current configuration"
+      puts "  ./cleanbox --pretend      # Preview without making changes"
+      puts "  ./cleanbox clean          # Clean your inbox"
+      puts "  ./cleanbox file           # File existing inbox messages"
+      puts "  ./cleanbox list           # Show email-to-folder mappings"
+      puts "  ./cleanbox folders        # List all folders"
+      puts ""
+      puts "For detailed help and all options:"
+      puts "  ./cleanbox --help"
+      puts ""
+    end
+
+    # Secret retrieval method
+    def secret(name)
+      CLI::SecretsManager.value_from_env_or_secrets(name)
+    end
+  end
+end 

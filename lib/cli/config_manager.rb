@@ -5,8 +5,9 @@ require 'fileutils'
 
 module CLI
   class ConfigManager
-    def initialize(config_path = nil)
-      @config_path = config_path || ENV.fetch('CLEANBOX_CONFIG', File.expand_path('~/.cleanbox.yml'))
+    def initialize(config_path = nil, data_dir = nil)
+      @data_dir = data_dir
+      @config_path = config_path || resolve_config_path
     end
 
     def show
@@ -487,6 +488,29 @@ module CLI
       def should_show_empty?(key)
         # Show empty with helpful comments for "optional but useful" options
         %w[client_id client_secret tenant_id password file_from_folders unjunk_folders valid_from log_file].include?(key)
+      end
+
+      private
+
+      def resolve_config_path
+        # First check for explicit CLEANBOX_CONFIG environment variable
+        if ENV['CLEANBOX_CONFIG']
+          config_path = ENV['CLEANBOX_CONFIG']
+          # If relative path, prepend data directory
+          if !config_path.start_with?('/')
+            config_path = File.join(@data_dir, config_path)
+          end
+          return config_path
+        end
+        
+        # Then check for config file in data directory
+        if @data_dir
+          data_dir_config = File.join(@data_dir, 'cleanbox.yml')
+          return data_dir_config if File.exist?(data_dir_config)
+        end
+        
+        # Fallback to user's home directory
+        File.expand_path('~/.cleanbox.yml')
       end
     end
   end 

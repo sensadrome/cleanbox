@@ -3,15 +3,20 @@ set -e
 oldrev=$1
 newrev=$2
 
-run() {
-  [ -x $1 ] && $1 $oldrev $newrev
-}
-
-echo files changed: $(git diff $oldrev $newrev --diff-filter=ACDMR --name-only | wc -l)
+echo "=== Cleanbox Deployment ==="
+echo "Files changed: $(git diff $oldrev $newrev --diff-filter=ACDMR --name-only | wc -l)"
 
 umask 002
 
 git submodule sync && git submodule update --init --recursive
 
-run deploy/before_restart
-run deploy/restart && run deploy/after_restart
+echo "Building cleanbox container image..."
+podman build -t cleanbox:latest .
+
+if [ $? -eq 0 ]; then
+    echo "✅ Container image updated successfully"
+    echo "Next scheduled run will use the new image"
+else
+    echo "❌ Container build failed"
+    exit 1
+fi

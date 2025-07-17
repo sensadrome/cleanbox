@@ -1,6 +1,0 @@
-#!/bin/bash
-
-# frozen_string_literal: true
-
-podman build -t cleanbox:latest .
-

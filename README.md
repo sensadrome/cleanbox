@@ -22,6 +22,7 @@ An intelligent email management tool that **learns from your existing organizati
 - **Whitelisting**: Keeps important emails in the inbox based on sender addresses and domains
 - **Intelligent Caching**: Folder analysis is cached for performance
 - **Multiple Authentication Methods**: Supports OAuth2 (Microsoft 365) and password-based authentication
+- **Flexible Data Storage**: Centralized data directory for configuration, cache, and domain rules files
 
 ## Quick Start
 
@@ -70,6 +71,39 @@ nano ~/.cleanbox.yml
 
 # Show all folders
 ./cleanbox folders
+```
+
+## Data Directory
+
+Cleanbox supports a centralized data directory for all its files (configuration, cache, domain rules). This is especially useful for containerized deployments or when you want to keep all Cleanbox data in a specific location.
+
+### Using Data Directory
+
+```bash
+# Use a specific data directory
+./cleanbox --data-dir /path/to/data
+
+# This will store all files in /path/to/data:
+# - /path/to/data/config.yml (instead of ~/.cleanbox.yml)
+# - /path/to/data/cache/ (folder analysis cache)
+# - /path/to/data/domain_rules.yml (domain mapping rules)
+```
+
+### File Locations
+
+When using `--data-dir`, Cleanbox will look for files in this order:
+
+1. **Configuration**: `{data_dir}/config.yml` → `~/.cleanbox.yml` → default
+2. **Domain Rules**: `{data_dir}/domain_rules.yml` → `~/domain_rules.yml` → default
+3. **Cache**: `{data_dir}/cache/` (always used when data_dir is specified)
+
+### Container Deployment
+
+For Docker or other containerized deployments:
+
+```bash
+# Mount a volume for persistent data
+docker run -v /host/path/to/data:/app/data cleanbox --data-dir /app/data
 ```
 
 ## Microsoft 365 / Entra Setup
@@ -157,7 +191,7 @@ export CLEANBOX_TENANT_ID="your-tenant-id"
 
 ## Configuration
 
-Cleanbox uses a YAML configuration file located at `~/.cleanbox.yml`. Run `./cleanbox config init` to create a comprehensive template with detailed comments.
+Cleanbox uses a YAML configuration file. By default, it's located at `~/.cleanbox.yml`, but you can specify a custom location using the `--data-dir` option. Run `./cleanbox config init` to create a comprehensive template with detailed comments.
 
 ### Key Configuration Options
 
@@ -194,6 +228,9 @@ CLEANBOX_TENANT_ID=your-tenant-id
 # Or for password authentication
 CLEANBOX_PASSWORD=your-imap-password
 ```
+
+**Domain Rules File**:
+Cleanbox also uses a domain rules file for advanced domain-to-folder mapping. By default, it's located at `~/domain_rules.yml`, but you can specify a custom location using the `--data-dir` option. This file is automatically created during setup.
 
 ### Configuration Management
 
@@ -234,7 +271,7 @@ CLEANBOX_PASSWORD=your-imap-password
 # Show all folders
 ./cleanbox folders
 
-# Unjunk emails from spam/junk
+# Unjunk emails from spam/junk based on inbox patterns
 ./cleanbox --unjunk Inbox
 
 # File emails based on specific folders
@@ -258,6 +295,9 @@ CLEANBOX_PASSWORD=your-imap-password
 
 # Unjunk based on multiple folders
 ./cleanbox --unjunk Inbox --unjunk Family
+
+# Use custom data directory for config, cache, and domain rules
+./cleanbox --data-dir /path/to/data
 ```
 
 ### Getting Started Safely
@@ -295,6 +335,11 @@ list_domain_map:
 **Unjunk emails from spam using inbox as reference:**
 ```bash
 ./cleanbox --unjunk Inbox
+```
+
+**Unjunk emails using multiple folders as reference:**
+```bash
+./cleanbox --unjunk Inbox --unjunk Family
 ```
 
 ## How It Works

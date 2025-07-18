@@ -4,10 +4,7 @@ require 'mail'
 
 # Message data container - provides access to message properties
 class CleanboxMessage < SimpleDelegator
-  attr_reader :cleanbox
-
-  def initialize(object, cleanbox = nil)
-    @cleanbox = cleanbox
+  def initialize(object)
     super(object)
   end
 

@@ -196,7 +196,7 @@ class Cleanbox < CleanboxConnection
     return [] unless new_message_ids.present?
 
     imap_connection.fetch(new_message_ids, 'BODY.PEEK[HEADER]').map do |m|
-      CleanboxMessage.new(m, self)
+      CleanboxMessage.new(m)
     end
   end
 
@@ -277,7 +277,7 @@ class Cleanbox < CleanboxConnection
   def all_messages
     all_message_ids.each_slice(800).flat_map do |slice|
       imap_connection.fetch(slice, 'BODY.PEEK[HEADER]').map do |m|
-        CleanboxMessage.new(m, self)
+        CleanboxMessage.new(m)
       end
     end
   end
@@ -297,7 +297,7 @@ class Cleanbox < CleanboxConnection
 
   def junk_messages
     imap_connection.fetch(junk_message_ids, 'BODY.PEEK[HEADER]').map do |m|
-      CleanboxMessage.new(m, self)
+      CleanboxMessage.new(m)
     end
   end
 

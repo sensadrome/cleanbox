@@ -13,7 +13,7 @@ RSpec.describe CleanboxMessage do
     }
   end
   let(:mock_imap_message) { double('IMAPMessage', message_data) }
-  let(:message) { described_class.new(mock_imap_message, cleanbox) }
+  let(:message) { described_class.new(mock_imap_message) }
 
   describe '#from_address' do
     it 'extracts the from address from the message' do

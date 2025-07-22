@@ -378,8 +378,20 @@ RSpec.describe CLI::ConfigManager do
       end
 
       it 'creates domain rules file in default location when no data directory' do
-        # Skip this test if we can't properly mock the file operations
-        skip "Complex file mocking required for this test"
+        # Test creating domain rules file in ~/.cleanbox/ when no data directory is set
+        config_manager_without_data_dir = described_class.new(temp_config_path)
+        home_domain_rules_path = File.expand_path('~/.cleanbox/domain_rules.yml')
+        
+        # Clean up any existing file
+        File.delete(home_domain_rules_path) if File.exist?(home_domain_rules_path)
+        
+        expect { config_manager_without_data_dir.init_domain_rules }.to output(/✅ Domain rules file created at #{home_domain_rules_path}/).to_stdout
+        
+        expect(File.exist?(home_domain_rules_path)).to be true
+        expect(File.read(home_domain_rules_path)).to eq(File.read(default_domain_rules_path))
+        
+        # Clean up
+        File.delete(home_domain_rules_path) if File.exist?(home_domain_rules_path)
       end
 
       it 'creates directory structure if needed' do
@@ -392,9 +404,17 @@ RSpec.describe CLI::ConfigManager do
         expect(File.exist?(nested_domain_rules_path)).to be true
       end
 
-      it 'shows helpful information about customization' do
-        # Skip this test as it requires complex mocking of file operations
-        skip "Complex file mocking required for domain rules initialization"
+      it 'creates domain rules file with helpful information' do
+        # Ensure the domain rules file doesn't exist for this test
+        File.delete(user_domain_rules_path) if File.exist?(user_domain_rules_path)
+        
+        expect { config_manager_with_data_dir.init_domain_rules }.to output(/✅ Domain rules file created at #{user_domain_rules_path}/).to_stdout
+        
+        expect(File.exist?(user_domain_rules_path)).to be true
+        expect(File.read(user_domain_rules_path)).to eq(File.read(default_domain_rules_path))
+        
+        # Clean up
+        File.delete(user_domain_rules_path) if File.exist?(user_domain_rules_path)
       end
     end
 

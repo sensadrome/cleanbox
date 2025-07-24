@@ -38,8 +38,40 @@ RSpec.describe CLI::ConfigManager do
 
     context 'without config path' do
       it 'uses default path from environment' do
-        # Skip this test as it requires complex mocking of the resolve_config_path method
-        skip "Complex mocking required for resolve_config_path method"
+        # Test environment variable scenario
+        allow(ENV).to receive(:[]).and_return(nil)  # Default mock
+        allow(ENV).to receive(:[]).with('CLEANBOX_CONFIG').and_return('/custom/config.yml')
+        manager = described_class.new(nil, '/custom/data/dir')
+        expect(manager.instance_variable_get(:@config_path)).to eq('/custom/config.yml')
+      end
+
+      it 'uses data directory config when no environment variable' do
+        allow(ENV).to receive(:[]).and_return(nil)  # Default mock
+        allow(ENV).to receive(:[]).with('CLEANBOX_CONFIG').and_return(nil)
+        data_dir = '/custom/data/dir'
+        data_dir_config = File.join(data_dir, 'cleanbox.yml')
+        
+        # Mock File.exist? to return true for data directory config
+        allow(File).to receive(:exist?).and_return(false)  # Default mock
+        allow(File).to receive(:exist?).with(data_dir_config).and_return(true)
+        
+        manager = described_class.new(nil, data_dir)
+        expect(manager.instance_variable_get(:@config_path)).to eq(data_dir_config)
+      end
+
+      it 'uses home directory fallback when no environment or data dir config' do
+        allow(ENV).to receive(:[]).and_return(nil)  # Default mock
+        allow(ENV).to receive(:[]).with('CLEANBOX_CONFIG').and_return(nil)
+        data_dir = '/custom/data/dir'
+        data_dir_config = File.join(data_dir, 'cleanbox.yml')
+        home_config = File.expand_path('~/.cleanbox.yml')
+        
+        # Mock File.exist? to return false for data directory config
+        allow(File).to receive(:exist?).and_return(false)  # Default mock
+        allow(File).to receive(:exist?).with(data_dir_config).and_return(false)
+        
+        manager = described_class.new(nil, data_dir)
+        expect(manager.instance_variable_get(:@config_path)).to eq(home_config)
       end
     end
 
@@ -438,8 +470,18 @@ RSpec.describe CLI::ConfigManager do
 
     context 'when default domain rules file does not exist' do
       it 'shows error and exits' do
-        # Skip this test if we can't properly mock the file operations
-        skip "Complex file mocking required for this test"
+        # Ensure the user domain rules file doesn't exist
+        File.delete(user_domain_rules_path) if File.exist?(user_domain_rules_path)
+        
+        # Mock File.exist? to return true by default, then specifically mock the files we care about
+        allow(File).to receive(:exist?).and_return(true)  # Default mock
+        allow(File).to receive(:delete).and_return(nil)  # Mock File.delete to prevent cleanup errors
+        default_domain_rules_path = File.expand_path('../../../config/domain_rules.yml', __FILE__)
+        allow(File).to receive(:exist?).with(default_domain_rules_path).and_return(false)
+        allow(File).to receive(:exist?).with(user_domain_rules_path).and_return(false)
+        
+        expect { config_manager_with_data_dir.init_domain_rules }.to output(/Error: Default domain rules file not found at #{default_domain_rules_path}/).to_stdout
+          .and raise_error(SystemExit)
       end
     end
   end

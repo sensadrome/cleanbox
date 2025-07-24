@@ -230,7 +230,85 @@ CLEANBOX_PASSWORD=your-imap-password
 ```
 
 **Domain Rules File**:
-Cleanbox also uses a domain rules file for advanced domain-to-folder mapping. By default, it's located at `~/domain_rules.yml`, but you can specify a custom location using the `--data-dir` option. This file is automatically created during setup.
+Cleanbox uses a domain rules file for advanced domain-to-folder mapping. This file allows you to customize how related email domains are automatically filed together. By default, it's located at `~/.cleanbox/domain_rules.yml`, but you can specify a custom location using the `--data-dir` option.
+
+### Domain Rules Customization
+
+Domain rules help Cleanbox understand relationships between email domains. For example, if you have emails from `github.com` in a "Development" folder, Cleanbox can automatically file emails from related domains like `githubusercontent.com` and `github.io` to the same folder.
+
+**Initialize Domain Rules**:
+```bash
+# Create a user-writable domain rules file
+./cleanbox config init-domain-rules
+```
+
+This creates a customizable domain rules file at `~/.cleanbox/domain_rules.yml` (or `{data_dir}/domain_rules.yml` if using `--data-dir`).
+
+**Domain Rules File Structure**:
+```yaml
+# Domain Rules for Cleanbox
+# This file defines patterns for automatically filing related email domains
+
+domain_patterns:
+  # When Cleanbox finds emails from github.com, suggest these related domains
+  github\.com:
+    - githubusercontent.com
+    - github.io
+    - githubapp.com
+  
+  # Facebook domains
+  facebook\.com:
+    - facebookmail.com
+    - fb.com
+    - messenger.com
+
+folder_patterns:
+  # When Cleanbox has a folder named "github", suggest these domains
+  ^github$:
+    - githubusercontent.com
+    - github.io
+    - githubapp.com
+  
+  # Facebook folder
+  ^facebook$:
+    - facebookmail.com
+    - fb.com
+    - messenger.com
+```
+
+**Customization Examples**:
+
+Add your company domains:
+```yaml
+domain_patterns:
+  yourcompany\.com:
+    - mail.yourcompany.com
+    - notifications.yourcompany.com
+    - alerts.yourcompany.com
+```
+
+Add patterns for custom folders:
+```yaml
+folder_patterns:
+  ^work$:
+    - yourcompany.com
+    - work-related-domain.com
+  ^personal$:
+    - family-domain.com
+    - personal-service.com
+```
+
+**File Resolution Priority**:
+1. `{data_dir}/domain_rules.yml` (when using `--data-dir`)
+2. `~/.cleanbox/domain_rules.yml` (user's home directory)
+3. `config/domain_rules.yml` (default application file)
+
+**Migration for Existing Users**:
+If you're upgrading from an older version, run:
+```bash
+./cleanbox config init-domain-rules
+```
+This will create a customizable domain rules file while preserving all existing functionality.
 
 ### Configuration Management
 
@@ -249,6 +327,9 @@ Cleanbox also uses a domain rules file for advanced domain-to-folder mapping. By
 
 # Remove from array configuration
 ./cleanbox config remove whitelist_folders "Work"
+
+# Initialize domain rules file (for customization)
+./cleanbox config init-domain-rules
 ```
 
 ## Usage
@@ -305,16 +386,21 @@ Cleanbox also uses a domain rules file for advanced domain-to-folder mapping. By
 Since Cleanbox can be aggressive initially, here's a safe approach:
 
 1. **First, organize your existing emails** into folders (Family, Work, Newsletters, etc.)
-2. **Preview what Cleanbox would do**:
+2. **Customize domain rules** (optional but recommended):
+   ```bash
+   ./cleanbox config init-domain-rules
+   # Edit ~/.cleanbox/domain_rules.yml to add your company domains
+   ```
+3. **Preview what Cleanbox would do**:
    ```bash
    ./cleanbox --pretend --verbose
    ```
-3. **If the preview looks good, run it for real**:
+4. **If the preview looks good, run it for real**:
    ```bash
    ./cleanbox
    ```
-4. **Check your junk/spam folder** after the first run to make sure nothing important was moved there
-5. **Continue organizing emails** - Cleanbox will become more accurate over time
+5. **Check your junk/spam folder** after the first run to make sure nothing important was moved there
+6. **Continue organizing emails** - Cleanbox will become more accurate over time
 
 ### Examples
 
@@ -350,6 +436,7 @@ Cleanbox analyzes your existing email organization to understand your preference
 1. **Whitelist Analysis**: Examines folders you've designated as important (like "Family", "Work", "Clients") to learn which senders should stay in your inbox
 2. **List Detection**: Identifies newsletters, notifications, and marketing emails by analyzing folders like "Newsletters", "Notifications", etc.
 3. **Pattern Recognition**: Learns domain patterns (e.g., if you've moved emails from `facebook.com` to a "Social" folder, it will do the same for future emails)
+4. **Domain Rules**: Uses customizable domain rules to understand relationships between email domains and suggest related domains for automatic filing
 
 ### Processing Phase
 New emails are automatically processed based on learned patterns:
@@ -389,6 +476,12 @@ New emails are automatically processed based on learned patterns:
 - Organize more emails into appropriate folders to improve accuracy
 - Check your junk/spam folder regularly and move important emails back to inbox
 - Consider adding important senders to `whitelist_folders` configuration
+
+**"Domain rules not working"**
+- Ensure you've created a domain rules file: `./cleanbox config init-domain-rules`
+- Check that your domain rules file is in the correct location (see file resolution priority)
+- Verify the YAML syntax in your domain rules file
+- Use `--verbose` flag to see which domain rules file is being loaded
 
 ### Debug Mode
 

@@ -99,6 +99,19 @@ module CLI
       opts.on('-F', '--file-from FOLDER', 'File (from the Inbox) based on mail in FOLDER (can use multiple times)') do |folder|
         @options[:file_from_folders] << folder
       end
+
+      # Analysis options
+      opts.on('--brief', 'Show high-level summary only (for analysis commands)') do
+        @options[:brief] = true
+      end
+
+      opts.on('--detailed', 'Show detailed analysis with examples (for analysis commands)') do
+        @options[:detailed] = true
+      end
+
+      opts.on('--folder FOLDER', 'Analyze specific folder only (for analysis commands)') do |folder|
+        @options[:analysis_folder] = folder
+      end
     end
 
     def setup_commands_help(opts)
@@ -107,6 +120,9 @@ module CLI
       opts.separator ''
       opts.separator '  setup'
       opts.separator '    interactive setup wizard - analyzes your email and configures Cleanbox'
+      opts.separator ''
+      opts.separator '  analyze'
+      opts.separator '    analyze email patterns and provide recommendations'
       opts.separator ''
       opts.separator '  list'
       opts.separator '    show the mapping of email addresses to folders for filing'

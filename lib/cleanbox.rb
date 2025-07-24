@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require 'logger'
+require_relative 'message_processor'
+require_relative 'message_action_runner'
 
 # main class
 # rubocop:disable Metrics/ClassLength

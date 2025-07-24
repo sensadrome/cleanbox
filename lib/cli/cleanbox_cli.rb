@@ -6,6 +6,7 @@ require_relative 'cli_parser'
 require_relative 'validator'
 require_relative 'secrets_manager'
 require_relative 'setup_wizard'
+require_relative 'analyzer_cli'
 require_relative '../auth/authentication_manager'
 
 module CLI
@@ -20,6 +21,7 @@ module CLI
     def run
       parse_options
       handle_setup_command
+      handle_analyze_command
       update_config_manager_if_needed
       handle_config_command
       handle_no_args_help
@@ -66,7 +68,10 @@ module CLI
         sent_since_months: 24,
         valid_since_months: 12,
         list_since_months: 12,
-        data_dir: nil
+        data_dir: nil,
+        brief: false,
+        detailed: false,
+        analysis_folder: nil
       }
     end
 
@@ -100,6 +105,24 @@ module CLI
       return unless ARGV.include?('setup')
       ARGV.delete('setup')  # Remove 'setup' from ARGV so it doesn't interfere with STDIN
       CLI::SetupWizard.new(verbose: @options[:verbose]).run
+      exit 0
+    end
+
+    def handle_analyze_command
+      return unless ARGV.include?('analyze')
+      ARGV.delete('analyze')  # Remove 'analyze' from ARGV
+      
+      # Create IMAP connection for analysis
+      imap = create_imap_connection
+      
+      # Set the data directory for cache operations
+      CleanboxFolderChecker.data_dir = data_dir
+      
+      # Set the data directory for domain rules
+      Analysis::DomainMapper.data_dir = data_dir
+      
+      # Run analysis
+      CLI::AnalyzerCLI.new(imap, @options).run
       exit 0
     end
 
@@ -165,6 +188,7 @@ module CLI
       puts "Common Commands:"
       puts "  ./cleanbox --help         # Show detailed help"
       puts "  ./cleanbox setup          # Interactive setup wizard"
+      puts "  ./cleanbox analyze        # Analyze email patterns"
       puts "  ./cleanbox config show    # Show current configuration"
       puts "  ./cleanbox --pretend      # Preview without making changes"
       puts "  ./cleanbox clean          # Clean your inbox"

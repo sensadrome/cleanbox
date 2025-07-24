@@ -134,6 +134,7 @@ RSpec.describe MessageActionRunner do
   def create_message
     mock_message = double('message')
     allow(mock_message).to receive(:seqno).and_return(123)
+    allow(mock_message).to receive(:from_address).and_return('test@example.com')
     mock_message
   end
 end 

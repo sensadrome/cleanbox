@@ -6,9 +6,11 @@ require 'set'
 class MessageActionRunner
   attr_reader :changed_folders
 
-  def initialize(imap:, junk_folder: 'Junk')
+  def initialize(imap:, junk_folder: 'Junk', pretending: false, logger: nil)
     @imap = imap
     @junk_folder = junk_folder
+    @pretending = pretending
+    @logger = logger || Logger.new(STDOUT)
     @changed_folders = Set.new
   end
 
@@ -19,7 +21,7 @@ class MessageActionRunner
     when :junk
       execute_junk(message)
     when :keep
-      # No action needed
+      @logger.debug "Keeping message #{message.seqno} from '#{message.from_address}' in inbox"
     else
       raise ArgumentError, "Unknown action: #{decision[:action]}"
     end
@@ -28,16 +30,26 @@ class MessageActionRunner
   private
 
   def execute_move(folder, message)
-    @imap.add_folder(folder) if folder_needs_creation?(folder)
-    @imap.copy(message.seqno, folder)
-    @imap.store(message.seqno, '+FLAGS', [:Deleted])
+    if @pretending
+      @logger.info "PRETEND: Would move message #{message.seqno} from '#{message.from_address}' to folder '#{folder}'"
+    else
+      @logger.info "Moving message #{message.seqno} from '#{message.from_address}' to folder '#{folder}'"
+      @imap.add_folder(folder) if folder_needs_creation?(folder)
+      @imap.copy(message.seqno, folder)
+      @imap.store(message.seqno, '+FLAGS', [:Deleted])
+    end
     @changed_folders.add(folder)
   end
 
   def execute_junk(message)
-    @imap.add_folder(@junk_folder) if folder_needs_creation?(@junk_folder)
-    @imap.copy(message.seqno, @junk_folder)
-    @imap.store(message.seqno, '+FLAGS', [:Deleted])
+    if @pretending
+      @logger.info "PRETEND: Would move message #{message.seqno} from '#{message.from_address}' to junk folder '#{@junk_folder}'"
+    else
+      @logger.info "Moving message #{message.seqno} from '#{message.from_address}' to junk folder '#{@junk_folder}'"
+      @imap.add_folder(@junk_folder) if folder_needs_creation?(@junk_folder)
+      @imap.copy(message.seqno, @junk_folder)
+      @imap.store(message.seqno, '+FLAGS', [:Deleted])
+    end
     @changed_folders.add(@junk_folder)
   end
 

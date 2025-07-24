@@ -66,18 +66,19 @@ class Cleanbox < CleanboxConnection
   def file_messages!
     build_list_domains! unless file_from_folders.present?
     build_sender_map!
-    process_messages(all_messages, :decide_for_filing)
+    context_name = unjunking? ? 'unjunking' : 'filing existing messages'
+    process_messages(all_messages, :decide_for_filing, context_name)
   end
 
   def unjunk!
     build_clean_sender_map!
-    process_messages(junk_messages, :decide_for_filing)
+    process_messages(junk_messages, :decide_for_filing, 'unjunking')
   end
 
   private
 
   def clean_inbox!
-    process_messages(new_messages, :decide_for_new_message)
+    process_messages(new_messages, :decide_for_new_message, 'new inbox messages')
   end
 
   def log_level
@@ -165,14 +166,24 @@ class Cleanbox < CleanboxConnection
     [*options[:list_folders] || list_folder]
   end
 
-  def process_messages(messages, decision_method)
+  def process_messages(messages, decision_method, context_name = nil)
     context = message_processing_context
     processor = MessageProcessor.new(context)
-    runner = MessageActionRunner.new(imap: imap_connection, junk_folder: junk_folder)
+    runner = MessageActionRunner.new(imap: imap_connection, junk_folder: junk_folder, pretending: pretending?, logger: logger)
+
+    # Log context-specific message count
+    logger.info "Processing #{messages.length} messages for #{context_name}"
 
     messages.each do |message|
       decision = processor.send(decision_method, message)
       runner.execute(decision, message)
+    end
+
+    # Log summary of actions taken
+    if runner.changed_folders.any?
+      logger.info "Updated #{runner.changed_folders.length} folders: #{runner.changed_folders.to_a.join(', ')}"
+    else
+      logger.info "No messages were moved"
     end
 
     runner.changed_folders.each do |folder|

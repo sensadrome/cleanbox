@@ -7,6 +7,7 @@ require_relative 'validator'
 require_relative 'secrets_manager'
 require_relative 'setup_wizard'
 require_relative 'analyzer_cli'
+require_relative 'sent_analysis_cli'
 require_relative '../auth/authentication_manager'
 
 module CLI
@@ -22,6 +23,7 @@ module CLI
       parse_options
       handle_setup_command
       handle_analyze_command
+      handle_sent_analysis_command
       update_config_manager_if_needed
       handle_config_command
       handle_no_args_help
@@ -102,14 +104,14 @@ module CLI
     end
 
     def handle_setup_command
-      return unless ARGV.include?('setup')
+      return unless ARGV.first == 'setup'
       ARGV.delete('setup')  # Remove 'setup' from ARGV so it doesn't interfere with STDIN
       CLI::SetupWizard.new(verbose: @options[:verbose]).run
       exit 0
     end
 
     def handle_analyze_command
-      return unless ARGV.include?('analyze')
+      return unless ARGV.first == 'analyze'
       ARGV.delete('analyze')  # Remove 'analyze' from ARGV
       
       # Create IMAP connection for analysis
@@ -123,6 +125,24 @@ module CLI
       
       # Run analysis
       CLI::AnalyzerCLI.new(imap, @options).run
+      exit 0
+    end
+
+    def handle_sent_analysis_command
+      return unless ARGV.first == 'sent-analysis'
+      ARGV.delete('sent-analysis')  # Remove 'sent-analysis' from ARGV
+      
+      # Create IMAP connection for analysis
+      imap = create_imap_connection
+      
+      # Set the data directory for cache operations
+      CleanboxFolderChecker.data_dir = data_dir
+      
+      # Set the data directory for domain rules
+      Analysis::DomainMapper.data_dir = data_dir
+      
+      # Run sent analysis
+      CLI::SentAnalysisCLI.new(imap, @options).run
       exit 0
     end
 
@@ -189,6 +209,7 @@ module CLI
       puts "  ./cleanbox --help         # Show detailed help"
       puts "  ./cleanbox setup          # Interactive setup wizard"
       puts "  ./cleanbox analyze        # Analyze email patterns"
+      puts "  ./cleanbox sent-analysis  # Analyze sent vs folder patterns"
       puts "  ./cleanbox config show    # Show current configuration"
       puts "  ./cleanbox --pretend      # Preview without making changes"
       puts "  ./cleanbox clean          # Clean your inbox"

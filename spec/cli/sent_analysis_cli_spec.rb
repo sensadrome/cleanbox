@@ -224,4 +224,163 @@ RSpec.describe CLI::SentAnalysisCLI do
       expect(result).to be_nil
     end
   end
+
+  describe '#collect_data' do
+    let(:sent_data) { { 'total_sent' => 100, 'sample_size' => 50 } }
+    let(:folder_results) { { 'folders' => [], 'total_analyzed' => 0 } }
+    let(:sent_recipients) { [{ 'recipient' => 'test@example.com' }] }
+    let(:folder_senders) { [{ 'sender' => 'sender@example.com' }] }
+
+    before do
+      allow(cli).to receive(:puts)
+      allow(mock_email_analyzer).to receive(:analyze_sent_items).and_return(sent_data)
+      allow(mock_email_analyzer).to receive(:analyze_folders).and_return(folder_results)
+      allow(cli).to receive(:collect_sent_recipients_with_progress).and_return(sent_recipients)
+      allow(cli).to receive(:collect_folder_senders_with_progress).and_return(folder_senders)
+      allow(cli).to receive(:save_json_data)
+      allow(cli).to receive(:save_csv_data)
+    end
+
+    it 'collects and saves all data' do
+      expect(mock_email_analyzer).to receive(:analyze_sent_items)
+      expect(mock_email_analyzer).to receive(:analyze_folders)
+      expect(cli).to receive(:collect_sent_recipients_with_progress)
+      expect(cli).to receive(:collect_folder_senders_with_progress).with(folder_results[:folders])
+      expect(cli).to receive(:save_json_data)
+      expect(cli).to receive(:save_csv_data)
+
+      cli.send(:collect_data)
+    end
+  end
+
+  describe '#collect_sent_recipients_with_progress' do
+    let(:message_ids) { [1, 2, 3] }
+    let(:envelopes) do
+      [
+        double('envelope1', seqno: 1, attr: { 'ENVELOPE' => double('envelope1_data', to: [double('recipient1', mailbox: 'test', host: 'example.com')], date: Time.now) }),
+        double('envelope2', seqno: 2, attr: { 'ENVELOPE' => double('envelope2_data', to: [double('recipient2', mailbox: 'user', host: 'test.com')], date: Time.now) })
+      ]
+    end
+
+    before do
+      allow(cli).to receive(:detect_sent_folder).and_return('Sent Items')
+      allow(mock_imap).to receive(:select).with('Sent Items')
+      allow(mock_imap).to receive(:search).with(['ALL']).and_return(message_ids)
+      allow(mock_imap).to receive(:fetch).with(message_ids, 'ENVELOPE').and_return(envelopes)
+      allow(cli).to receive(:puts)
+      allow(cli).to receive(:safe_date_format).and_return('2023-01-01')
+    end
+
+    it 'collects sent recipients with progress' do
+      result = cli.send(:collect_sent_recipients_with_progress)
+      
+      expect(result).to be_an(Array)
+      expect(result.length).to eq(2)
+      expect(result.first).to include('recipient' => 'test@example.com')
+      expect(result.last).to include('recipient' => 'user@test.com')
+    end
+
+    context 'when sent folder is not found' do
+      before do
+        allow(cli).to receive(:detect_sent_folder).and_return(nil)
+      end
+
+      it 'returns empty array' do
+        result = cli.send(:collect_sent_recipients_with_progress)
+        expect(result).to eq([])
+      end
+    end
+  end
+
+  describe '#collect_folder_senders_with_progress' do
+    let(:folders) do
+      [
+        { name: 'Test Folder', message_count: 10, categorization: 'whitelist' },
+        { name: 'Another Folder', message_count: 5, categorization: 'list' }
+      ]
+    end
+    let(:message_ids) { [1, 2] }
+    let(:envelopes) do
+      [
+        double('envelope1', seqno: 1, attr: { 'ENVELOPE' => double('envelope1_data', from: [double('sender1', mailbox: 'sender', host: 'example.com')], date: Time.now) }),
+        double('envelope2', seqno: 2, attr: { 'ENVELOPE' => double('envelope2_data', from: [double('sender2', mailbox: 'user', host: 'test.com')], date: Time.now) })
+      ]
+    end
+
+    before do
+      allow(mock_imap).to receive(:select)
+      allow(mock_imap).to receive(:search).with(['ALL']).and_return(message_ids)
+      allow(mock_imap).to receive(:fetch).with(message_ids, 'ENVELOPE').and_return(envelopes)
+      allow(cli).to receive(:puts)
+      allow(cli).to receive(:safe_date_format).and_return('2023-01-01')
+    end
+
+    it 'collects folder senders with progress' do
+      result = cli.send(:collect_folder_senders_with_progress, folders)
+      
+      expect(result).to be_an(Array)
+      expect(result.length).to eq(4) # 2 folders × 2 messages each
+      expect(result.first).to include('folder' => 'Test Folder', 'categorization' => 'whitelist')
+    end
+  end
+
+  describe '#compare_sent_with_folders' do
+    let(:sent_recipients) { ['user1@example.com', 'user2@example.com'] }
+    let(:test_data) do
+      {
+        'sent_recipients' => [
+          { 'recipient' => 'user1@example.com' },
+          { 'recipient' => 'user2@example.com' }
+        ],
+        'folder_analysis' => {
+          'folders' => [
+            {
+              'name' => 'Folder1',
+              'categorization' => 'whitelist',
+              'senders' => ['user1@example.com', 'user3@example.com']
+            },
+            {
+              'name' => 'Folder2',
+              'categorization' => 'list',
+              'senders' => ['user4@example.com', 'user5@example.com']
+            }
+          ]
+        }
+      }
+    end
+
+    before do
+      allow(File).to receive(:exist?).and_return(true)
+      allow(File).to receive(:read).and_return(test_data.to_json)
+      allow(JSON).to receive(:parse).and_return(test_data)
+      allow(cli).to receive(:puts)
+    end
+
+    it 'compares sent recipients with folder senders' do
+      expect(cli).to receive(:puts).with(/📊 SENT vs FOLDER COMPARISON/)
+      expect(cli).to receive(:puts).with(/Folders ranked by overlap/)
+      
+      cli.send(:compare_sent_with_folders)
+    end
+  end
+
+  describe '#average_overlap' do
+    let(:folders) do
+      [
+        { overlap_percentage: 50.0 },
+        { overlap_percentage: 75.0 },
+        { overlap_percentage: 25.0 }
+      ]
+    end
+
+    it 'calculates average overlap correctly' do
+      result = cli.send(:average_overlap, folders)
+      expect(result).to eq(50.0) # (50 + 75 + 25) / 3 = 50
+    end
+
+    it 'returns 0 for empty folders' do
+      result = cli.send(:average_overlap, [])
+      expect(result).to eq(0)
+    end
+  end
 end 

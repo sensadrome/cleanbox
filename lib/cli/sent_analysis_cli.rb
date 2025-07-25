@@ -49,9 +49,17 @@ module CLI
       puts "📧 Analyzing sent emails..."
       sent_data = @email_analyzer.analyze_sent_items
       
-      # Analyze all folders
+      # Analyze all folders with progress
       puts "📁 Analyzing all folders..."
-      folder_results = @email_analyzer.analyze_folders
+      progress_callback = lambda do |current, total, folder_name|
+        percentage = (current.to_f / total * 100).round(1)
+        # Clear the line and write progress
+        print "\r\033[K  📈 Progress: #{percentage}% (#{current}/#{total}) - #{folder_name}"
+        STDOUT.flush
+      end
+      
+      folder_results = @email_analyzer.analyze_folders(progress_callback)
+      puts "" # New line after progress
       
       # Collect detailed data with progress
       puts "📋 Collecting detailed sender/recipient data..."
@@ -73,12 +81,6 @@ module CLI
       # Save to files
       puts "💾 Saving data to files..."
       save_json_data(detailed_data, 'sent_analysis_data.json')
-      
-      # Debug the data structure
-      puts "  🔍 Debug: detailed_data keys: #{detailed_data.keys}"
-      puts "  🔍 Debug: detailed_data['sent_recipients'] length: #{detailed_data['sent_recipients']&.length || 0}"
-      puts "  🔍 Debug: detailed_data['folder_senders'] length: #{detailed_data['folder_senders']&.length || 0}"
-      
       save_csv_data(detailed_data)
       
       puts "✅ Data collection complete!"

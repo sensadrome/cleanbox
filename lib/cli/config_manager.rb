@@ -293,6 +293,7 @@ module CLI
           sent_since_months
           valid_since_months
           list_since_months
+          data_dir
           verbose
           level
           valid_from
@@ -337,6 +338,9 @@ module CLI
           'sent_since_months' => 24,          # Process sent emails from last X months
           'valid_since_months' => 12,         # Process other folders from last X months
           'list_since_months' => 12,          # Process list folders from last X months
+          
+          # Data Directory
+          'data_dir' => nil,                  # Directory for cache, logs, and analysis files (defaults to current directory)
           
           # Debug/Testing Options
 

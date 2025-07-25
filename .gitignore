@@ -19,3 +19,12 @@ coverage/
 .sublime-ai
 .ruby-version
 spec/examples.txt
+
+# Sent analysis data files
+sent_analysis_data.json
+sent_recipients.csv
+folder_senders.csv
+sent_vs_folders.csv
+*.csv
+debug_*.rb
+analyze_sent_vs_folders.rb

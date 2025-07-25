@@ -54,22 +54,28 @@ RSpec.describe Analysis::EmailAnalyzer do
       before do
         allow(mock_categorizer).to receive(:skip?).and_return(false)
         allow(mock_categorizer).to receive(:categorization).and_return(:list)
+        allow(mock_categorizer).to receive(:categorization_reason).and_return('folder name suggests list/newsletter content')
       end
       
       it 'analyzes folders and returns results' do
         results = analyzer.analyze_folders
         
-        expect(results).to be_an(Array)
-        expect(results.first[:name]).to eq('TestFolder')
-        expect(results.first[:message_count]).to eq(50)
-        expect(results.first[:categorization]).to eq(:list)
+        expect(results).to be_a(Hash)
+        expect(results[:folders]).to be_an(Array)
+        expect(results[:folders].first[:name]).to eq('TestFolder')
+        expect(results[:folders].first[:message_count]).to eq(50)
+        expect(results[:folders].first[:categorization]).to eq(:list)
+        expect(results[:total_analyzed]).to eq(1)
+        expect(results[:total_skipped]).to eq(0)
       end
       
       it 'skips INBOX folder' do
         allow(mock_folder).to receive(:name).and_return('INBOX')
         
         results = analyzer.analyze_folders
-        expect(results).to be_empty
+        expect(results[:folders]).to be_empty
+        expect(results[:total_analyzed]).to eq(0)
+        expect(results[:total_skipped]).to eq(0)
       end
       
       it 'sorts folders by message count descending' do
@@ -80,28 +86,32 @@ RSpec.describe Analysis::EmailAnalyzer do
         allow(mock_categorizer_class).to receive(:new).and_return(mock_categorizer, mock_categorizer2)
         allow(mock_categorizer2).to receive(:skip?).and_return(false)
         allow(mock_categorizer2).to receive(:categorization).and_return(:whitelist)
+        allow(mock_categorizer2).to receive(:categorization_reason).and_return('folder name suggests personal/professional emails')
         allow(mock_imap).to receive(:status).and_return({ 'MESSAGES' => 25 }, { 'MESSAGES' => 100 })
         
-                 results = analyzer.analyze_folders
-         
-         expect(results.first[:message_count]).to eq(100)
-         expect(results.last[:message_count]).to eq(25)
+        results = analyzer.analyze_folders
+        
+        expect(results[:folders].first[:message_count]).to eq(100)
+        expect(results[:folders].last[:message_count]).to eq(25)
       end
     end
     
     context 'with folder that should be skipped' do
       before do
         allow(mock_categorizer).to receive(:skip?).and_return(true)
+        allow(mock_categorizer).to receive(:categorization_reason).and_return('system folder')
       end
       
       it 'skips the folder' do
         results = analyzer.analyze_folders
-        expect(results).to be_empty
+        expect(results[:folders]).to be_empty
+        expect(results[:total_analyzed]).to eq(0)
+        expect(results[:total_skipped]).to eq(1)
       end
       
       it 'logs skipped folders' do
         analyzer.analyze_folders
-        expect(mock_logger).to have_received(:info).with(/Found 1 folders to analyze/)
+        expect(mock_logger).to have_received(:debug).with(/Found 1 folders to analyze/)
       end
     end
     
@@ -110,19 +120,20 @@ RSpec.describe Analysis::EmailAnalyzer do
         allow(mock_imap).to receive(:select).and_raise(StandardError, 'Access denied')
         allow(mock_categorizer).to receive(:skip?).and_return(false)
         allow(mock_categorizer).to receive(:categorization).and_return(:list)
+        allow(mock_categorizer).to receive(:categorization_reason).and_return('folder name suggests list/newsletter content')
       end
       
       it 'handles errors gracefully' do
         results = analyzer.analyze_folders
         
-        expect(results.first[:message_count]).to eq(0)
-        expect(results.first[:senders]).to eq([])
-        expect(results.first[:domains]).to eq([])
+        expect(results[:folders].first[:message_count]).to eq(0)
+        expect(results[:folders].first[:senders]).to eq([])
+        expect(results[:folders].first[:domains]).to eq([])
       end
       
       it 'logs debug message for errors' do
         analyzer.analyze_folders
-        expect(mock_logger).to have_received(:debug).with(/Could not analyze folder TestFolder/)
+        expect(mock_logger).to have_received(:error).with(/Could not analyze folder TestFolder/)
       end
     end
   end

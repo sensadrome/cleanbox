@@ -95,7 +95,14 @@ RSpec.describe CLI::AnalyzerCLI do
       output = StringIO.new
       allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
       
-      analyzer_cli.send(:show_brief_folder_analysis, folders)
+      folder_results = {
+        folders: folders,
+        total_analyzed: 2,
+        total_skipped: 0,
+        total_folders: 2
+      }
+      
+      analyzer_cli.send(:show_brief_folder_analysis, folder_results)
       
       expect(output.string).to include('📊 Folder Summary:')
       expect(output.string).to include('Total folders analyzed: 2')

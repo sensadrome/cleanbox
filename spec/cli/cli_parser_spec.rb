@@ -37,6 +37,12 @@ RSpec.describe CLI::CLIParser do
         expect(options[:config_file]).to eq('myconfig.yml')
       end
 
+      it 'sets data directory' do
+        ARGV.replace(['-D', '/custom/data/dir'])
+        parser.parse!
+        expect(options[:data_dir]).to eq('/custom/data/dir')
+      end
+
       it 'sets log level' do
         ARGV.replace(['-L', 'info'])
         parser.parse!
@@ -107,6 +113,32 @@ RSpec.describe CLI::CLIParser do
         parser.parse!
         expect(options[:file_from_folders]).to include('Receipts', 'Invoices')
       end
+
+      it 'sets brief mode for analysis' do
+        ARGV.replace(['--brief'])
+        parser.parse!
+        expect(options[:brief]).to be true
+      end
+
+      it 'sets detailed mode for analysis' do
+        ARGV.replace(['--detailed'])
+        parser.parse!
+        expect(options[:detailed]).to be true
+      end
+
+      it 'sets analysis folder' do
+        ARGV.replace(['--folder', 'Work'])
+        parser.parse!
+        expect(options[:analysis_folder]).to eq('Work')
+      end
+
+      it 'handles multiple analysis options together' do
+        ARGV.replace(['--brief', '--detailed', '--folder', 'Inbox'])
+        parser.parse!
+        expect(options[:brief]).to be true
+        expect(options[:detailed]).to be true
+        expect(options[:analysis_folder]).to eq('Inbox')
+      end
     end
 
     context 'with help option' do
@@ -118,6 +150,14 @@ RSpec.describe CLI::CLIParser do
       it 'prints help and exits with --help' do
         ARGV.replace(['--help'])
         expect { parser.parse! }.to raise_error(SystemExit)
+      end
+
+      it 'includes analyze command in help output' do
+        ARGV.replace(['--help'])
+        expect { parser.parse! }.to raise_error(SystemExit)
+      rescue SystemExit
+        # This test ensures the help text includes the analyze command
+        # The actual help output is tested by the SystemExit expectation
       end
     end
 

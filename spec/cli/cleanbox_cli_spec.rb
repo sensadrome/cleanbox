@@ -372,4 +372,74 @@ RSpec.describe CLI::CleanboxCLI do
       cli.send(:execute_action)
     end
   end
+
+  describe '#handle_analyze_command' do
+    let(:mock_imap) { double('IMAP') }
+    let(:mock_analyzer_cli) { double('AnalyzerCLI') }
+
+    before do
+      allow(cli).to receive(:create_imap_connection).and_return(mock_imap)
+      allow(CLI::AnalyzerCLI).to receive(:new).and_return(mock_analyzer_cli)
+      allow(mock_analyzer_cli).to receive(:run)
+      allow(cli).to receive(:exit)
+      allow(ARGV).to receive(:include?).with('analyze').and_return(true)
+      allow(ARGV).to receive(:delete).with('analyze')
+    end
+
+    it 'creates IMAP connection for analysis' do
+      expect(cli).to receive(:create_imap_connection)
+      cli.send(:handle_analyze_command)
+    end
+
+    it 'sets data directory for cache operations' do
+      expect(CleanboxFolderChecker).to receive(:data_dir=).with(cli.send(:data_dir))
+      cli.send(:handle_analyze_command)
+    end
+
+    it 'sets data directory for domain rules' do
+      expect(Analysis::DomainMapper).to receive(:data_dir=).with(cli.send(:data_dir))
+      cli.send(:handle_analyze_command)
+    end
+
+    it 'creates AnalyzerCLI with IMAP connection and options' do
+      expect(CLI::AnalyzerCLI).to receive(:new).with(mock_imap, cli.instance_variable_get(:@options))
+      cli.send(:handle_analyze_command)
+    end
+
+    it 'runs the analyzer CLI' do
+      expect(mock_analyzer_cli).to receive(:run)
+      cli.send(:handle_analyze_command)
+    end
+
+    it 'exits after running analysis' do
+      expect(cli).to receive(:exit).with(0)
+      cli.send(:handle_analyze_command)
+    end
+
+    it 'removes analyze from ARGV' do
+      expect(ARGV).to receive(:delete).with('analyze')
+      cli.send(:handle_analyze_command)
+    end
+
+    context 'when analyze command is not provided' do
+      before do
+        allow(ARGV).to receive(:include?).with('analyze').and_return(false)
+      end
+
+      it 'does not create IMAP connection' do
+        expect(cli).not_to receive(:create_imap_connection)
+        cli.send(:handle_analyze_command)
+      end
+
+      it 'does not create AnalyzerCLI' do
+        expect(CLI::AnalyzerCLI).not_to receive(:new)
+        cli.send(:handle_analyze_command)
+      end
+
+      it 'does not exit' do
+        expect(cli).not_to receive(:exit)
+        cli.send(:handle_analyze_command)
+      end
+    end
+  end
 end 

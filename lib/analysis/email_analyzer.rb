@@ -4,6 +4,8 @@ require 'logger'
 
 module Analysis
   class EmailAnalyzer
+    attr_reader :analysis_results
+
     def initialize(imap_connection, logger: nil, folder_categorizer_class: FolderCategorizer)
       @imap_connection = imap_connection
       @logger = logger || Logger.new(STDOUT)
@@ -127,10 +129,6 @@ module Analysis
       domain_mapper = domain_mapper_class.new(@analysis_results[:folders])
       recommendations[:domain_mappings] = domain_mapper.generate_mappings
       recommendations
-    end
-    
-    def analysis_results
-      @analysis_results
     end
     
     private

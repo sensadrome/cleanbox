@@ -361,4 +361,282 @@ RSpec.describe CLI::AnalyzerCLI do
       expect(result).to eq(['test@example.com'])
     end
   end
+
+  describe 'detailed analysis methods' do
+    let(:folders) do
+      [
+        { name: 'Work', message_count: 100, categorization: :whitelist, senders: ['alice@work.com'], domains: ['work.com'] },
+        { name: 'Newsletters', message_count: 50, categorization: :list, senders: ['news@example.com'], domains: ['example.com'] }
+      ]
+    end
+
+    let(:inbox_data) do
+      {
+        total_messages: 150,
+        unread_messages: 25,
+        recent_messages: 30,
+        senders: ['alice@work.com', 'bob@friend.com', 'news@example.com'],
+        domains: ['work.com', 'friend.com', 'example.com'],
+        sample_size: 50
+      }
+    end
+
+    let(:sender_analysis) do
+      {
+        'alice@work.com' => { folders: ['Work'], total_count: 10, sent_count: 5 },
+        'bob@friend.com' => { folders: ['Friends'], total_count: 5, sent_count: 2 }
+      }
+    end
+
+    let(:domain_analysis) do
+      {
+        'work.com' => { categorization: 'work', folders: ['Work'], total_messages: 100 },
+        'example.com' => { categorization: 'newsletter', folders: ['Newsletters'], total_messages: 50 }
+      }
+    end
+
+    it 'shows detailed folder analysis' do
+      output = StringIO.new
+      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
+      
+      analyzer_cli.send(:show_detailed_folder_analysis, folders)
+      
+      expect(output.string).to include('📊 Folder Analysis:')
+      expect(output.string).to include('Work')
+      expect(output.string).to include('Newsletters')
+    end
+
+    it 'shows detailed inbox analysis' do
+      output = StringIO.new
+      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
+      
+      analyzer_cli.send(:show_detailed_inbox_analysis, inbox_data)
+      
+      expect(output.string).to include('📧 Inbox Summary:')
+      expect(output.string).to include('150')
+    end
+
+    it 'shows detailed sender analysis' do
+      output = StringIO.new
+      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
+      
+      analyzer_cli.send(:show_detailed_sender_analysis, sender_analysis)
+      
+      expect(output.string).to include('👤 Sender Summary:')
+      expect(output.string).to include('2')
+    end
+
+    it 'shows detailed domain analysis' do
+      output = StringIO.new
+      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
+      
+      analyzer_cli.send(:show_detailed_domain_analysis, domain_analysis)
+      
+      expect(output.string).to include('🌐 Domain Summary:')
+      expect(output.string).to include('2')
+    end
+  end
+
+  describe 'standard analysis methods' do
+    let(:folders) do
+      [
+        { name: 'Work', message_count: 100, categorization: :whitelist, senders: ['alice@work.com'], domains: ['work.com'] },
+        { name: 'Newsletters', message_count: 50, categorization: :list, senders: ['news@example.com'], domains: ['example.com'] }
+      ]
+    end
+
+    let(:inbox_data) do
+      {
+        total_messages: 150,
+        unread_messages: 25,
+        recent_messages: 30,
+        senders: ['alice@work.com', 'bob@friend.com', 'news@example.com'],
+        domains: ['work.com', 'friend.com', 'example.com'],
+        sample_size: 50
+      }
+    end
+
+    let(:sender_analysis) do
+      {
+        'alice@work.com' => { folders: ['Work'], total_count: 10, sent_count: 5 },
+        'bob@friend.com' => { folders: ['Friends'], total_count: 5, sent_count: 2 }
+      }
+    end
+
+    let(:domain_analysis) do
+      {
+        'work.com' => { categorization: 'work', folders: ['Work'], total_messages: 100 },
+        'example.com' => { categorization: 'newsletter', folders: ['Newsletters'], total_messages: 50 }
+      }
+    end
+
+    it 'shows standard folder analysis' do
+      output = StringIO.new
+      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
+      
+      analyzer_cli.send(:show_standard_folder_analysis, folders)
+      
+      expect(output.string).to include('📊 Folder Analysis:')
+      expect(output.string).to include('Work')
+      expect(output.string).to include('Newsletters')
+    end
+
+    it 'shows standard inbox analysis' do
+      output = StringIO.new
+      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
+      
+      analyzer_cli.send(:show_standard_inbox_analysis, inbox_data)
+      
+      expect(output.string).to include('📧 Inbox Summary:')
+      expect(output.string).to include('150')
+    end
+
+    it 'shows standard sender analysis' do
+      output = StringIO.new
+      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
+      
+      analyzer_cli.send(:show_standard_sender_analysis, sender_analysis)
+      
+      expect(output.string).to include('👤 Sender Summary:')
+      expect(output.string).to include('2')
+    end
+
+    it 'shows standard domain analysis' do
+      output = StringIO.new
+      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
+      
+      analyzer_cli.send(:show_standard_domain_analysis, domain_analysis)
+      
+      expect(output.string).to include('🌐 Domain Summary:')
+      expect(output.string).to include('2')
+    end
+  end
+
+  describe 'analysis logic methods' do
+    let(:folders) do
+      [
+        { name: 'Work', message_count: 100, senders: ['alice@work.com'], domains: ['work.com'] },
+        { name: 'Newsletters', message_count: 50, senders: ['news@example.com'], domains: ['example.com'] }
+      ]
+    end
+
+    let(:sent_items) do
+      {
+        frequent_correspondents: [['alice@work.com', 5], ['bob@friend.com', 3]],
+        total_sent: 100,
+        sample_size: 50
+      }
+    end
+
+    let(:domain_patterns) do
+      {
+        'work.com' => { categorization: 'work', folders: ['Work'], total_messages: 100 },
+        'example.com' => { categorization: 'newsletter', folders: ['Newsletters'], total_messages: 50 }
+      }
+    end
+
+    it 'analyzes inbox state' do
+      allow(mock_imap).to receive(:select)
+      allow(mock_imap).to receive(:search).and_return([])
+      allow(mock_imap).to receive(:fetch).and_return([])
+      
+      result = analyzer_cli.send(:analyze_inbox_state)
+      
+      expect(result).to be_a(Hash)
+      expect(result).to include(:total_messages, :unread_messages, :senders, :domains, :sample_size)
+    end
+
+    it 'analyzes sender patterns' do
+      result = analyzer_cli.send(:analyze_sender_patterns, folders, sent_items)
+      
+      expect(result).to be_a(Hash)
+      expect(result).to include('alice@work.com', 'news@example.com')
+    end
+
+    it 'analyzes domain patterns' do
+      result = analyzer_cli.send(:analyze_domain_patterns, folders, domain_patterns)
+      
+      expect(result).to be_a(Hash)
+      expect(result).to include('work.com', 'example.com')
+    end
+  end
+
+  describe 'main analysis methods' do
+    let(:mock_email_analyzer) { double('EmailAnalyzer') }
+    let(:folder_results) do
+      {
+        folders: [
+          { name: 'Work', message_count: 100, categorization: :whitelist, senders: ['alice@work.com'], domains: ['work.com'] },
+          { name: 'Newsletters', message_count: 50, categorization: :list, senders: ['news@example.com'], domains: ['example.com'] }
+        ],
+        total_analyzed: 2,
+        total_skipped: 0,
+        total_folders: 2
+      }
+    end
+
+    let(:sent_items) do
+      {
+        frequent_correspondents: [['alice@work.com', 5], ['bob@friend.com', 3]],
+        total_sent: 100,
+        sample_size: 50
+      }
+    end
+
+    before do
+      allow(analyzer_cli).to receive(:show_progress)
+      allow(analyzer_cli).to receive(:clear_progress)
+      allow(analyzer_cli).to receive(:puts)
+      allow(analyzer_cli).to receive(:show_brief_folder_analysis)
+      allow(analyzer_cli).to receive(:show_standard_folder_analysis)
+      allow(analyzer_cli).to receive(:show_detailed_folder_analysis)
+      allow(analyzer_cli).to receive(:show_date_range_impact)
+      
+      mock_logger = double('Logger')
+      allow(mock_logger).to receive(:level=)
+      
+      analyzer_cli.instance_variable_set(:@email_analyzer, mock_email_analyzer)
+      allow(mock_email_analyzer).to receive(:analyze_folders).and_return(folder_results)
+      allow(mock_email_analyzer).to receive(:analyze_sent_items).and_return(sent_items)
+      allow(mock_email_analyzer).to receive(:instance_variable_get).with(:@logger).and_return(mock_logger)
+      allow(mock_email_analyzer).to receive(:instance_variable_set)
+    end
+
+    it 'analyzes folders with brief output' do
+      analyzer_cli.instance_variable_get(:@options)[:brief] = true
+      
+      analyzer_cli.send(:analyze_folders)
+      
+      expect(mock_email_analyzer).to have_received(:analyze_folders)
+      expect(mock_email_analyzer).to have_received(:analyze_sent_items)
+      expect(analyzer_cli).to have_received(:show_brief_folder_analysis).with(folder_results)
+    end
+
+    it 'analyzes folders with detailed output' do
+      analyzer_cli.instance_variable_get(:@options)[:detailed] = true
+      
+      analyzer_cli.send(:analyze_folders)
+      
+      expect(mock_email_analyzer).to have_received(:analyze_folders)
+      expect(mock_email_analyzer).to have_received(:analyze_sent_items)
+      expect(analyzer_cli).to have_received(:show_detailed_folder_analysis).with(folder_results[:folders])
+    end
+
+    it 'analyzes folders with standard output' do
+      analyzer_cli.instance_variable_get(:@options)[:brief] = false
+      analyzer_cli.instance_variable_get(:@options)[:detailed] = false
+      
+      analyzer_cli.send(:analyze_folders)
+      
+      expect(mock_email_analyzer).to have_received(:analyze_folders)
+      expect(mock_email_analyzer).to have_received(:analyze_sent_items)
+      expect(analyzer_cli).to have_received(:show_standard_folder_analysis).with(folder_results[:folders])
+    end
+
+    it 'shows date range impact' do
+      analyzer_cli.send(:analyze_folders)
+      
+      expect(analyzer_cli).to have_received(:show_date_range_impact).with(folder_results[:folders])
+    end
+  end
 end 

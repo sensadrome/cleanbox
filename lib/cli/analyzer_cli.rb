@@ -49,8 +49,33 @@ module CLI
       puts "=================="
       puts ""
 
+      puts "🔍 Analyzing your email folders..."
+      
+      # Set logger level based on user preferences
+      if @options[:verbose]
+        @email_analyzer.instance_variable_get(:@logger).level = Logger::DEBUG
+      else
+        @email_analyzer.instance_variable_get(:@logger).level = Logger::FATAL
+      end
+      
+      # Show progress for folder analysis
+      puts "  Scanning folders..."
+      
+      # Create progress callback for user-friendly updates
+      progress_callback = ->(current, total, folder_name) do
+        show_progress("  Processing folder #{current} of #{total}: #{folder_name}")
+      end
+      
       # Get folder analysis
-      folders = @email_analyzer.analyze_folders
+      folder_results = @email_analyzer.analyze_folders(progress_callback)
+      folders = folder_results[:folders]
+      
+      # Clear progress and add a newline to ensure clean output
+      clear_progress
+      puts ""  # Add newline after clearing
+      puts "  Found #{folder_results[:total_analyzed]} folders to analyze"
+      
+      puts "📧 Checking your sent items..."
       sent_items = @email_analyzer.analyze_sent_items
       
       # Store results for other analyses
@@ -59,8 +84,13 @@ module CLI
         sent_items: sent_items
       })
 
+      clear_progress  # Final clear to ensure no artifacts
+      puts ""
+      puts "✅ Analysis complete!"
+      puts ""
+
       if @options[:brief]
-        show_brief_folder_analysis(folders)
+        show_brief_folder_analysis(folder_results)
       elsif @options[:detailed]
         show_detailed_folder_analysis(folders)
       else
@@ -76,8 +106,12 @@ module CLI
       puts "================="
       puts ""
 
+      puts "🔍 Analyzing your inbox..."
       inbox_data = analyze_inbox_state
       
+      puts "✅ Analysis complete!"
+      puts ""
+
       if @options[:brief]
         show_brief_inbox_analysis(inbox_data)
       elsif @options[:detailed]
@@ -92,12 +126,17 @@ module CLI
       puts "=================="
       puts ""
 
+      puts "🔍 Analyzing sender patterns..."
       # Get comprehensive sender analysis
-      folders = @email_analyzer.analyze_folders
+      folder_results = @email_analyzer.analyze_folders
+      folders = folder_results[:folders]
       sent_items = @email_analyzer.analyze_sent_items
       
       sender_analysis = analyze_sender_patterns(folders, sent_items)
       
+      puts "✅ Analysis complete!"
+      puts ""
+
       if @options[:brief]
         show_brief_sender_analysis(sender_analysis)
       elsif @options[:detailed]
@@ -112,11 +151,16 @@ module CLI
       puts "=================="
       puts ""
 
-      folders = @email_analyzer.analyze_folders
+      puts "🔍 Analyzing domain patterns..."
+      folder_results = @email_analyzer.analyze_folders
+      folders = folder_results[:folders]
       domain_patterns = @email_analyzer.analyze_domain_patterns
       
       domain_analysis = analyze_domain_patterns(folders, domain_patterns)
       
+      puts "✅ Analysis complete!"
+      puts ""
+
       if @options[:brief]
         show_brief_domain_analysis(domain_analysis)
       elsif @options[:detailed]
@@ -131,8 +175,10 @@ module CLI
       puts "==============================="
       puts ""
 
+      puts "🔍 Analyzing your email patterns..."
       # Get comprehensive analysis
-      folders = @email_analyzer.analyze_folders
+      folder_results = @email_analyzer.analyze_folders
+      folders = folder_results[:folders]
       sent_items = @email_analyzer.analyze_sent_items
       
       @email_analyzer.instance_variable_set(:@analysis_results, {
@@ -140,10 +186,14 @@ module CLI
         sent_items: sent_items
       })
       
+      puts "🤖 Generating recommendations..."
       recommendations = @email_analyzer.generate_recommendations(
         domain_mapper_class: Analysis::DomainMapper
       )
       
+      puts "✅ Analysis complete!"
+      puts ""
+
       show_recommendations(recommendations, folders)
     end
 
@@ -152,8 +202,10 @@ module CLI
       puts "================================"
       puts ""
 
+      puts "🔍 Running comprehensive analysis..."
       # Run all analyses
-      folders = @email_analyzer.analyze_folders
+      folder_results = @email_analyzer.analyze_folders
+      folders = folder_results[:folders]
       sent_items = @email_analyzer.analyze_sent_items
       domain_patterns = @email_analyzer.analyze_domain_patterns
       
@@ -163,10 +215,14 @@ module CLI
         domain_patterns: domain_patterns
       })
       
+      puts "🤖 Generating recommendations..."
       recommendations = @email_analyzer.generate_recommendations(
         domain_mapper_class: Analysis::DomainMapper
       )
       
+      puts "✅ Analysis complete!"
+      puts ""
+
       show_comprehensive_summary(folders, sent_items, domain_patterns, recommendations)
     end
 
@@ -266,13 +322,26 @@ module CLI
       end.compact.uniq
     end
 
+    def show_progress(message)
+      # Clear the line first, then show new message
+      print "\r\033[K#{message}"
+      $stdout.flush
+    end
+
+    def clear_progress
+      # Use ANSI escape sequence to clear the line
+      print "\r\033[K"
+      $stdout.flush
+    end
+
     # Display methods for different analysis levels
-    def show_brief_folder_analysis(folders)
+    def show_brief_folder_analysis(folder_results)
       puts "📊 Folder Summary:"
-      puts "  Total folders analyzed: #{folders.length}"
-      puts "  Total messages: #{folders.sum { |f| f[:message_count] }}"
-      puts "  Whitelist folders: #{folders.count { |f| f[:categorization] == :whitelist }}"
-      puts "  List folders: #{folders.count { |f| f[:categorization] == :list }}"
+      puts "  Total folders analyzed: #{folder_results[:total_analyzed]}"
+      puts "  Folders skipped: #{folder_results[:total_skipped]}"
+      puts "  Total messages: #{folder_results[:folders].sum { |f| f[:message_count] }}"
+      puts "  Whitelist folders: #{folder_results[:folders].count { |f| f[:categorization] == :whitelist }}"
+      puts "  List folders: #{folder_results[:folders].count { |f| f[:categorization] == :list }}"
       puts ""
     end
 

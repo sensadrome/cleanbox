@@ -11,17 +11,24 @@ module Analysis
       @analysis_results = {}
     end
     
-    def analyze_folders
+    def analyze_folders(progress_callback = nil)
       folders = []
       skipped_folders = []
       
       imap_folders = @imap_connection.list('', '*')
       total_folders = imap_folders.length
       
-      @logger.info "Found #{total_folders} folders to analyze..."
+      @logger.debug "Found #{total_folders} folders to analyze..."
       
       imap_folders.each_with_index do |folder, index|
         next if folder.name == 'INBOX'
+        
+        # Call progress callback if provided
+        if progress_callback
+          progress_callback.call(index + 1, total_folders, folder.name)
+        end
+        
+        @logger.debug "Analyzing folder #{index + 1}/#{total_folders}: #{folder.name}"
         
         folder_data = build_folder_data(folder)
         categorizer = @folder_categorizer_class.new(
@@ -31,37 +38,51 @@ module Analysis
         )
         
         if categorizer.skip?
+          @logger.debug "  Skipping #{folder.name} (#{categorizer.categorization_reason})"
           skipped_folders << folder.name
           next
         end
         
+        @logger.debug "  Categorized as #{categorizer.categorization} (#{categorizer.categorization_reason})"
         folder_data[:categorization] = categorizer.categorization
         folders << folder_data
       end
       
+      @logger.debug "Analysis complete: #{folders.length} folders analyzed, #{skipped_folders.length} skipped"
       @analysis_results[:folders] = folders.sort_by { |f| -f[:message_count] }
       @analysis_results[:skipped_folders] = skipped_folders
-      @analysis_results[:folders]
+      
+      # Return structured data for friendly display
+      {
+        folders: folders.sort_by { |f| -f[:message_count] },
+        skipped_folders: skipped_folders,
+        total_analyzed: folders.length,
+        total_skipped: skipped_folders.length,
+        total_folders: total_folders
+      }
     end
     
     def analyze_sent_items
       sent_folder = detect_sent_folder
-      return { frequent_correspondents: [], total_sent: 0 } unless sent_folder
+      return { frequent_correspondents: [], total_sent: 0, sample_size: 0 } unless sent_folder
       
       begin
+        @logger.debug "Analyzing sent items from #{sent_folder}"
         @imap_connection.select(sent_folder)
         message_count = @imap_connection.search(['ALL']).length
         
         sample_size = [message_count, 200].min
         message_ids = @imap_connection.search(['ALL']).last(sample_size)
         
-        return { frequent_correspondents: [], total_sent: message_count } if message_ids.empty?
+        return { frequent_correspondents: [], total_sent: message_count, sample_size: 0 } if message_ids.empty?
         
+        @logger.debug "Analyzing #{sample_size} sent messages"
         envelopes = @imap_connection.fetch(message_ids, 'ENVELOPE')
         recipients = extract_recipients(envelopes)
         frequency = recipients.group_by(&:itself).transform_values(&:length)
         frequent_correspondents = frequency.sort_by { |_, count| -count }.first(20)
         
+        @logger.debug "Found #{frequent_correspondents.length} frequent correspondents"
         {
           frequent_correspondents: frequent_correspondents,
           total_sent: message_count,
@@ -69,7 +90,7 @@ module Analysis
         }
       rescue => e
         @logger.error "Could not analyze sent items: #{e.message}"
-        { frequent_correspondents: [], total_sent: 0 }
+        { frequent_correspondents: [], total_sent: 0, sample_size: 0 }
       end
     end
     
@@ -116,10 +137,14 @@ module Analysis
     
     def build_folder_data(folder)
       begin
+        @logger.debug "  Selecting folder #{folder.name}"
         @imap_connection.select(folder.name)
+        
+        @logger.debug "  Getting folder status"
         status = @imap_connection.status(folder.name, %w[MESSAGES UNSEEN])
         message_count = status['MESSAGES']&.to_i || 0
         
+        @logger.debug "  Analyzing #{message_count} messages in #{folder.name}"
         senders = analyze_folder_senders(folder.name, message_count)
         
         {
@@ -130,7 +155,7 @@ module Analysis
           attributes: folder.attr
         }
       rescue => e
-        @logger.debug "Could not analyze folder #{folder.name}: #{e.message}"
+        @logger.error "Could not analyze folder #{folder.name}: #{e.message}"
         {
           name: folder.name,
           message_count: 0,
@@ -145,16 +170,20 @@ module Analysis
       return [] if message_count == 0
       
       begin
+        @logger.debug "    Fetching #{[message_count, 100].min} messages for sender analysis"
         @imap_connection.select(folder_name)
         sample_size = [message_count, 100].min
         message_ids = @imap_connection.search(['ALL']).last(sample_size)
         
         return [] if message_ids.empty?
         
+        @logger.debug "    Fetching message envelopes"
         envelopes = @imap_connection.fetch(message_ids, 'ENVELOPE')
-        extract_senders(envelopes)
+        senders = extract_senders(envelopes)
+        @logger.debug "    Found #{senders.length} unique senders"
+        senders
       rescue => e
-        @logger.debug "Could not analyze senders for #{folder_name}: #{e.message}"
+        @logger.error "Could not analyze senders for #{folder_name}: #{e.message}"
         []
       end
     end

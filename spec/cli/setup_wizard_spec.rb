@@ -259,4 +259,149 @@ RSpec.describe CLI::SetupWizard do
       end
     end
   end
+
+  describe '#interactive_folder_categorization' do
+    let(:folders) do
+      [
+        { name: 'Work', message_count: 100 },
+        { name: 'Newsletters', message_count: 50 },
+        { name: 'Family', message_count: 25 }
+      ]
+    end
+
+    let(:mock_categorizer) { instance_double(Analysis::FolderCategorizer) }
+
+    before do
+      allow(Analysis::FolderCategorizer).to receive(:new).and_return(mock_categorizer)
+      allow(wizard).to receive(:puts)
+      allow(wizard).to receive(:gets).and_return("Y\n")
+    end
+
+    context 'when user accepts default categorization' do
+      before do
+        allow(mock_categorizer).to receive(:categorization).and_return(:whitelist)
+        allow(mock_categorizer).to receive(:categorization_reason).and_return('Contains work emails')
+      end
+
+      it 'accepts empty response as yes' do
+        allow(wizard).to receive(:gets).and_return("\n")
+        
+        result = wizard.send(:interactive_folder_categorization, folders)
+        
+        expect(result.first[:categorization]).to eq(:whitelist)
+      end
+
+      it 'accepts "y" as yes' do
+        allow(wizard).to receive(:gets).and_return("y\n")
+        
+        result = wizard.send(:interactive_folder_categorization, folders)
+        
+        expect(result.first[:categorization]).to eq(:whitelist)
+      end
+
+      it 'accepts "yes" as yes' do
+        allow(wizard).to receive(:gets).and_return("yes\n")
+        
+        result = wizard.send(:interactive_folder_categorization, folders)
+        
+        expect(result.first[:categorization]).to eq(:whitelist)
+      end
+    end
+
+    context 'when user disagrees and chooses different option' do
+      before do
+        allow(mock_categorizer).to receive(:categorization).and_return(:list)
+        allow(mock_categorizer).to receive(:categorization_reason).and_return('Contains newsletters')
+      end
+
+      it 'allows user to choose whitelist when disagreeing' do
+        allow(wizard).to receive(:gets).and_return("n\n", "w\n")
+        
+        result = wizard.send(:interactive_folder_categorization, folders)
+        
+        expect(result.first[:categorization]).to eq(:whitelist)
+      end
+
+      it 'allows user to choose list when disagreeing' do
+        allow(wizard).to receive(:gets).and_return("n\n", "l\n")
+        
+        result = wizard.send(:interactive_folder_categorization, folders)
+        
+        expect(result.first[:categorization]).to eq(:list)
+      end
+
+      it 'allows user to choose skip when disagreeing' do
+        allow(wizard).to receive(:gets).and_return("n\n", "s\n")
+        
+        result = wizard.send(:interactive_folder_categorization, folders)
+        
+        expect(result.first[:categorization]).to eq(:skip)
+      end
+
+      it 'uses default when invalid choice is provided' do
+        allow(wizard).to receive(:gets).and_return("n\n", "invalid\n")
+        
+        result = wizard.send(:interactive_folder_categorization, folders)
+        
+        expect(result.first[:categorization]).to eq(:list)
+      end
+    end
+
+    context 'when user directly chooses an option' do
+      before do
+        allow(mock_categorizer).to receive(:categorization).and_return(:whitelist)
+        allow(mock_categorizer).to receive(:categorization_reason).and_return('Contains work emails')
+      end
+
+      it 'allows direct choice of whitelist' do
+        allow(wizard).to receive(:gets).and_return("w\n")
+        
+        result = wizard.send(:interactive_folder_categorization, folders)
+        
+        expect(result.first[:categorization]).to eq(:whitelist)
+      end
+
+      it 'allows direct choice of list' do
+        allow(wizard).to receive(:gets).and_return("l\n")
+        
+        result = wizard.send(:interactive_folder_categorization, folders)
+        
+        expect(result.first[:categorization]).to eq(:list)
+      end
+
+      it 'allows direct choice of skip' do
+        allow(wizard).to receive(:gets).and_return("s\n")
+        
+        result = wizard.send(:interactive_folder_categorization, folders)
+        
+        expect(result.first[:categorization]).to eq(:skip)
+      end
+
+      it 'uses default when invalid direct choice is provided' do
+        allow(wizard).to receive(:gets).and_return("x\n")
+        
+        result = wizard.send(:interactive_folder_categorization, folders)
+        
+        expect(result.first[:categorization]).to eq(:whitelist)
+      end
+    end
+
+    context 'with multiple folders' do
+      before do
+        allow(mock_categorizer).to receive(:categorization).and_return(:whitelist, :list, :skip)
+        allow(mock_categorizer).to receive(:categorization_reason).and_return('Work emails', 'Newsletters', 'Personal')
+      end
+
+      it 'processes all folders with different user choices' do
+        allow(wizard).to receive(:gets).and_return("Y\n", "n\n", "w\n", "l\n")
+        
+        result = wizard.send(:interactive_folder_categorization, folders)
+        
+        expect(result.length).to eq(3)
+        expect(result[0][:categorization]).to eq(:whitelist)  # Accepted default
+        expect(result[1][:categorization]).to eq(:whitelist)  # Disagreed, chose whitelist
+        expect(result[2][:categorization]).to eq(:list)       # Direct choice
+      end
+    end
+  end
 end 

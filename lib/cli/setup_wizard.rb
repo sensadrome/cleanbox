@@ -203,7 +203,8 @@ module CLI
       )
       
       # Get the raw folder data first
-      raw_folders = analyzer.analyze_folders
+      folder_results = analyzer.analyze_folders
+      raw_folders = folder_results[:folders]
       
       # Now do interactive categorization
       @analysis_results[:folders] = interactive_folder_categorization(raw_folders)

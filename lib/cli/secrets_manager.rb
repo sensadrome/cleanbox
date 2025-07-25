@@ -21,16 +21,8 @@ module CLI
       def load_env_file
         return unless File.exist?(ENV_FILE_PATH)
         
-        # Simple .env file parser
-        File.readlines(ENV_FILE_PATH).each do |line|
-          line.strip!
-          next if line.empty? || line.start_with?('#')
-          
-          if line.include?('=')
-            key, value = line.split('=', 2)
-            ENV[key.strip] = value.strip.gsub(/^["']|["']$/, '') # Remove quotes
-          end
-        end
+        # Use the dotenv gem to load the .env file
+        Dotenv.load(ENV_FILE_PATH)
       end
 
       def create_env_file(secrets)

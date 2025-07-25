@@ -382,7 +382,7 @@ RSpec.describe CLI::CleanboxCLI do
       allow(CLI::AnalyzerCLI).to receive(:new).and_return(mock_analyzer_cli)
       allow(mock_analyzer_cli).to receive(:run)
       allow(cli).to receive(:exit)
-      allow(ARGV).to receive(:include?).with('analyze').and_return(true)
+      allow(ARGV).to receive(:first).and_return('analyze')
       allow(ARGV).to receive(:delete).with('analyze')
     end
 
@@ -423,7 +423,7 @@ RSpec.describe CLI::CleanboxCLI do
 
     context 'when analyze command is not provided' do
       before do
-        allow(ARGV).to receive(:include?).with('analyze').and_return(false)
+        allow(ARGV).to receive(:first).and_return('other')
       end
 
       it 'does not create IMAP connection' do

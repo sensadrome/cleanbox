@@ -79,6 +79,32 @@ nano ~/.cleanbox.yml
 ./cleanbox sent-analysis compare
 ```
 
+## Container Deployment
+
+Cleanbox can be deployed as a container for easy management and isolation. This is especially useful for automated cleaning and production deployments.
+
+### Quick Container Setup
+
+```bash
+# Run the automated setup script
+./scripts/setup-container.sh
+
+# Or manually copy and customize templates
+cp scripts/cleanbox-run.template ~/cleanbox-run
+cp scripts/cb.template ~/cb
+chmod +x ~/cleanbox-run ~/cb
+```
+
+### Container Features
+
+- **Automated Cleaning**: Scheduled email processing using `cleanbox-run`
+- **Manual Commands**: Interactive commands using `cb` utility  
+- **Data Persistence**: Configuration, cache, and logs stored in a data directory
+- **Authentication**: Support for Microsoft 365 OAuth2 and password-based auth
+- **Multi-Engine**: Works with both Podman and Docker
+
+For complete container deployment documentation, see [deploy/CONTAINER_DEPLOYMENT.md](deploy/CONTAINER_DEPLOYMENT.md).
+
 ## Data Directory
 
 Cleanbox supports a centralized data directory for all its files (configuration, cache, domain rules). This is especially useful for containerized deployments or when you want to keep all Cleanbox data in a specific location.

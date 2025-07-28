@@ -8,7 +8,10 @@ log
 *.tmp
 *.env
 *.log
+# Container scripts (environment-specific)
 cleanbox-run
+cb
+
 *.sock
 .idea/
 .vscode/

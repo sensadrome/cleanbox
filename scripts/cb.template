@@ -1,0 +1,46 @@
+#!/bin/bash
+
+set -euo pipefail
+
+# Configuration - customize these for your environment
+DATA_HOST_PATH="${CLEANBOX_DATA_PATH:-/home/user/cleanbox/data}"
+DATA_CONTAINER_PATH="${CLEANBOX_CONTAINER_DATA_PATH:-/app/data}"
+CONTAINER_IMAGE="${CLEANBOX_IMAGE:-cleanbox:latest}"
+CONTAINER_USER="${CLEANBOX_USER:-1000:1000}"
+
+# Container engine - supports both podman and docker
+CONTAINER_ENGINE="${CONTAINER_ENGINE:-podman}"
+
+# Build the container run command
+RUN_CMD="${CONTAINER_ENGINE} run --rm"
+
+# Add volume mount
+RUN_CMD="${RUN_CMD} -v \"${DATA_HOST_PATH}:${DATA_CONTAINER_PATH}:Z\""
+
+# Add user namespace for podman (not needed for docker)
+if [ "${CONTAINER_ENGINE}" = "podman" ]; then
+    RUN_CMD="${RUN_CMD} --userns=keep-id"
+fi
+
+# Add user specification
+RUN_CMD="${RUN_CMD} --user ${CONTAINER_USER}"
+
+# Add secrets (customize for your authentication method)
+# For Microsoft 365 OAuth2:
+if [ -n "${CLIENT_ID:-}" ] && [ -n "${CLIENT_SECRET:-}" ] && [ -n "${TENANT_ID:-}" ]; then
+    RUN_CMD="${RUN_CMD} --secret client_id,type=env,target=CLIENT_ID"
+    RUN_CMD="${RUN_CMD} --secret client_secret,type=env,target=CLIENT_SECRET"
+    RUN_CMD="${RUN_CMD} --secret tenant_id,type=env,target=TENANT_ID"
+fi
+
+# For password authentication:
+if [ -n "${IMAP_PASSWORD:-}" ]; then
+    RUN_CMD="${RUN_CMD} --secret imap_password,type=env,target=IMAP_PASSWORD"
+fi
+
+# Add container image and command
+RUN_CMD="${RUN_CMD} ${CONTAINER_IMAGE}"
+RUN_CMD="${RUN_CMD} bundle exec cleanbox \"\$@\" --data-dir \"${DATA_CONTAINER_PATH}\""
+
+# Execute the command
+eval "${RUN_CMD}" 

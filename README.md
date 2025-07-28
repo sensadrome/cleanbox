@@ -20,6 +20,7 @@ An intelligent email management tool that **learns from your existing organizati
 - **Unjunking**: Restores emails from junk/spam folders based on trusted sender patterns
 - **List Management**: Handles newsletters, notifications, and marketing emails by moving them to designated folders
 - **Whitelisting**: Keeps important emails in the inbox based on sender addresses and domains
+- **Sent Email Analysis**: Analyzes your sent emails to understand who you correspond with and suggests whitelist candidates
 - **Intelligent Caching**: Folder analysis is cached for performance
 - **Multiple Authentication Methods**: Supports OAuth2 (Microsoft 365) and password-based authentication
 - **Flexible Data Storage**: Centralized data directory for configuration, cache, and domain rules files
@@ -71,6 +72,11 @@ nano ~/.cleanbox.yml
 
 # Show all folders
 ./cleanbox folders
+
+# Analyze sent emails vs folder patterns
+./cleanbox sent-analysis collect
+./cleanbox sent-analysis analyze
+./cleanbox sent-analysis compare
 ```
 
 ## Data Directory
@@ -379,6 +385,11 @@ This will create a customizable domain rules file while preserving all existing 
 
 # Use custom data directory for config, cache, and domain rules
 ./cleanbox --data-dir /path/to/data
+
+# Sent analysis commands
+./cleanbox sent-analysis collect    # Collect sent email data
+./cleanbox sent-analysis analyze    # Analyze collected data
+./cleanbox sent-analysis compare    # Compare sent vs folder patterns
 ```
 
 ### Getting Started Safely
@@ -418,10 +429,128 @@ list_domain_map:
 ./cleanbox file
 ```
 
+**Analyze sent emails to understand your communication patterns:**
+```bash
+# Collect data from your sent emails and folders
+./cleanbox sent-analysis collect
+
+# Analyze the collected data
+./cleanbox sent-analysis analyze
+
+# Compare sent recipients with folder senders
+./cleanbox sent-analysis compare
+```
+
 **Unjunk emails from spam using inbox as reference:**
 ```bash
 ./cleanbox --unjunk Inbox
 ```
+
+## Sent Email Analysis
+
+Cleanbox includes a powerful sent email analysis feature that helps you understand your communication patterns and optimize your whitelist configuration.
+
+### What It Does
+
+The sent-analysis feature:
+- **Analyzes your sent emails** to identify who you correspond with most frequently
+- **Compares sent recipients** with folder senders to find potential whitelist candidates
+- **Suggests folder categorization** based on overlap between sent emails and folder contents
+- **Provides detailed statistics** about your email communication patterns
+
+### Commands
+
+```bash
+# Collect data from your sent emails and all folders
+./cleanbox sent-analysis collect
+
+# Analyze the collected data and show statistics
+./cleanbox sent-analysis analyze
+
+# Compare sent recipients with folder senders and show recommendations
+./cleanbox sent-analysis compare
+
+# Show help for sent-analysis commands
+./cleanbox sent-analysis help
+```
+
+### Data Collection
+
+The `collect` command:
+- Analyzes up to 1000 of your most recent sent emails
+- Examines up to 200 messages from each folder
+- Saves detailed data to JSON and CSV files for analysis
+- Uses progress meters to show collection progress
+
+### Analysis Output
+
+The `analyze` command shows:
+- **Top recipients** from your sent emails
+- **Folder categorization** (whitelist vs list folders)
+- **Message counts** and sender statistics for each folder
+
+The `compare` command shows:
+- **Overlap analysis** between sent recipients and folder senders
+- **Folder rankings** by overlap percentage
+- **Recommendations** for whitelist vs list categorization
+- **Summary statistics** for whitelist vs list folders
+
+### Data Directory Support
+
+Sent analysis data is saved to the same data directory as other Cleanbox files:
+- **With `--data-dir`**: Files saved to specified directory
+- **Without `--data-dir`**: Files saved to current working directory
+- **From config**: Uses `data_dir` setting from `~/.cleanbox.yml`
+
+### Example Output
+
+```bash
+$ ./cleanbox sent-analysis compare
+
+📊 SENT vs FOLDER COMPARISON
+============================================================
+Folders ranked by overlap with sent recipients:
+
+1. Family (whitelist)
+   Overlap: 9/9 (100.0%)
+   Overlapping emails: family@example.com, mom@example.com
+
+2. Work (whitelist)
+   Overlap: 4/16 (25.0%)
+   Overlapping emails: colleague@company.com, client@client.com
+
+SUMMARY STATISTICS
+==============================
+Whitelist folders average overlap: 49.24%
+List folders average overlap: 6.37%
+
+RECOMMENDATIONS
+====================
+Folders with high overlap (>50%) - consider whitelist:
+  - Family (100.0%)
+  - Friends (75.0%)
+
+Folders with low overlap (<10%) - consider list:
+  - Newsletters (5.0%)
+  - Shopping (2.0%)
+```
+
+### Use Cases
+
+**Optimizing Whitelist Configuration:**
+- Use sent analysis to identify people you frequently email
+- Add high-overlap folders to your whitelist configuration
+- Remove low-overlap folders from whitelist
+
+**Understanding Communication Patterns:**
+- See who you correspond with most frequently
+- Identify which folders contain people you actually communicate with
+- Find potential whitelist candidates you might have missed
+
+**Data-Driven Folder Organization:**
+- Use overlap analysis to decide how to categorize folders
+- Move high-overlap folders to whitelist
+- Move low-overlap folders to list categories
 
 **Unjunk emails using multiple folders as reference:**
 ```bash

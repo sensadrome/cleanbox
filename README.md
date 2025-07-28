@@ -12,19 +12,6 @@ An intelligent email management tool that **learns from your existing organizati
 - **Adapts Over Time**: As you organize more emails, Cleanbox becomes more accurate
 - **Works Best with Existing Organization**: The more you've already organized your emails, the better Cleanbox performs
 
-## Features
-
-- **Pattern-Based Spam Detection**: Moves unwanted emails to junk/spam based on your existing organization patterns
-- **Smart Inbox Cleaning**: Automatically moves new emails to appropriate folders based on learned sender patterns
-- **Email Filing**: Reorganizes existing emails in the inbox based on sender patterns  
-- **Unjunking**: Restores emails from junk/spam folders based on trusted sender patterns
-- **List Management**: Handles newsletters, notifications, and marketing emails by moving them to designated folders
-- **Whitelisting**: Keeps important emails in the inbox based on sender addresses and domains
-- **Sent Email Analysis**: Analyzes your sent emails to understand who you correspond with and suggests whitelist candidates
-- **Intelligent Caching**: Folder analysis is cached for performance
-- **Multiple Authentication Methods**: Supports OAuth2 (Microsoft 365) and password-based authentication
-- **Flexible Data Storage**: Centralized data directory for configuration, cache, and domain rules files
-
 ## Quick Start
 
 ### 1. Installation
@@ -41,7 +28,7 @@ bundle install
 chmod +x cleanbox
 ```
 
-### 2. Configuration
+### 2. Setup
 
 **Option A: Interactive Setup (Recommended)**
 ```bash
@@ -72,13 +59,35 @@ nano ~/.cleanbox.yml
 
 # Show all folders
 ./cleanbox folders
-
-# Analyze sent emails vs folder patterns
-./cleanbox sent-analysis collect
-./cleanbox sent-analysis analyze
-./cleanbox sent-analysis compare
 ```
 
+## Documentation
+
+📚 **Complete documentation is available in the [docs/](docs/) directory:**
+
+- **[📖 Overview](docs/README.md)** - What Cleanbox is and how it works
+- **[🚀 Installation](docs/installation.md)** - Prerequisites and installation steps
+- **[🔐 Authentication](docs/authentication.md)** - Microsoft 365 OAuth2 and standard IMAP setup
+- **[⚙️ Configuration](docs/configuration.md)** - Configuration files, domain rules, and data directory management
+- **[📋 Usage](docs/usage.md)** - Commands, examples, and advanced usage patterns
+- **[📊 Sent Analysis](docs/sent-analysis.md)** - Understanding your email communication patterns
+- **[🔧 Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
+- **[👨‍💻 Development](docs/development.md)** - Contributing and development setup
+
+## Features
+
+- **Pattern-Based Spam Detection**: Moves unwanted emails to junk/spam based on your existing organization patterns
+- **Smart Inbox Cleaning**: Automatically moves new emails to appropriate folders based on learned sender patterns
+- **Email Filing**: Reorganizes existing emails in the inbox based on sender patterns  
+- **Unjunking**: Restores emails from junk/spam folders based on trusted sender patterns
+- **List Management**: Handles newsletters, notifications, and marketing emails by moving them to designated folders
+- **Whitelisting**: Keeps important emails in the inbox based on sender addresses and domains
+- **Sent Email Analysis**: Analyzes your sent emails to understand who you correspond with and suggests whitelist candidates
+- **Intelligent Caching**: Folder analysis is cached for performance
+- **Multiple Authentication Methods**: Supports OAuth2 (Microsoft 365) and password-based authentication
+- **Flexible Data Storage**: Centralized data directory for configuration, cache, and domain rules files
+
+## Getting Started Safely
 ## Container Deployment
 
 Cleanbox can be deployed as a container for easy management and isolation. This is especially useful for automated cleaning and production deployments.
@@ -419,7 +428,6 @@ This will create a customizable domain rules file while preserving all existing 
 ```
 
 ### Getting Started Safely
-
 Since Cleanbox can be aggressive initially, here's a safe approach:
 
 1. **First, organize your existing emails** into folders (Family, Work, Newsletters, etc.)
@@ -439,150 +447,6 @@ Since Cleanbox can be aggressive initially, here's a safe approach:
 5. **Check your junk/spam folder** after the first run to make sure nothing important was moved there
 6. **Continue organizing emails** - Cleanbox will become more accurate over time
 
-### Examples
-
-**Keep family and work emails in inbox, move newsletters to folders:**
-```yaml
-whitelist_folders: ['Family', 'Work']
-list_folders: ['Newsletters', 'Notifications']
-list_domain_map:
-  'facebook.com': 'Social'
-  'github.com': 'Development'
-```
-
-**File existing emails from inbox based on learned patterns:**
-```bash
-./cleanbox file
-```
-
-**Analyze sent emails to understand your communication patterns:**
-```bash
-# Collect data from your sent emails and folders
-./cleanbox sent-analysis collect
-
-# Analyze the collected data
-./cleanbox sent-analysis analyze
-
-# Compare sent recipients with folder senders
-./cleanbox sent-analysis compare
-```
-
-**Unjunk emails from spam using inbox as reference:**
-```bash
-./cleanbox --unjunk Inbox
-```
-
-## Sent Email Analysis
-
-Cleanbox includes a powerful sent email analysis feature that helps you understand your communication patterns and optimize your whitelist configuration.
-
-### What It Does
-
-The sent-analysis feature:
-- **Analyzes your sent emails** to identify who you correspond with most frequently
-- **Compares sent recipients** with folder senders to find potential whitelist candidates
-- **Suggests folder categorization** based on overlap between sent emails and folder contents
-- **Provides detailed statistics** about your email communication patterns
-
-### Commands
-
-```bash
-# Collect data from your sent emails and all folders
-./cleanbox sent-analysis collect
-
-# Analyze the collected data and show statistics
-./cleanbox sent-analysis analyze
-
-# Compare sent recipients with folder senders and show recommendations
-./cleanbox sent-analysis compare
-
-# Show help for sent-analysis commands
-./cleanbox sent-analysis help
-```
-
-### Data Collection
-
-The `collect` command:
-- Analyzes up to 1000 of your most recent sent emails
-- Examines up to 200 messages from each folder
-- Saves detailed data to JSON and CSV files for analysis
-- Uses progress meters to show collection progress
-
-### Analysis Output
-
-The `analyze` command shows:
-- **Top recipients** from your sent emails
-- **Folder categorization** (whitelist vs list folders)
-- **Message counts** and sender statistics for each folder
-
-The `compare` command shows:
-- **Overlap analysis** between sent recipients and folder senders
-- **Folder rankings** by overlap percentage
-- **Recommendations** for whitelist vs list categorization
-- **Summary statistics** for whitelist vs list folders
-
-### Data Directory Support
-
-Sent analysis data is saved to the same data directory as other Cleanbox files:
-- **With `--data-dir`**: Files saved to specified directory
-- **Without `--data-dir`**: Files saved to current working directory
-- **From config**: Uses `data_dir` setting from `~/.cleanbox.yml`
-
-### Example Output
-
-```bash
-$ ./cleanbox sent-analysis compare
-
-📊 SENT vs FOLDER COMPARISON
-============================================================
-Folders ranked by overlap with sent recipients:
-
-1. Family (whitelist)
-   Overlap: 9/9 (100.0%)
-   Overlapping emails: family@example.com, mom@example.com
-
-2. Work (whitelist)
-   Overlap: 4/16 (25.0%)
-   Overlapping emails: colleague@company.com, client@client.com
-
-SUMMARY STATISTICS
-==============================
-Whitelist folders average overlap: 49.24%
-List folders average overlap: 6.37%
-
-RECOMMENDATIONS
-====================
-Folders with high overlap (>50%) - consider whitelist:
-  - Family (100.0%)
-  - Friends (75.0%)
-
-Folders with low overlap (<10%) - consider list:
-  - Newsletters (5.0%)
-  - Shopping (2.0%)
-```
-
-### Use Cases
-
-**Optimizing Whitelist Configuration:**
-- Use sent analysis to identify people you frequently email
-- Add high-overlap folders to your whitelist configuration
-- Remove low-overlap folders from whitelist
-
-**Understanding Communication Patterns:**
-- See who you correspond with most frequently
-- Identify which folders contain people you actually communicate with
-- Find potential whitelist candidates you might have missed
-
-**Data-Driven Folder Organization:**
-- Use overlap analysis to decide how to categorize folders
-- Move high-overlap folders to whitelist
-- Move low-overlap folders to list categories
-
-**Unjunk emails using multiple folders as reference:**
-```bash
-./cleanbox --unjunk Inbox --unjunk Family
-```
-
 ## How It Works
 
 ### Learning Phase
@@ -598,7 +462,7 @@ New emails are automatically processed based on learned patterns:
 
 - **Whitelisted Senders**: Emails from senders found in your important folders stay in the inbox
 - **List Senders**: Emails from senders found in list folders get moved to appropriate folders
-- **Unknown Senders**: Emails from unknown senders get moved to junk/spam (this is where the "aggressive" behavior you mentioned comes from)
+- **Unknown Senders**: Emails from unknown senders get moved to junk/spam (this is where the "aggressive" behavior comes from)
 
 ### Important Notes
 - **Works Best with Existing Organization**: Cleanbox is most effective when you've already started organizing your emails into folders
@@ -606,109 +470,11 @@ New emails are automatically processed based on learned patterns:
 - **Improves Over Time**: As you organize more emails, Cleanbox becomes more accurate and less aggressive
 - **Caching**: Folder analysis is cached for performance, so subsequent runs are faster
 
-## Troubleshooting
-
-### Common Issues
-
-**"Authentication failed"**
-- Check your OAuth2 credentials (client_id, client_secret, tenant_id)
-- Ensure admin consent was granted for API permissions
-- Verify your username matches the registered application
-
-**"Folder not found"**
-- Check folder names in your configuration
-- Ensure folders exist in your email account
-- Use `./cleanbox folders` to see available folders
-
-**"Permission denied"**
-- Ensure IMAP is enabled in your email account
-- Check that your OAuth2 app has the correct permissions
-- Verify admin consent was granted
-
-**"Cleanbox moved important emails to spam"**
-- This is normal behavior initially - Cleanbox learns from your existing organization
-- Use `--pretend` flag to preview actions before applying them
-- Organize more emails into appropriate folders to improve accuracy
-- Check your junk/spam folder regularly and move important emails back to inbox
-- Consider adding important senders to `whitelist_folders` configuration
-
-**"Domain rules not working"**
-- Ensure you've created a domain rules file: `./cleanbox config init-domain-rules`
-- Check that your domain rules file is in the correct location (see file resolution priority)
-- Verify the YAML syntax in your domain rules file
-- Use `--verbose` flag to see which domain rules file is being loaded
-
-### Debug Mode
-
-```bash
-# Enable debug logging
-./cleanbox --verbose --level debug
-
-# Log to file
-./cleanbox --log-file cleanbox.log
-```
-
-## Security
-
-- **OAuth2 Credentials**: Store client secrets securely (environment variables or secrets management)
-- **Configuration File**: Keep `~/.cleanbox.yml` secure (chmod 600)
-- **Logs**: Be aware that logs may contain email addresses and metadata
-
-## Development
-
-### Prerequisites
-
-- Ruby 2.6+
-- Bundler
-
-### Setup
-
-```bash
-bundle install
-```
-
-### Running Tests
-
-```bash
-# Add tests when implemented
-```
-
-### Project Structure
-
-```
-lib/
-├── cli/                    # Command-line interface
-│   ├── cleanbox_cli.rb    # Main CLI orchestrator
-│   ├── config_manager.rb  # Configuration management
-│   ├── cli_parser.rb      # Command-line argument parsing
-│   ├── validator.rb       # Configuration validation
-│   └── secrets_manager.rb # Secure credential management
-├── auth/                   # Authentication
-│   └── authentication_manager.rb
-├── cleanbox.rb            # Core business logic
-├── message.rb             # Individual message processing
-├── folder_checker.rb      # Folder analysis with caching
-├── connection.rb          # IMAP connection management
-└── microsoft_365_application_token.rb
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## License
-
-[Add your license information here]
-
 ## Support
 
 For issues and questions:
-- Check the troubleshooting section above
-- Review the configuration examples
+- Check the [troubleshooting guide](docs/troubleshooting.md)
+- Review the configuration examples in [configuration.md](docs/configuration.md)
 - Open an issue on GitHub
 
 ---

@@ -1,4 +1,4 @@
-# Cleanbox
+# Cleanbox Documentation
 
 An intelligent email management tool that **learns from your existing organization patterns** to automatically clean your inbox. Unlike traditional spam filters that use heuristics, Cleanbox observes how you've already organized your emails into folders and applies those same patterns to new incoming messages.
 
@@ -14,65 +14,10 @@ An intelligent email management tool that **learns from your existing organizati
 
 ## Quick Start
 
-### 1. Installation
-
-```bash
-# Clone the repository
-git clone <repository-url>
-cd cleanbox
-
-# Install dependencies
-bundle install
-
-# Make the script executable
-chmod +x cleanbox
-```
-
-### 2. Setup
-
-**Option A: Interactive Setup (Recommended)**
-```bash
-# Run the interactive setup wizard
-./cleanbox setup
-```
-
-**Option B: Manual Configuration**
-```bash
-# Initialize configuration file
-./cleanbox config init
-
-# Edit the configuration file
-nano ~/.cleanbox.yml
-```
-
-### 3. Run Cleanbox
-
-```bash
-# Clean new emails (default action)
-./cleanbox
-
-# File existing emails in inbox
-./cleanbox file
-
-# Show folder mappings
-./cleanbox list
-
-# Show all folders
-./cleanbox folders
-```
-
-## Documentation
-
-📚 **Complete documentation is available in the [docs/](docs/) directory:**
-
-- **[📖 Overview](docs/README.md)** - What Cleanbox is and how it works
-- **[🚀 Installation](docs/installation.md)** - Prerequisites and installation steps
-- **[🔐 Authentication](docs/authentication.md)** - Microsoft 365 OAuth2 and standard IMAP setup
-- **[⚙️ Configuration](docs/configuration.md)** - Configuration files, domain rules, and data directory management
-- **[📋 Usage](docs/usage.md)** - Commands, examples, and advanced usage patterns
-- **[📊 Sent Analysis](docs/sent-analysis.md)** - Understanding your email communication patterns
-- **[🔧 Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
-- **[👨‍💻 Development](docs/development.md)** - Contributing and development setup
+1. **[Installation](installation.md)** - Get Cleanbox up and running
+2. **[Authentication Setup](authentication.md)** - Configure your email connection
+3. **[Configuration](configuration.md)** - Set up your preferences and rules
+4. **[Usage](usage.md)** - Learn how to use Cleanbox effectively
 
 ## Features
 
@@ -86,6 +31,16 @@ nano ~/.cleanbox.yml
 - **Intelligent Caching**: Folder analysis is cached for performance
 - **Multiple Authentication Methods**: Supports OAuth2 (Microsoft 365) and password-based authentication
 - **Flexible Data Storage**: Centralized data directory for configuration, cache, and domain rules files
+
+## Documentation
+
+- **[Installation](installation.md)** - Prerequisites, installation steps, and basic setup
+- **[Authentication](authentication.md)** - Microsoft 365 OAuth2, standard IMAP, and security setup
+- **[Configuration](configuration.md)** - Configuration files, domain rules, and data directory management
+- **[Usage](usage.md)** - Commands, examples, and advanced usage patterns
+- **[Sent Analysis](sent-analysis.md)** - Understanding your email communication patterns
+- **[Troubleshooting](troubleshooting.md)** - Common issues and solutions
+- **[Development](development.md)** - Contributing and development setup
 
 ## Getting Started Safely
 
@@ -134,8 +89,8 @@ New emails are automatically processed based on learned patterns:
 ## Support
 
 For issues and questions:
-- Check the [troubleshooting guide](docs/troubleshooting.md)
-- Review the configuration examples in [configuration.md](docs/configuration.md)
+- Check the [troubleshooting guide](troubleshooting.md)
+- Review the configuration examples in [configuration.md](configuration.md)
 - Open an issue on GitHub
 
 ---

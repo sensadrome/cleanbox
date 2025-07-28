@@ -1,4 +1,6 @@
 # Containerfile
+# Updated for simplified data directory approach
+# Fixed log directory issue
 
 FROM registry.redhat.io/ubi8/ruby-27
 

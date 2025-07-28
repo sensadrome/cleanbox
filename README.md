@@ -88,7 +88,346 @@ nano ~/.cleanbox.yml
 - **Flexible Data Storage**: Centralized data directory for configuration, cache, and domain rules files
 
 ## Getting Started Safely
+## Container Deployment
 
+Cleanbox can be deployed as a container for easy management and isolation. This is especially useful for automated cleaning and production deployments.
+
+### Quick Container Setup
+
+```bash
+# Run the automated setup script
+./scripts/setup-container.sh
+
+# Or manually copy and customize templates
+cp scripts/cleanbox-run.template ~/cleanbox-run
+cp scripts/cb.template ~/cb
+chmod +x ~/cleanbox-run ~/cb
+```
+
+### Container Features
+
+- **Automated Cleaning**: Scheduled email processing using `cleanbox-run`
+- **Manual Commands**: Interactive commands using `cb` utility  
+- **Data Persistence**: Configuration, cache, and logs stored in a data directory
+- **Authentication**: Support for Microsoft 365 OAuth2 and password-based auth
+- **Multi-Engine**: Works with both Podman and Docker
+
+For complete container deployment documentation, see [deploy/CONTAINER_DEPLOYMENT.md](deploy/CONTAINER_DEPLOYMENT.md).
+
+## Data Directory
+
+Cleanbox supports a centralized data directory for all its files (configuration, cache, domain rules). This is especially useful for containerized deployments or when you want to keep all Cleanbox data in a specific location.
+
+### Using Data Directory
+
+```bash
+# Use a specific data directory
+./cleanbox --data-dir /path/to/data
+
+# This will store all files in /path/to/data:
+# - /path/to/data/config.yml (instead of ~/.cleanbox.yml)
+# - /path/to/data/cache/ (folder analysis cache)
+# - /path/to/data/domain_rules.yml (domain mapping rules)
+```
+
+### File Locations
+
+When using `--data-dir`, Cleanbox will look for files in this order:
+
+1. **Configuration**: `{data_dir}/config.yml` → `~/.cleanbox.yml` → default
+2. **Domain Rules**: `{data_dir}/domain_rules.yml` → `~/domain_rules.yml` → default
+3. **Cache**: `{data_dir}/cache/` (always used when data_dir is specified)
+
+### Container Deployment
+
+For Docker or other containerized deployments:
+
+```bash
+# Mount a volume for persistent data
+docker run -v /host/path/to/data:/app/data cleanbox --data-dir /app/data
+```
+
+## Microsoft 365 / Entra Setup
+
+Cleanbox supports OAuth2 authentication with Microsoft 365. Follow these steps to set up your application:
+
+### 1. Register Application in Microsoft Entra
+
+1. Go to [Microsoft Entra Admin Center](https://entra.microsoft.com)
+2. Navigate to **Azure Active Directory** → **App registrations**
+3. Click **New registration**
+4. Fill in the details:
+   - **Name**: `Cleanbox Email Manager` (or your preferred name)
+   - **Supported account types**: Choose based on your needs:
+     - `Accounts in this organizational directory only` (single tenant)
+     - `Accounts in any organizational directory` (multi-tenant)
+   - **Redirect URI**: Leave blank for now
+5. Click **Register**
+
+### 2. Configure API Permissions
+
+1. In your new app registration, go to **API permissions**
+2. Click **Add a permission**
+3. Select **Microsoft Graph**
+4. Choose **Application permissions** (not Delegated)
+5. Search for and select these permissions:
+   - `IMAP.AccessAsUser.All` - Full access to user mailboxes via IMAP
+   - `Mail.Read` - Read user mail
+   - `Mail.ReadWrite` - Read and write user mail
+6. Click **Add permissions**
+7. Click **Grant admin consent** (requires admin privileges)
+
+### 3. Create Client Secret
+
+1. Go to **Certificates & secrets**
+2. Click **New client secret**
+3. Add a description (e.g., "Cleanbox OAuth2 Secret")
+4. Choose expiration period
+5. Click **Add**
+6. **Important**: Copy the secret value immediately - you won't be able to see it again!
+
+### 4. Get Application Details
+
+1. Go to **Overview** to find:
+   - **Application (client) ID** - This is your `client_id`
+   - **Directory (tenant) ID** - This is your `tenant_id`
+2. Use the client secret you created in step 3
+
+### 5. Configure Cleanbox
+
+**Option A: Interactive Setup (Recommended)**
+```bash
+./cleanbox setup
+```
+This will analyze your email structure and create both configuration files automatically.
+
+**Option B: Manual Configuration**
+
+The setup wizard will create two files:
+
+1. **`~/.cleanbox.yml`** - Main configuration (non-sensitive settings):
+```yaml
+host: outlook.office365.com
+username: your-email@yourdomain.com
+auth_type: oauth2_microsoft
+# Sensitive credentials are stored in .env file
+```
+
+2. **`.env`** - Sensitive credentials (automatically created):
+```bash
+CLEANBOX_CLIENT_ID=your-application-client-id
+CLEANBOX_CLIENT_SECRET=your-client-secret
+CLEANBOX_TENANT_ID=your-tenant-id
+```
+
+**Security Note**: The `.env` file is automatically added to `.gitignore` to prevent accidental commits of sensitive data.
+
+**Option C: Environment Variables**
+You can also set credentials as environment variables:
+```bash
+export CLEANBOX_CLIENT_ID="your-application-client-id"
+export CLEANBOX_CLIENT_SECRET="your-client-secret"
+export CLEANBOX_TENANT_ID="your-tenant-id"
+```
+
+## Configuration
+
+Cleanbox uses a YAML configuration file. By default, it's located at `~/.cleanbox.yml`, but you can specify a custom location using the `--data-dir` option. Run `./cleanbox config init` to create a comprehensive template with detailed comments.
+
+### Key Configuration Options
+
+**Main Configuration (`~/.cleanbox.yml`)**:
+```yaml
+# Connection Settings
+host: outlook.office365.com
+username: your-email@example.com
+
+# Authentication
+auth_type: oauth2_microsoft  # or 'password'
+# Sensitive credentials (client_id, client_secret, tenant_id, password) 
+# are stored in .env file or environment variables
+
+# Processing Options
+whitelist_folders: ['Family', 'Work', 'Clients']  # Keep these senders in Inbox
+list_folders: ['Newsletters', 'Notifications']    # Move these to folders
+list_domain_map:                                 # Map domains to specific folders
+  'facebook.com': 'Social'
+  'github.com': 'Development'
+
+# Unjunk Options
+unjunk: false
+unjunk_folders: ['Inbox']  # Use these folders as reference for unjunking
+```
+
+**Sensitive Credentials (`.env` file)**:
+```bash
+# OAuth2 Microsoft 365
+CLEANBOX_CLIENT_ID=your-application-client-id
+CLEANBOX_CLIENT_SECRET=your-client-secret
+CLEANBOX_TENANT_ID=your-tenant-id
+
+# Or for password authentication
+CLEANBOX_PASSWORD=your-imap-password
+```
+
+**Domain Rules File**:
+Cleanbox uses a domain rules file for advanced domain-to-folder mapping. This file allows you to customize how related email domains are automatically filed together. By default, it's located at `~/.cleanbox/domain_rules.yml`, but you can specify a custom location using the `--data-dir` option.
+
+### Domain Rules Customization
+
+Domain rules help Cleanbox understand relationships between email domains. For example, if you have emails from `github.com` in a "Development" folder, Cleanbox can automatically file emails from related domains like `githubusercontent.com` and `github.io` to the same folder.
+
+**Initialize Domain Rules**:
+```bash
+# Create a user-writable domain rules file
+./cleanbox config init-domain-rules
+```
+
+This creates a customizable domain rules file at `~/.cleanbox/domain_rules.yml` (or `{data_dir}/domain_rules.yml` if using `--data-dir`).
+
+**Domain Rules File Structure**:
+```yaml
+# Domain Rules for Cleanbox
+# This file defines patterns for automatically filing related email domains
+
+domain_patterns:
+  # When Cleanbox finds emails from github.com, suggest these related domains
+  github\.com:
+    - githubusercontent.com
+    - github.io
+    - githubapp.com
+  
+  # Facebook domains
+  facebook\.com:
+    - facebookmail.com
+    - fb.com
+    - messenger.com
+
+folder_patterns:
+  # When Cleanbox has a folder named "github", suggest these domains
+  ^github$:
+    - githubusercontent.com
+    - github.io
+    - githubapp.com
+  
+  # Facebook folder
+  ^facebook$:
+    - facebookmail.com
+    - fb.com
+    - messenger.com
+```
+
+**Customization Examples**:
+
+Add your company domains:
+```yaml
+domain_patterns:
+  yourcompany\.com:
+    - mail.yourcompany.com
+    - notifications.yourcompany.com
+    - alerts.yourcompany.com
+```
+
+Add patterns for custom folders:
+```yaml
+folder_patterns:
+  ^work$:
+    - yourcompany.com
+    - work-related-domain.com
+  ^personal$:
+    - family-domain.com
+    - personal-service.com
+```
+
+**File Resolution Priority**:
+1. `{data_dir}/domain_rules.yml` (when using `--data-dir`)
+2. `~/.cleanbox/domain_rules.yml` (user's home directory)
+3. `config/domain_rules.yml` (default application file)
+
+**Migration for Existing Users**:
+If you're upgrading from an older version, run:
+```bash
+./cleanbox config init-domain-rules
+```
+This will create a customizable domain rules file while preserving all existing functionality.
+
+### Configuration Management
+
+```bash
+# Show current configuration
+./cleanbox config show
+
+# Get specific configuration value
+./cleanbox config get whitelist_folders
+
+# Set configuration value
+./cleanbox config set whitelist_folders "['Family', 'Work']"
+
+# Add to array configuration
+./cleanbox config add whitelist_folders "Friends"
+
+# Remove from array configuration
+./cleanbox config remove whitelist_folders "Work"
+
+# Initialize domain rules file (for customization)
+./cleanbox config init-domain-rules
+```
+
+## Usage
+
+### Basic Commands
+
+```bash
+# Interactive setup wizard (analyzes your email and configures Cleanbox)
+./cleanbox setup
+
+# Clean new emails (default action)
+./cleanbox
+
+# File existing emails in inbox
+./cleanbox file
+
+# Show domain to folder mappings
+./cleanbox list
+
+# Show all folders
+./cleanbox folders
+
+# Unjunk emails from spam/junk based on inbox patterns
+./cleanbox --unjunk Inbox
+
+# File emails based on specific folders
+./cleanbox file --file-from Family --file-from Work
+```
+
+### Command Line Options
+
+```bash
+# Verbose output
+./cleanbox --verbose
+
+# Dry run (show what would happen) - RECOMMENDED for first-time users
+./cleanbox --pretend
+
+# Process only recent emails
+./cleanbox --since_months 1
+
+# Use specific folders for filing
+./cleanbox file --file-from Family --file-from Work
+
+# Unjunk based on multiple folders
+./cleanbox --unjunk Inbox --unjunk Family
+
+# Use custom data directory for config, cache, and domain rules
+./cleanbox --data-dir /path/to/data
+
+# Sent analysis commands
+./cleanbox sent-analysis collect    # Collect sent email data
+./cleanbox sent-analysis analyze    # Analyze collected data
+./cleanbox sent-analysis compare    # Compare sent vs folder patterns
+```
+
+### Getting Started Safely
 Since Cleanbox can be aggressive initially, here's a safe approach:
 
 1. **First, organize your existing emails** into folders (Family, Work, Newsletters, etc.)

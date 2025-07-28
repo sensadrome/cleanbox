@@ -1,4 +1,5 @@
 # Containerfile
+# Updated for simplified data directory approach
 
 FROM registry.redhat.io/ubi8/ruby-27
 

@@ -83,13 +83,22 @@ CLEANBOX_TENANT_ID=your-tenant-id
 
 **Security Note**: The `.env` file is automatically added to `.gitignore` to prevent accidental commits of sensitive data.
 
-**Option C: Environment Variables**
-You can also set credentials as environment variables:
+**Option C: Container Deployment**
+For container deployments, use Podman secrets:
+
 ```bash
-export CLEANBOX_CLIENT_ID="your-application-client-id"
-export CLEANBOX_CLIENT_SECRET="your-client-secret"
-export CLEANBOX_TENANT_ID="your-tenant-id"
+# Create secrets for container use
+podman secret create client_id "your-application-client-id"
+podman secret create client_secret "your-client-secret"
+podman secret create tenant_id "your-tenant-id"
+
+# Use with container scripts
+export CLIENT_ID="your-application-client-id"
+export CLIENT_SECRET="your-client-secret"
+export TENANT_ID="your-tenant-id"
 ```
+
+See the [Container Deployment Guide](../deploy/CONTAINER_DEPLOYMENT.md) for detailed setup instructions.
 
 ## Standard IMAP Configuration
 
@@ -115,6 +124,15 @@ auth_type: password
 2. **`.env`** - Sensitive credentials:
 ```bash
 CLEANBOX_PASSWORD=your-imap-password
+```
+
+**Container Deployment Option:**
+```bash
+# Create Podman secret
+podman secret create imap_password "your-imap-password"
+
+# Or set environment variable for scripts
+export IMAP_PASSWORD="your-imap-password"
 ```
 
 ### Common IMAP Server Settings
@@ -170,8 +188,9 @@ For email providers that support 2-factor authentication, you'll need to create 
 
 1. **Use `.env` files** for sensitive credentials (automatically created by setup wizard)
 2. **Never commit credentials** to version control
-3. **Use environment variables** in production environments
-4. **Rotate credentials regularly** for OAuth2 applications
+3. **Use Podman secrets** for container deployments (recommended)
+4. **Use environment variables** for script-based deployments
+5. **Rotate credentials regularly** for OAuth2 applications
 
 ### File Permissions
 
@@ -183,29 +202,91 @@ chmod 600 .env
 
 ### Environment Variables (Production)
 
-For production deployments, use environment variables:
+For production deployments, use Podman secrets for enhanced security:
 
 ```bash
-# Set environment variables
-export CLEANBOX_CLIENT_ID="your-client-id"
-export CLEANBOX_CLIENT_SECRET="your-client-secret"
-export CLEANBOX_TENANT_ID="your-tenant-id"
-export CLEANBOX_PASSWORD="your-password"
+# Create Podman secrets (one-time setup)
+podman secret create client_id "your-client-id"
+podman secret create client_secret "your-client-secret"
+podman secret create tenant_id "your-tenant-id"
 
-# Run Cleanbox
-./cleanbox
+# For password authentication
+podman secret create imap_password "your-password"
+
+# Run Cleanbox with secrets
+podman run --rm \
+  --secret client_id,type=env,target=CLIENT_ID \
+  --secret client_secret,type=env,target=CLIENT_SECRET \
+  --secret tenant_id,type=env,target=TENANT_ID \
+  cleanbox:latest
 ```
 
-### Container Security
+**Alternative: Environment Variables for Scripts**
 
-When running in containers:
+If using the template scripts, you can set environment variables that the scripts will convert to secrets:
 
 ```bash
-# Use secrets management
-docker run -e CLEANBOX_CLIENT_ID=secret \
-           -e CLEANBOX_CLIENT_SECRET=secret \
-           cleanbox
+# Set environment variables for script processing
+export CLIENT_ID="your-client-id"
+export CLIENT_SECRET="your-client-secret"
+export TENANT_ID="your-tenant-id"
+
+# Scripts automatically handle secret creation and usage
+./cleanbox-run
 ```
+
+### Container Security (Podman)
+
+When running in containers with Podman, use secrets for secure credential management:
+
+#### Microsoft 365 OAuth2
+
+```bash
+# Create Podman secrets
+podman secret create client_id <your-client-id>
+podman secret create client_secret <your-client-secret>
+podman secret create tenant_id <your-tenant-id>
+
+# Run container with secrets
+podman run --rm \
+  --secret client_id,type=env,target=CLIENT_ID \
+  --secret client_secret,type=env,target=CLIENT_SECRET \
+  --secret tenant_id,type=env,target=TENANT_ID \
+  cleanbox:latest
+```
+
+#### Password Authentication
+
+```bash
+# Create password secret
+podman secret create imap_password <your-password>
+
+# Run container with secret
+podman run --rm \
+  --secret imap_password,type=env,target=IMAP_PASSWORD \
+  cleanbox:latest
+```
+
+#### Using Template Scripts
+
+The provided template scripts (`scripts/cleanbox-run.template` and `scripts/cb.template`) automatically handle secrets when environment variables are set:
+
+```bash
+# Set environment variables for secrets
+export CLIENT_ID="your-client-id"
+export CLIENT_SECRET="your-client-secret"
+export TENANT_ID="your-tenant-id"
+
+# Scripts will automatically add --secret flags
+./cleanbox-run
+./cb config show
+```
+
+**Security Benefits:**
+- Secrets are encrypted at rest
+- Not visible in container inspection
+- Automatically cleaned up when container stops
+- Better isolation than environment variables
 
 ## Troubleshooting Authentication
 

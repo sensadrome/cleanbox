@@ -7,8 +7,8 @@ This guide covers how to use Cleanbox effectively, from basic commands to advanc
 ### Core Operations
 
 ```bash
-# Clean new emails (default action)
-./cleanbox
+# Clean new emails
+./cleanbox clean
 
 # File existing emails in inbox
 ./cleanbox file
@@ -111,7 +111,7 @@ Since Cleanbox can be aggressive initially, here's a safe approach:
    ```
 4. **If the preview looks good, run it for real**:
    ```bash
-   ./cleanbox
+   ./cleanbox clean
    ```
 5. **Check your junk/spam folder** after the first run to make sure nothing important was moved there
 6. **Continue organizing emails** - Cleanbox will become more accurate over time
@@ -132,8 +132,8 @@ list_domain_map:
 
 **Run cleaning:**
 ```bash
-./cleanbox --pretend  # Preview first
-./cleanbox            # Run for real
+./cleanbox clean --pretend  # Preview first
+./cleanbox clean            # Run for real
 ```
 
 ### Filing Existing Emails
@@ -277,7 +277,7 @@ list_domain_map:
 ./cleanbox --pretend --verbose
 
 # Run cleaning
-./cleanbox
+./cleanbox clean
 ```
 
 ### Business Email Organization
@@ -300,7 +300,7 @@ list_domain_map:
 ./cleanbox file
 
 # Clean new incoming emails
-./cleanbox
+./cleanbox clean
 ```
 
 ### Newsletter and Marketing Management
@@ -323,7 +323,7 @@ list_domain_map:
 ./cleanbox --pretend --verbose
 
 # Run automatic filing
-./cleanbox
+./cleanbox clean
 ```
 
 ## Monitoring and Maintenance
@@ -333,7 +333,7 @@ list_domain_map:
 **Daily:**
 ```bash
 # Clean new emails
-./cleanbox
+./cleanbox clean
 ```
 
 **Weekly:**
@@ -361,7 +361,7 @@ nano ~/.cleanbox/domain_rules.yml
 ```bash
 # Cache is automatically used for folder analysis
 # Subsequent runs will be faster
-./cleanbox
+./cleanbox clean
 ```
 
 **Monitor cache size:**

@@ -48,8 +48,8 @@ nano ~/.cleanbox.yml
 ### 3. Run Cleanbox
 
 ```bash
-# Clean new emails (default action)
-./cleanbox
+# Clean new emails
+./cleanbox clean
 
 # File existing emails in inbox
 ./cleanbox file
@@ -59,13 +59,15 @@ nano ~/.cleanbox.yml
 
 # Show all folders
 ./cleanbox folders
+
+# Show help (default when no arguments provided)
+./cleanbox
 ```
 
 ## Documentation
 
 📚 **Complete documentation is available in the [docs/](docs/) directory:**
 
-- **[📖 Overview](docs/README.md)** - What Cleanbox is and how it works
 - **[🚀 Installation](docs/installation.md)** - Prerequisites and installation steps
 - **[🔐 Authentication](docs/authentication.md)** - Microsoft 365 OAuth2 and standard IMAP setup
 - **[⚙️ Configuration](docs/configuration.md)** - Configuration files, domain rules, and data directory management
@@ -125,11 +127,11 @@ Since Cleanbox can be aggressive initially, here's a safe approach:
    ```
 3. **Preview what Cleanbox would do**:
    ```bash
-   ./cleanbox --pretend --verbose
+   ./cleanbox clean --pretend --verbose
    ```
 4. **If the preview looks good, run it for real**:
    ```bash
-   ./cleanbox
+   ./cleanbox clean
    ```
 5. **Check your junk/spam folder** after the first run to make sure nothing important was moved there
 6. **Continue organizing emails** - Cleanbox will become more accurate over time

@@ -135,6 +135,7 @@ Since Cleanbox can be aggressive initially, here's a safe approach:
    ```bash
    ./cleanbox clean
    ```
+   (Note: `./cleanbox` and `./cleanbox clean` are equivalent - both run the default cleaning action)
 5. **Check your junk/spam folder** after the first run to make sure nothing important was moved there
 6. **Continue organizing emails** - Cleanbox will become more accurate over time
 
@@ -154,7 +155,7 @@ list_domain_map:
 
 **Run cleaning:**
 ```bash
-./cleanbox clean --pretend  # Preview first
+./cleanbox --pretend        # Preview first (same as ./cleanbox clean --pretend)
 ./cleanbox clean            # Run for real
 ```
 

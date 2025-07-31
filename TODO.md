@@ -50,7 +50,7 @@ This file tracks planned improvements, features, and tasks for the Cleanbox proj
   - Add better explanations of what unjunking does
   - Improve command-line interface consistency
   - Update documentation with clear examples
-- [ ] **Separate Authentication Setup**
+- [x] **Separate Authentication Setup** ✅
   - Create standalone authentication setup command (e.g., `./cleanbox auth setup`)
   - Add authentication test command (e.g., `./cleanbox auth test`) to verify credentials work
   - Add authentication status command (e.g., `./cleanbox auth show`) to display current auth configuration
@@ -240,6 +240,8 @@ This file tracks planned improvements, features, and tasks for the Cleanbox proj
 
 ## 🎯 Completed ✅
 
+- [x] **Separate Authentication Setup** - Added standalone auth CLI commands with setup, test, show, and reset functionality
+- [x] **Code Encapsulation Improvements** - Replaced all instance_variable_get usage with proper public readers
 - [x] **Documentation Reorganization** - Split large README into focused docs
 - [x] **Container Deployment** - Added comprehensive container support
 - [x] **GitHub Integration** - Set up CI/CD with GitHub Actions

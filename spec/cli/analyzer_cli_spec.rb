@@ -13,7 +13,7 @@ RSpec.describe CLI::AnalyzerCLI do
     end
 
     it 'initializes with correct options' do
-      expect(analyzer_cli.instance_variable_get(:@options)).to eq(options)
+      expect(analyzer_cli.options).to eq(options)
     end
   end
 
@@ -164,7 +164,7 @@ RSpec.describe CLI::AnalyzerCLI do
 
   describe 'other analysis methods' do
     before do
-      allow(analyzer_cli.instance_variable_get(:@email_analyzer)).to receive(:analyze_folders).and_return({
+      allow(analyzer_cli.email_analyzer).to receive(:analyze_folders).and_return({
         folders: [
           { name: 'Work', message_count: 100, senders: ['alice@work.com'], domains: ['work.com'] },
           { name: 'Newsletters', message_count: 50, senders: ['news@example.com'], domains: ['example.com'] }
@@ -173,13 +173,13 @@ RSpec.describe CLI::AnalyzerCLI do
         total_skipped: 0,
         total_folders: 2
       })
-      allow(analyzer_cli.instance_variable_get(:@email_analyzer)).to receive(:analyze_sent_items).and_return({
+      allow(analyzer_cli.email_analyzer).to receive(:analyze_sent_items).and_return({
         frequent_correspondents: [],
         total_sent: 0,
         sample_size: 0
       })
-      allow(analyzer_cli.instance_variable_get(:@email_analyzer)).to receive(:analyze_domain_patterns).and_return({})
-      allow(analyzer_cli.instance_variable_get(:@email_analyzer)).to receive(:generate_recommendations).and_return({
+      allow(analyzer_cli.email_analyzer).to receive(:analyze_domain_patterns).and_return({})
+      allow(analyzer_cli.email_analyzer).to receive(:generate_recommendations).and_return({
         whitelist_folders: ['Work'],
         list_folders: ['Newsletters'],
         domain_mappings: { 'work.com' => 'Work' }
@@ -598,12 +598,12 @@ RSpec.describe CLI::AnalyzerCLI do
       analyzer_cli.instance_variable_set(:@email_analyzer, mock_email_analyzer)
       allow(mock_email_analyzer).to receive(:analyze_folders).and_return(folder_results)
       allow(mock_email_analyzer).to receive(:analyze_sent_items).and_return(sent_items)
-      allow(mock_email_analyzer).to receive(:instance_variable_get).with(:@logger).and_return(mock_logger)
+      allow(mock_email_analyzer).to receive(:logger).and_return(mock_logger)
       allow(mock_email_analyzer).to receive(:instance_variable_set)
     end
 
     it 'analyzes folders with brief output' do
-      analyzer_cli.instance_variable_get(:@options)[:brief] = true
+      analyzer_cli.options[:brief] = true
       
       analyzer_cli.send(:analyze_folders)
       
@@ -613,7 +613,7 @@ RSpec.describe CLI::AnalyzerCLI do
     end
 
     it 'analyzes folders with detailed output' do
-      analyzer_cli.instance_variable_get(:@options)[:detailed] = true
+      analyzer_cli.options[:detailed] = true
       
       analyzer_cli.send(:analyze_folders)
       
@@ -623,8 +623,8 @@ RSpec.describe CLI::AnalyzerCLI do
     end
 
     it 'analyzes folders with standard output' do
-      analyzer_cli.instance_variable_get(:@options)[:brief] = false
-      analyzer_cli.instance_variable_get(:@options)[:detailed] = false
+      analyzer_cli.options[:brief] = false
+      analyzer_cli.options[:detailed] = false
       
       analyzer_cli.send(:analyze_folders)
       

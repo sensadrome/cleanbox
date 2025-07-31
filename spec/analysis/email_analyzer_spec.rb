@@ -26,14 +26,14 @@ RSpec.describe Analysis::EmailAnalyzer do
   
   describe '#initialize' do
     it 'creates a new analyzer with dependencies' do
-      expect(analyzer.instance_variable_get(:@imap_connection)).to eq(mock_imap)
-      expect(analyzer.instance_variable_get(:@logger)).to eq(mock_logger)
-      expect(analyzer.instance_variable_get(:@folder_categorizer_class)).to eq(mock_categorizer_class)
+      expect(analyzer.imap_connection).to eq(mock_imap)
+      expect(analyzer.logger).to eq(mock_logger)
+      expect(analyzer.folder_categorizer_class).to eq(mock_categorizer_class)
     end
     
     it 'uses default logger when none provided' do
       analyzer_with_default = described_class.new(mock_imap)
-      expect(analyzer_with_default.instance_variable_get(:@logger)).to be_a(Logger)
+      expect(analyzer_with_default.logger).to be_a(Logger)
     end
   end
   

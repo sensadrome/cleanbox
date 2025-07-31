@@ -18,12 +18,12 @@ RSpec.describe Microsoft365ApplicationToken do
     end
 
     it 'uses provided logger' do
-      expect(token_instance.instance_variable_get(:@logger)).to eq(logger)
+      expect(token_instance.logger).to eq(logger)
     end
 
     it 'uses default logger when none provided' do
       token_with_default_logger = described_class.new(client_id, client_secret, tenant_id)
-      expect(token_with_default_logger.instance_variable_get(:@logger)).to be_a(Logger)
+      expect(token_with_default_logger.logger).to be_a(Logger)
     end
   end
 

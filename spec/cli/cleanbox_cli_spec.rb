@@ -28,7 +28,7 @@ RSpec.describe CLI::CleanboxCLI do
     end
 
     it 'initializes with loaded config options' do
-      expect(cli.instance_variable_get(:@options)).to include(
+      expect(cli.options).to include(
         host: 'test.example.com',
         username: 'test@example.com',
         auth_type: 'password'
@@ -93,7 +93,7 @@ RSpec.describe CLI::CleanboxCLI do
         allow(cli).to receive(:parse_options)
         allow(cli).to receive(:validate_options)
         allow(cli).to receive(:execute_action)
-        allow(cli.instance_variable_get(:@config_manager)).to receive(:handle_command)
+        allow(cli.config_manager).to receive(:handle_command)
       end
 
       after do
@@ -101,7 +101,7 @@ RSpec.describe CLI::CleanboxCLI do
       end
 
       it 'handles config command' do
-        expect(cli.instance_variable_get(:@config_manager)).to receive(:handle_command).with(['show'], show_all: false)
+        expect(cli.config_manager).to receive(:handle_command).with(['show'], show_all: false)
         cli.run
       end
     end
@@ -114,7 +114,7 @@ RSpec.describe CLI::CleanboxCLI do
         allow(cli).to receive(:execute_action)
         allow(ARGV).to receive(:empty?).and_return(false)
         allow(ARGV).to receive(:include?).and_return(false)
-        cli.instance_variable_get(:@options)[:unjunk] = true
+        cli.options[:unjunk] = true
       end
 
       it 'does not show help when unjunk is set' do
@@ -127,19 +127,19 @@ RSpec.describe CLI::CleanboxCLI do
   describe 'data directory handling' do
     describe '#resolve_data_dir' do
       it 'returns absolute path when data_dir is set' do
-        cli.instance_variable_get(:@options)[:data_dir] = '/relative/path'
+        cli.options[:data_dir] = '/relative/path'
         expect(cli.send(:resolve_data_dir)).to eq(File.expand_path('/relative/path'))
       end
 
       it 'returns working directory when data_dir is not set' do
-        cli.instance_variable_get(:@options)[:data_dir] = nil
+        cli.options[:data_dir] = nil
         expect(cli.send(:resolve_data_dir)).to eq(Dir.pwd)
       end
     end
 
     describe '#data_dir' do
       it 'caches the resolved data directory' do
-        cli.instance_variable_get(:@options)[:data_dir] = '/test/path'
+        cli.options[:data_dir] = '/test/path'
         # Clear the cached value to force recalculation
         cli.instance_variable_set(:@data_dir, nil)
         first_call = cli.send(:data_dir)
@@ -179,7 +179,7 @@ RSpec.describe CLI::CleanboxCLI do
 
   describe '#determine_action' do
     it 'returns unjunk! when unjunk option is set' do
-      cli.instance_variable_get(:@options)[:unjunk] = true
+      cli.options[:unjunk] = true
       expect(cli.send(:determine_action)).to eq('unjunk!')
     end
 
@@ -212,25 +212,25 @@ RSpec.describe CLI::CleanboxCLI do
   describe '#handle_config_command' do
     before do
       allow(cli).to receive(:exit)
-      allow(cli.instance_variable_get(:@config_manager)).to receive(:handle_command)
+      allow(cli.config_manager).to receive(:handle_command)
     end
 
     it 'handles config command with subcommand' do
       ARGV.replace(['config', 'show'])
       cli.send(:handle_config_command)
-      expect(cli.instance_variable_get(:@config_manager)).to have_received(:handle_command).with(['show'], show_all: false)
+      expect(cli.config_manager).to have_received(:handle_command).with(['show'], show_all: false)
     end
 
     it 'handles config command with --all flag' do
       ARGV.replace(['config', 'show', '--all'])
       cli.send(:handle_config_command)
-      expect(cli.instance_variable_get(:@config_manager)).to have_received(:handle_command).with(['show'], show_all: true)
+      expect(cli.config_manager).to have_received(:handle_command).with(['show'], show_all: true)
     end
 
     it 'does nothing when first argument is not config' do
       ARGV.replace(['other', 'command'])
       cli.send(:handle_config_command)
-      expect(cli.instance_variable_get(:@config_manager)).not_to have_received(:handle_command)
+      expect(cli.config_manager).not_to have_received(:handle_command)
     end
   end
 
@@ -261,14 +261,14 @@ RSpec.describe CLI::CleanboxCLI do
 
     it 'shows help when no arguments and not unjunking' do
       ARGV.clear
-      cli.instance_variable_get(:@options)[:unjunk] = false
+      cli.options[:unjunk] = false
       cli.send(:handle_no_args_help)
       expect(cli).to have_received(:show_help)
     end
 
     it 'does not show help when unjunking' do
       ARGV.clear
-      cli.instance_variable_get(:@options)[:unjunk] = true
+      cli.options[:unjunk] = true
       cli.send(:handle_no_args_help)
       expect(cli).not_to have_received(:show_help)
     end
@@ -282,13 +282,13 @@ RSpec.describe CLI::CleanboxCLI do
 
   describe '#update_config_manager_if_needed' do
     it 'updates config manager when config_file is set' do
-      cli.instance_variable_get(:@options)[:config_file] = '/custom/config.yml'
+      cli.options[:config_file] = '/custom/config.yml'
       expect(cli).to receive(:load_config)
       cli.send(:update_config_manager_if_needed)
     end
 
     it 'does nothing when config_file is not set' do
-      cli.instance_variable_get(:@options)[:config_file] = nil
+      cli.options[:config_file] = nil
       expect(cli).not_to receive(:load_config)
       cli.send(:update_config_manager_if_needed)
     end
@@ -322,7 +322,7 @@ RSpec.describe CLI::CleanboxCLI do
     before do
       allow(Net::IMAP).to receive(:new).and_return(mock_imap)
       allow(Auth::AuthenticationManager).to receive(:authenticate_imap)
-      cli.instance_variable_get(:@options)[:host] = 'imap.example.com'
+      cli.options[:host] = 'imap.example.com'
     end
 
     it 'creates IMAP connection with correct host' do
@@ -337,7 +337,7 @@ RSpec.describe CLI::CleanboxCLI do
 
     it 'removes host from options' do
       cli.send(:create_imap_connection)
-      expect(cli.instance_variable_get(:@options)[:host]).to be_nil
+      expect(cli.options[:host]).to be_nil
     end
   end
 
@@ -363,7 +363,7 @@ RSpec.describe CLI::CleanboxCLI do
     end
 
     it 'creates Cleanbox instance with IMAP connection and options' do
-      expect(Cleanbox).to receive(:new).with(mock_imap, cli.instance_variable_get(:@options))
+      expect(Cleanbox).to receive(:new).with(mock_imap, cli.options)
       cli.send(:execute_action)
     end
 
@@ -402,7 +402,7 @@ RSpec.describe CLI::CleanboxCLI do
     end
 
     it 'creates AnalyzerCLI with IMAP connection and options' do
-      expect(CLI::AnalyzerCLI).to receive(:new).with(mock_imap, cli.instance_variable_get(:@options))
+      expect(CLI::AnalyzerCLI).to receive(:new).with(mock_imap, cli.options)
       cli.send(:handle_analyze_command)
     end
 

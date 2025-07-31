@@ -32,7 +32,7 @@ RSpec.describe CLI::ConfigManager do
       it 'uses the provided path' do
         custom_path = '/custom/path/config.yml'
         manager = described_class.new(custom_path)
-        expect(manager.instance_variable_get(:@config_path)).to eq(custom_path)
+        expect(manager.config_path).to eq(custom_path)
       end
     end
 
@@ -42,7 +42,7 @@ RSpec.describe CLI::ConfigManager do
         allow(ENV).to receive(:[]).and_return(nil)  # Default mock
         allow(ENV).to receive(:[]).with('CLEANBOX_CONFIG').and_return('/custom/config.yml')
         manager = described_class.new(nil, '/custom/data/dir')
-        expect(manager.instance_variable_get(:@config_path)).to eq('/custom/config.yml')
+        expect(manager.config_path).to eq('/custom/config.yml')
       end
 
       it 'uses data directory config when no environment variable' do
@@ -56,7 +56,7 @@ RSpec.describe CLI::ConfigManager do
         allow(File).to receive(:exist?).with(data_dir_config).and_return(true)
         
         manager = described_class.new(nil, data_dir)
-        expect(manager.instance_variable_get(:@config_path)).to eq(data_dir_config)
+        expect(manager.config_path).to eq(data_dir_config)
       end
 
       it 'uses home directory fallback when no environment or data dir config' do
@@ -71,7 +71,7 @@ RSpec.describe CLI::ConfigManager do
         allow(File).to receive(:exist?).with(data_dir_config).and_return(false)
         
         manager = described_class.new(nil, data_dir)
-        expect(manager.instance_variable_get(:@config_path)).to eq(home_config)
+        expect(manager.config_path).to eq(home_config)
       end
     end
 
@@ -79,7 +79,7 @@ RSpec.describe CLI::ConfigManager do
       it 'sets data directory' do
         data_dir = '/custom/data/dir'
         manager = described_class.new(temp_config_path, data_dir)
-        expect(manager.instance_variable_get(:@data_dir)).to eq(data_dir)
+        expect(manager.data_dir).to eq(data_dir)
       end
     end
   end

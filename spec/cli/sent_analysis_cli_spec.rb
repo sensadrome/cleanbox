@@ -23,13 +23,13 @@ RSpec.describe CLI::SentAnalysisCLI do
 
     it 'sets data directory from options' do
       cli = described_class.new(mock_imap, options)
-      expect(cli.instance_variable_get(:@data_dir)).to eq('/tmp/test_data')
+      expect(cli.data_dir).to eq('/tmp/test_data')
     end
 
     it 'falls back to current directory when no data_dir specified' do
       options_without_data_dir = { verbose: false }
       cli = described_class.new(mock_imap, options_without_data_dir)
-      expect(cli.instance_variable_get(:@data_dir)).to eq(Dir.pwd)
+      expect(cli.data_dir).to eq(Dir.pwd)
     end
   end
 
@@ -381,6 +381,65 @@ RSpec.describe CLI::SentAnalysisCLI do
     it 'returns 0 for empty folders' do
       result = cli.send(:average_overlap, [])
       expect(result).to eq(0)
+    end
+  end
+
+  describe '#show_help' do
+    it 'displays the help header' do
+      expect { cli.send(:show_help) }.to output(/Sent Analysis CLI - Analyze sent emails vs folder contents/).to_stdout
+    end
+
+    it 'displays all available commands' do
+      expect { cli.send(:show_help) }.to output(/Commands:/).to_stdout
+      expect { cli.send(:show_help) }.to output(/collect/).to_stdout
+      expect { cli.send(:show_help) }.to output(/analyze/).to_stdout
+      expect { cli.send(:show_help) }.to output(/compare/).to_stdout
+      expect { cli.send(:show_help) }.to output(/help/).to_stdout
+    end
+
+    it 'displays command descriptions' do
+      expect { cli.send(:show_help) }.to output(/Collect data from IMAP server/).to_stdout
+      expect { cli.send(:show_help) }.to output(/Analyze collected data/).to_stdout
+      expect { cli.send(:show_help) }.to output(/Compare sent emails with folder contents/).to_stdout
+      expect { cli.send(:show_help) }.to output(/Show this help/).to_stdout
+    end
+
+    it 'displays usage examples' do
+      expect { cli.send(:show_help) }.to output(/Usage:/).to_stdout
+      expect { cli.send(:show_help) }.to output(/cleanbox sent-analysis collect/).to_stdout
+      expect { cli.send(:show_help) }.to output(/cleanbox sent-analysis analyze/).to_stdout
+      expect { cli.send(:show_help) }.to output(/cleanbox sent-analysis compare/).to_stdout
+    end
+
+    it 'displays complete help output with proper formatting' do
+      expected_output = <<~EXPECTED
+        Sent Analysis CLI - Analyze sent emails vs folder contents
+
+        Commands:
+          collect    - Collect data from IMAP server
+          analyze    - Analyze collected data
+          compare    - Compare sent emails with folder contents
+          help       - Show this help
+
+        Usage:
+          cleanbox sent-analysis collect
+          cleanbox sent-analysis analyze
+          cleanbox sent-analysis compare
+      EXPECTED
+
+      expect { cli.send(:show_help) }.to output(expected_output).to_stdout
+    end
+
+    it 'includes proper spacing and formatting' do
+      expect { cli.send(:show_help) }.to output(/Sent Analysis CLI - Analyze sent emails vs folder contents\n\nCommands:/).to_stdout
+      expect { cli.send(:show_help) }.to output(/Commands:\n  collect/).to_stdout
+      expect { cli.send(:show_help) }.to output(/Usage:\n  cleanbox sent-analysis collect/).to_stdout
+      
+      # Check that commands are properly indented
+      expect { cli.send(:show_help) }.to output(/  collect/).to_stdout
+      expect { cli.send(:show_help) }.to output(/  analyze/).to_stdout
+      expect { cli.send(:show_help) }.to output(/  compare/).to_stdout
+      expect { cli.send(:show_help) }.to output(/  help/).to_stdout
     end
   end
 end 

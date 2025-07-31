@@ -91,8 +91,8 @@ module CLI
 
     def handle_auth_command
       return unless ARGV.first == 'auth'
-      subcommand = ARGV[1]  # Get the subcommand before modifying ARGV
       ARGV.delete('auth')  # Remove 'auth' from ARGV
+      subcommand = ARGV.pop  # Get and remove the subcommand, leaving ARGV empty
       CLI::AuthCLI.new(data_dir: data_dir, config_path: @options[:config_file]).run(subcommand)
       exit 0
     end

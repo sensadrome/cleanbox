@@ -198,14 +198,14 @@ RSpec.describe Analysis::DomainMapper do
 
   describe '#initialize' do
     it 'creates a new domain mapper with folders' do
-      expect(mapper.instance_variable_get(:@folders)).to eq(folders)
-      expect(mapper.instance_variable_get(:@mappings)).to eq({})
+      expect(mapper.folders).to eq(folders)
+      expect(mapper.mappings).to eq({})
     end
     
     it 'uses provided logger or creates default' do
       custom_logger = Logger.new(StringIO.new)
       mapper_with_logger = described_class.new(folders, logger: custom_logger)
-      expect(mapper_with_logger.instance_variable_get(:@logger)).to eq(custom_logger)
+      expect(mapper_with_logger.logger).to eq(custom_logger)
     end
   end
   

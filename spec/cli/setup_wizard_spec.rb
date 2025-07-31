@@ -14,10 +14,13 @@ RSpec.describe CLI::SetupWizard do
     allow(CLI::ConfigManager).to receive(:new).and_return(mock_config_manager)
     allow(mock_config_manager).to receive(:load_config).and_return({})
     allow(mock_config_manager).to receive(:save_config)
-    allow(mock_config_manager).to receive(:instance_variable_get).with(:@config_path).and_return('/tmp/test_config.yml')
+    allow(mock_config_manager).to receive(:config_path).and_return('/tmp/test_config.yml')
+    allow(mock_config_manager).to receive(:data_dir).and_return('/tmp')
+    allow(mock_config_manager).to receive(:config_file_exists?).and_return(false)
     
     allow(CLI::SecretsManager).to receive(:create_env_file)
     allow(CLI::SecretsManager).to receive(:value_from_env_or_secrets).and_return('test_value')
+    allow(CLI::SecretsManager).to receive(:auth_secrets_available?).and_return(false)
     
     allow(Net::IMAP).to receive(:new).and_return(mock_imap)
     allow(Auth::AuthenticationManager).to receive(:authenticate_imap)
@@ -38,7 +41,7 @@ RSpec.describe CLI::SetupWizard do
 
     it 'creates a setup wizard with verbose logging' do
       wizard = described_class.new(verbose: true)
-      expect(wizard.instance_variable_get(:@verbose)).to be true
+      expect(wizard.verbose).to be true
     end
   end
 
@@ -46,6 +49,8 @@ RSpec.describe CLI::SetupWizard do
     context 'when configuration file exists' do
       before do
         allow(File).to receive(:exist?).and_return(true)
+        allow(mock_config_manager).to receive(:config_file_exists?).and_return(true)
+        allow(wizard).to receive(:auth_configured?).and_return(true)
       end
 
       context 'when user chooses update mode (1)' do
@@ -81,7 +86,7 @@ RSpec.describe CLI::SetupWizard do
 
         it 'sets update mode and proceeds with setup' do
           wizard.run
-          expect(wizard.instance_variable_get(:@update_mode)).to be true
+          expect(wizard.update_mode).to be true
         end
 
         it 'uses existing config in update mode' do
@@ -161,7 +166,7 @@ RSpec.describe CLI::SetupWizard do
 
         it 'sets full setup mode and proceeds' do
           wizard.run
-          expect(wizard.instance_variable_get(:@update_mode)).to be false
+          expect(wizard.update_mode).to be false
         end
       end
 
@@ -197,6 +202,10 @@ RSpec.describe CLI::SetupWizard do
     context 'when configuration file does not exist' do
       before do
         allow(File).to receive(:exist?).and_return(false)
+        allow(mock_config_manager).to receive(:config_file_exists?).and_return(false)
+        allow(wizard).to receive(:auth_configured?).and_return(false)
+        # Mock the user to choose to skip authentication setup
+        allow(wizard).to receive(:gets).and_return("2\n")
         allow(wizard).to receive(:get_connection_details).and_return({
           details: { host: 'test.com', username: 'test@example.com' },
           secrets: { 'CLEANBOX_PASSWORD' => 'password123' }
@@ -218,10 +227,13 @@ RSpec.describe CLI::SetupWizard do
 
       it 'sets full setup mode and proceeds' do
         wizard.run
-        expect(wizard.instance_variable_get(:@update_mode)).to be false
+        expect(wizard.update_mode).to be false
       end
 
       it 'calls all setup steps in order' do
+        # Mock the authentication setup to skip it
+        allow_any_instance_of(CLI::AuthCLI).to receive(:setup_auth)
+        
         expect(wizard).to receive(:get_connection_details).ordered
         expect(wizard).to receive(:connect_and_analyze).ordered
         expect(wizard).to receive(:generate_recommendations).ordered
@@ -241,6 +253,10 @@ RSpec.describe CLI::SetupWizard do
       context 'when connection fails' do
         before do
           allow(File).to receive(:exist?).and_return(false)
+          allow(mock_config_manager).to receive(:config_file_exists?).and_return(false)
+          allow(wizard).to receive(:auth_configured?).and_return(false)
+          # Mock the user to choose to skip authentication setup
+          allow(wizard).to receive(:gets).and_return("2\n")
           allow(wizard).to receive(:get_connection_details).and_return({
             details: { host: 'test.com', username: 'test@example.com' },
             secrets: { 'CLEANBOX_PASSWORD' => 'password123' }
@@ -249,13 +265,185 @@ RSpec.describe CLI::SetupWizard do
         end
 
         it 'handles connection errors gracefully' do
+          # Mock the authentication setup to skip it
+          allow_any_instance_of(CLI::AuthCLI).to receive(:setup_auth)
+          
           expect { wizard.run }.to output(/❌ Connection failed: Connection failed/).to_stdout
         end
 
         it 'does not proceed with setup' do
+          # Mock the authentication setup to skip it
+          allow_any_instance_of(CLI::AuthCLI).to receive(:setup_auth)
+          
           expect(wizard).not_to receive(:generate_recommendations)
           wizard.run
         end
+      end
+    end
+  end
+
+  describe '#auth_configured?' do
+    context 'when no config file exists' do
+      before do
+        allow(mock_config_manager).to receive(:config_file_exists?).and_return(false)
+      end
+
+      it 'returns false' do
+        expect(wizard.send(:auth_configured?)).to be false
+      end
+    end
+
+    context 'when config file exists but has no auth fields' do
+      before do
+        allow(mock_config_manager).to receive(:config_file_exists?).and_return(true)
+        allow(mock_config_manager).to receive(:load_config).and_return({})
+      end
+
+      it 'returns false' do
+        expect(wizard.send(:auth_configured?)).to be false
+      end
+    end
+
+    context 'when config file exists with auth fields but no secrets' do
+      before do
+        allow(mock_config_manager).to receive(:config_file_exists?).and_return(true)
+        allow(mock_config_manager).to receive(:load_config).and_return({
+          host: 'outlook.office365.com',
+          username: 'test@example.com',
+          auth_type: 'oauth2_microsoft'
+        })
+        allow(CLI::SecretsManager).to receive(:auth_secrets_available?).and_return(false)
+      end
+
+      it 'returns false' do
+        expect(wizard.send(:auth_configured?)).to be false
+      end
+    end
+
+    context 'when config file exists with auth fields and secrets' do
+      before do
+        allow(mock_config_manager).to receive(:config_file_exists?).and_return(true)
+        allow(mock_config_manager).to receive(:load_config).and_return({
+          host: 'outlook.office365.com',
+          username: 'test@example.com',
+          auth_type: 'oauth2_microsoft'
+        })
+        allow(CLI::SecretsManager).to receive(:auth_secrets_available?).and_return(true)
+      end
+
+      it 'returns true' do
+        expect(wizard.send(:auth_configured?)).to be true
+      end
+    end
+  end
+
+  describe '#run with authentication detection' do
+    context 'when authentication is not configured' do
+      before do
+        allow(File).to receive(:exist?).and_return(false)
+        allow(wizard).to receive(:auth_configured?).and_return(false)
+      end
+
+      context 'when user chooses to set up authentication (1)' do
+        before do
+          allow(wizard).to receive(:gets).and_return("1\n")
+          # Mock the AuthCLI methods to prevent actual execution
+          allow_any_instance_of(CLI::AuthCLI).to receive(:setup_auth)
+          allow(wizard).to receive(:get_connection_details).and_return({
+            details: { host: 'test.com', username: 'test@example.com' },
+            secrets: { 'CLEANBOX_PASSWORD' => 'password123' }
+          })
+          allow(wizard).to receive(:connect_and_analyze)
+          allow(wizard).to receive(:generate_recommendations).and_return({
+            whitelist_folders: ['Work'],
+            list_folders: ['Newsletters'],
+            domain_mappings: { 'example.com' => 'Newsletters' }
+          })
+          allow(wizard).to receive(:interactive_configuration).and_return({
+            whitelist_folders: ['Work'],
+            list_folders: ['Newsletters'],
+            domain_mappings: { 'example.com' => 'Newsletters' }
+          })
+          allow(wizard).to receive(:save_configuration)
+          allow(wizard).to receive(:validate_and_preview)
+        end
+
+        it 'prompts for authentication setup choice' do
+          expect { wizard.run }.to output(/Authentication not configured!/).to_stdout
+        end
+
+        it 'offers to set up authentication' do
+          expect { wizard.run }.to output(/Set up authentication now/).to_stdout
+        end
+      end
+
+      context 'when user chooses to skip authentication setup (2)' do
+        before do
+          allow(wizard).to receive(:gets).and_return("2\n")
+          allow(wizard).to receive(:get_connection_details).and_return({
+            details: { host: 'test.com', username: 'test@example.com' },
+            secrets: { 'CLEANBOX_PASSWORD' => 'password123' }
+          })
+          allow(wizard).to receive(:connect_and_analyze)
+          allow(wizard).to receive(:generate_recommendations).and_return({
+            whitelist_folders: ['Work'],
+            list_folders: ['Newsletters'],
+            domain_mappings: { 'example.com' => 'Newsletters' }
+          })
+          allow(wizard).to receive(:interactive_configuration).and_return({
+            whitelist_folders: ['Work'],
+            list_folders: ['Newsletters'],
+            domain_mappings: { 'example.com' => 'Newsletters' }
+          })
+          allow(wizard).to receive(:save_configuration)
+          allow(wizard).to receive(:validate_and_preview)
+        end
+
+        it 'skips authentication setup and continues' do
+          expect { wizard.run }.to output(/Skipping authentication setup/).to_stdout
+        end
+      end
+
+      context 'when user cancels (3)' do
+        before do
+          allow(wizard).to receive(:gets).and_return("3\n")
+        end
+
+        it 'exits early' do
+          expect(wizard.run).to be_nil
+        end
+
+        it 'outputs cancellation message' do
+          expect { wizard.run }.to output(/Setup cancelled/).to_stdout
+        end
+      end
+    end
+
+    context 'when authentication is already configured' do
+      before do
+        allow(File).to receive(:exist?).and_return(false)
+        allow(wizard).to receive(:auth_configured?).and_return(true)
+        allow(wizard).to receive(:get_connection_details).and_return({
+          details: { host: 'test.com', username: 'test@example.com' },
+          secrets: { 'CLEANBOX_PASSWORD' => 'password123' }
+        })
+        allow(wizard).to receive(:connect_and_analyze)
+        allow(wizard).to receive(:generate_recommendations).and_return({
+          whitelist_folders: ['Work'],
+          list_folders: ['Newsletters'],
+          domain_mappings: { 'example.com' => 'Newsletters' }
+        })
+        allow(wizard).to receive(:interactive_configuration).and_return({
+          whitelist_folders: ['Work'],
+          list_folders: ['Newsletters'],
+          domain_mappings: { 'example.com' => 'Newsletters' }
+        })
+        allow(wizard).to receive(:save_configuration)
+        allow(wizard).to receive(:validate_and_preview)
+      end
+
+      it 'skips authentication setup and proceeds directly' do
+        expect { wizard.run }.not_to output(/Authentication not configured!/).to_stdout
       end
     end
   end

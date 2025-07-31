@@ -23,6 +23,9 @@ RSpec.describe 'SetupWizard Integration' do
     
     # Mock user input for the test scenario
     mock_user_input
+    
+    # Mock AuthCLI methods to prevent actual execution
+    allow_any_instance_of(CLI::AuthCLI).to receive(:setup_auth)
   end
 
   after do
@@ -45,6 +48,7 @@ RSpec.describe 'SetupWizard Integration' do
       
       # Mock gets on the specific wizard instance
       allow(wizard).to receive(:gets).and_return(
+        '2',                      # Skip authentication setup
         'outlook.office365.com',  # IMAP Host
         'test@example.com',       # Email Address
         '1',                      # OAuth2 authentication
@@ -77,6 +81,7 @@ RSpec.describe 'SetupWizard Integration' do
       
       # Mock gets on the specific wizard instance for happy path
       allow(wizard).to receive(:gets).and_return(
+        '2',                      # Skip authentication setup
         'outlook.office365.com',  # IMAP Host
         'test@example.com',       # Email Address
         '1',                      # OAuth2 authentication
@@ -130,6 +135,7 @@ RSpec.describe 'SetupWizard Integration' do
       
       # Mock gets on the specific wizard instance for interactive categorization
       allow(wizard).to receive(:gets).and_return(
+        '2',                      # Skip authentication setup
         'outlook.office365.com',  # IMAP Host
         'test@example.com',       # Email Address
         '1',                      # OAuth2 authentication
@@ -187,6 +193,7 @@ RSpec.describe 'SetupWizard Integration' do
       
       # Mock gets on the specific wizard instance with overrides
       allow(wizard).to receive(:gets).and_return(
+        '2',                      # Skip authentication setup
         'outlook.office365.com',  # IMAP Host
         'test@example.com',       # Email Address
         '1',                      # OAuth2 authentication

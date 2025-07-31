@@ -5,6 +5,8 @@ require 'fileutils'
 
 module CLI
   class ConfigManager
+    attr_reader :config_path, :data_dir
+
     def initialize(config_path = nil, data_dir = nil)
       @data_dir = data_dir
       @config_path = config_path || resolve_config_path
@@ -206,6 +208,18 @@ module CLI
         config = YAML.load_file(@config_path) || {}
         # Convert string keys to symbols for consistency with options hash
         config.transform_keys(&:to_sym)
+      end
+
+      def config_file_exists?
+        File.exist?(@config_path)
+      end
+
+      def config_path
+        @config_path
+      end
+
+      def data_dir
+        @data_dir
       end
 
       def save_config(config)

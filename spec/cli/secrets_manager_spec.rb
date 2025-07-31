@@ -13,6 +13,9 @@ RSpec.describe CLI::SecretsManager do
     ENV.delete('CLEANBOX_PASSWORD')
     ENV.delete('PASSWORD')
     ENV.delete('SECRETS_PATH')
+    ENV.delete('CLEANBOX_CLIENT_ID')
+    ENV.delete('CLEANBOX_CLIENT_SECRET')
+    ENV.delete('CLEANBOX_TENANT_ID')
     FileUtils.rm_f(env_file_path)
   end
 
@@ -121,6 +124,204 @@ RSpec.describe CLI::SecretsManager do
       secrets = { 'FOO' => 'bar' }
       expect { described_class.create_env_file(secrets) }
         .to output(/Created .env file with sensitive credentials/).to_stdout
+    end
+  end
+
+  describe '.auth_secrets_available?' do
+    context 'when auth_type is oauth2_microsoft' do
+      context 'when all required secrets are present' do
+        before do
+          ENV['CLEANBOX_CLIENT_ID'] = 'test_client_id'
+          ENV['CLEANBOX_CLIENT_SECRET'] = 'test_client_secret'
+          ENV['CLEANBOX_TENANT_ID'] = 'test_tenant_id'
+        end
+
+        it 'returns true' do
+          expect(described_class.auth_secrets_available?('oauth2_microsoft')).to be true
+        end
+      end
+
+      context 'when some secrets are missing' do
+        before do
+          ENV['CLEANBOX_CLIENT_ID'] = 'test_client_id'
+          ENV['CLEANBOX_CLIENT_SECRET'] = 'test_client_secret'
+          # Missing TENANT_ID
+        end
+
+        it 'returns false' do
+          expect(described_class.auth_secrets_available?('oauth2_microsoft')).to be false
+        end
+      end
+
+      context 'when all secrets are missing' do
+        it 'returns false' do
+          expect(described_class.auth_secrets_available?('oauth2_microsoft')).to be false
+        end
+      end
+    end
+
+    context 'when auth_type is password' do
+      context 'when password is present' do
+        before do
+          ENV['CLEANBOX_PASSWORD'] = 'test_password'
+        end
+
+        it 'returns true' do
+          expect(described_class.auth_secrets_available?('password')).to be true
+        end
+      end
+
+      context 'when password is missing' do
+        it 'returns false' do
+          expect(described_class.auth_secrets_available?('password')).to be false
+        end
+      end
+    end
+
+    context 'when auth_type is unknown' do
+      it 'returns false' do
+        expect(described_class.auth_secrets_available?('unknown_type')).to be false
+      end
+    end
+  end
+
+  describe '.auth_secrets_status' do
+    context 'when auth_type is oauth2_microsoft' do
+      context 'when all required secrets are present' do
+        before do
+          ENV['CLEANBOX_CLIENT_ID'] = 'test_client_id'
+          ENV['CLEANBOX_CLIENT_SECRET'] = 'test_client_secret'
+          ENV['CLEANBOX_TENANT_ID'] = 'test_tenant_id'
+        end
+
+        it 'returns configured status with no missing secrets' do
+          status = described_class.auth_secrets_status('oauth2_microsoft')
+          expect(status[:configured]).to be true
+          expect(status[:missing]).to be_empty
+          expect(status[:source]).to eq('environment')
+        end
+      end
+
+      context 'when some secrets are missing' do
+        before do
+          ENV['CLEANBOX_CLIENT_ID'] = 'test_client_id'
+          # Missing CLIENT_SECRET and TENANT_ID
+        end
+
+        it 'returns unconfigured status with missing secrets listed' do
+          status = described_class.auth_secrets_status('oauth2_microsoft')
+          expect(status[:configured]).to be false
+          expect(status[:missing]).to contain_exactly('client_secret', 'tenant_id')
+          expect(status[:source]).to eq('environment')
+        end
+      end
+
+      context 'when secrets are in .env file' do
+        before do
+          File.write(env_file_path, "CLEANBOX_CLIENT_ID=test_client_id\nCLEANBOX_CLIENT_SECRET=test_client_secret\nCLEANBOX_TENANT_ID=test_tenant_id\n")
+        end
+
+        it 'returns configured status with env_file source' do
+          status = described_class.auth_secrets_status('oauth2_microsoft')
+          expect(status[:configured]).to be true
+          expect(status[:missing]).to be_empty
+          expect(status[:source]).to eq('env_file')
+        end
+      end
+
+      context 'when no secrets are available' do
+        it 'returns unconfigured status with all secrets missing' do
+          status = described_class.auth_secrets_status('oauth2_microsoft')
+          expect(status[:configured]).to be false
+          expect(status[:missing]).to contain_exactly('client_id', 'client_secret', 'tenant_id')
+          expect(status[:source]).to eq('none')
+        end
+      end
+    end
+
+    context 'when auth_type is password' do
+      context 'when password is present' do
+        before do
+          ENV['CLEANBOX_PASSWORD'] = 'test_password'
+        end
+
+        it 'returns configured status with no missing secrets' do
+          status = described_class.auth_secrets_status('password')
+          expect(status[:configured]).to be true
+          expect(status[:missing]).to be_empty
+          expect(status[:source]).to eq('environment')
+        end
+      end
+
+      context 'when password is missing' do
+        it 'returns unconfigured status with password missing' do
+          status = described_class.auth_secrets_status('password')
+          expect(status[:configured]).to be false
+          expect(status[:missing]).to contain_exactly('password')
+          expect(status[:source]).to eq('none')
+        end
+      end
+
+      context 'when password is in .env file' do
+        before do
+          File.write(env_file_path, "CLEANBOX_PASSWORD=test_password\n")
+        end
+
+        it 'returns configured status with env_file source' do
+          status = described_class.auth_secrets_status('password')
+          expect(status[:configured]).to be true
+          expect(status[:missing]).to be_empty
+          expect(status[:source]).to eq('env_file')
+        end
+      end
+    end
+
+    context 'when auth_type is unknown' do
+      it 'returns unconfigured status with unknown auth type' do
+        status = described_class.auth_secrets_status('unknown_type')
+        expect(status[:configured]).to be false
+        expect(status[:missing]).to contain_exactly('unknown_auth_type')
+        expect(status[:source]).to eq('unknown')
+      end
+    end
+  end
+
+  describe '.detect_secret_source' do
+    context 'when environment variables are set' do
+      before do
+        ENV['CLEANBOX_CLIENT_ID'] = 'test_client_id'
+      end
+
+      it 'returns environment' do
+        expect(described_class.detect_secret_source(['CLEANBOX_CLIENT_ID'])).to eq('environment')
+      end
+    end
+
+    context 'when .env file exists but no environment variables' do
+      before do
+        File.write(env_file_path, "CLEANBOX_CLIENT_ID=test_client_id\n")
+      end
+
+      it 'returns env_file' do
+        expect(described_class.detect_secret_source(['CLEANBOX_CLIENT_ID'])).to eq('env_file')
+      end
+    end
+
+    context 'when neither environment variables nor .env file exist' do
+      it 'returns none' do
+        expect(described_class.detect_secret_source(['CLEANBOX_CLIENT_ID'])).to eq('none')
+      end
+    end
+
+    context 'when some variables are in environment and some in .env file' do
+      before do
+        ENV['CLEANBOX_CLIENT_ID'] = 'test_client_id'
+        File.write(env_file_path, "CLEANBOX_CLIENT_SECRET=test_client_secret\n")
+      end
+
+      it 'returns environment (prioritizes environment variables)' do
+        expect(described_class.detect_secret_source(['CLEANBOX_CLIENT_ID', 'CLEANBOX_CLIENT_SECRET'])).to eq('environment')
+      end
     end
   end
 

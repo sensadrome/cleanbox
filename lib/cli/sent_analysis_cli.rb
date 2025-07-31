@@ -7,6 +7,7 @@ require_relative '../analysis/email_analyzer'
 
 module CLI
   class SentAnalysisCLI
+    attr_reader :data_dir
     def initialize(imap_connection, options)
       @imap_connection = imap_connection
       @options = options

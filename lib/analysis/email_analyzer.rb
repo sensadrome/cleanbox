@@ -4,7 +4,8 @@ require 'logger'
 
 module Analysis
   class EmailAnalyzer
-    attr_reader :analysis_results
+    attr_reader :analysis_results, :imap_connection, :folder_categorizer_class
+    attr_accessor :logger
 
     def initialize(imap_connection, logger: nil, folder_categorizer_class: FolderCategorizer)
       @imap_connection = imap_connection

@@ -5,6 +5,7 @@ require 'uri'
 
 class Microsoft365ApplicationToken
   attr_accessor :client_id, :client_secret, :tenant_id
+  attr_reader :logger
 
   def initialize(client_id, client_secret, tenant_id, logger: nil)
     @client_id = client_id

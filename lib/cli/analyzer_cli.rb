@@ -7,6 +7,7 @@ require_relative '../analysis/domain_mapper'
 
 module CLI
   class AnalyzerCLI
+    attr_reader :options, :email_analyzer
     def initialize(imap_connection, options)
       @imap_connection = imap_connection
       @options = options
@@ -53,9 +54,9 @@ module CLI
       
       # Set logger level based on user preferences
       if @options[:verbose]
-        @email_analyzer.instance_variable_get(:@logger).level = Logger::DEBUG
+        @email_analyzer.logger.level = Logger::DEBUG
       else
-        @email_analyzer.instance_variable_get(:@logger).level = Logger::FATAL
+        @email_analyzer.logger.level = Logger::FATAL
       end
       
       # Show progress for folder analysis

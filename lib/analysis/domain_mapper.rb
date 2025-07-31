@@ -5,6 +5,7 @@ require 'yaml'
 
 module Analysis
   class DomainMapper
+    attr_reader :folders, :mappings, :logger
     DEFAULT_DOMAIN_RULES_FILE = File.expand_path('../../../config/domain_rules.yml', __FILE__)
     
     class << self

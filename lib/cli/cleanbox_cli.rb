@@ -8,10 +8,12 @@ require_relative 'secrets_manager'
 require_relative 'setup_wizard'
 require_relative 'analyzer_cli'
 require_relative 'sent_analysis_cli'
+require_relative 'auth_cli'
 require_relative '../auth/authentication_manager'
 
 module CLI
   class CleanboxCLI
+    attr_reader :options, :config_manager
     def initialize
       @options = default_options
       parse_options
@@ -21,6 +23,7 @@ module CLI
 
     def run
       parse_options
+      handle_auth_command
       handle_setup_command
       handle_analyze_command
       handle_sent_analysis_command
@@ -84,6 +87,13 @@ module CLI
 
     def parse_options
       CLI::CLIParser.new(@options).parse!
+    end
+
+    def handle_auth_command
+      return unless ARGV.first == 'auth'
+      ARGV.delete('auth')  # Remove 'auth' from ARGV
+      CLI::AuthCLI.new(data_dir: data_dir, config_path: @options[:config_file]).run
+      exit 0
     end
 
     def handle_config_command
@@ -207,6 +217,8 @@ module CLI
       puts ""
       puts "Common Commands:"
       puts "  ./cleanbox --help         # Show detailed help"
+      puts "  ./cleanbox auth setup     # Set up authentication"
+      puts "  ./cleanbox auth test      # Test authentication"
       puts "  ./cleanbox setup          # Interactive setup wizard"
       puts "  ./cleanbox analyze        # Analyze email patterns"
       puts "  ./cleanbox sent-analysis  # Analyze sent vs folder patterns"

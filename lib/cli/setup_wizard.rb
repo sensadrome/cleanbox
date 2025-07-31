@@ -3,6 +3,7 @@
 require 'net/imap'
 require_relative 'config_manager'
 require_relative 'secrets_manager'
+require_relative 'auth_cli'
 require_relative '../auth/authentication_manager'
 require_relative '../analysis/email_analyzer'
 require_relative '../analysis/folder_categorizer'
@@ -10,7 +11,7 @@ require_relative '../analysis/domain_mapper'
 
 module CLI
   class SetupWizard
-    attr_reader :config_manager, :imap_connection, :provider
+    attr_reader :config_manager, :imap_connection, :provider, :verbose, :update_mode
 
     def initialize(verbose: false)
       @config_manager = ConfigManager.new
@@ -26,7 +27,7 @@ module CLI
       puts ""
 
       # Check for existing configuration
-      if File.exist?(@config_manager.instance_variable_get(:@config_path))
+      if File.exist?(@config_manager.config_path)
         puts "⚠️  Configuration file already exists!"
         puts ""
         puts "What would you like to do?"
@@ -55,6 +56,39 @@ module CLI
         end
       else
         @update_mode = false
+      end
+
+      # Check if authentication is configured
+      unless auth_configured?
+        puts "🔐 Authentication not configured!"
+        puts ""
+        puts "Before we can analyze your email, we need to set up authentication."
+        puts "What would you like to do?"
+        puts "  1. Set up authentication now (recommended)"
+        puts "  2. Skip authentication setup (you can run './cleanbox auth setup' later)"
+        puts "  3. Cancel"
+        puts ""
+        puts "Choice (1-3): "
+        response = gets.chomp.strip
+        
+        case response
+        when '1'
+          puts "✅ Will set up authentication first."
+          puts ""
+          auth_cli = CLI::AuthCLI.new(data_dir: @config_manager.data_dir)
+          auth_cli.send(:setup_auth)
+          puts ""
+        when '2'
+          puts "⚠️  Skipping authentication setup."
+          puts "You can run './cleanbox auth setup' later to configure authentication."
+          puts ""
+        when '3'
+          puts "Setup cancelled."
+          return
+        else
+          puts "Invalid choice. Setup cancelled."
+          return
+        end
       end
 
       # Step 1: Get connection details
@@ -100,9 +134,9 @@ module CLI
       details = {}
       secrets = {}
       
-      # Load existing config if in update mode
+      # Load existing config if in update mode or if auth is already configured
       existing_config = {}
-      if @update_mode
+      if @update_mode || auth_configured?
         existing_config = @config_manager.load_config
         puts "Using existing connection settings..."
         puts ""
@@ -442,7 +476,7 @@ module CLI
       # Save configuration
       @config_manager.save_config(config)
       
-      puts "Configuration saved to #{@config_manager.instance_variable_get(:@config_path)}"
+      puts "Configuration saved to #{@config_manager.config_path}"
       puts ""
       puts "🔐 Security Note:"
       puts "   - Sensitive credentials are stored in .env file"
@@ -524,6 +558,15 @@ module CLI
           puts "❌ Invalid choice. Please enter 1-#{choices.length}."
         end
       end
+    end
+
+    def auth_configured?
+      return false unless @config_manager.config_file_exists?
+      
+      config = @config_manager.load_config rescue {}
+      return false unless config[:host] && config[:username] && config[:auth_type]
+      
+      CLI::SecretsManager.auth_secrets_available?(config[:auth_type])
     end
   end
 end 

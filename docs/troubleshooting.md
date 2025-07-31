@@ -448,7 +448,7 @@ ruby --version
 ./cleanbox folders
 
 # Test with dry run
-./cleanbox --pretend --verbose
+./cleanbox clean --pretend --verbose
 ```
 
 ## Next Steps

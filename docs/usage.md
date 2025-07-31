@@ -86,7 +86,7 @@ This guide covers how to use Cleanbox effectively, from basic commands to advanc
 ./cleanbox --verbose
 
 # Dry run (show what would happen) - RECOMMENDED for first-time users
-./cleanbox --pretend
+./cleanbox clean --pretend
 
 # Process only recent emails
 ./cleanbox --since_months 1
@@ -129,13 +129,13 @@ Since Cleanbox can be aggressive initially, here's a safe approach:
    ```
 3. **Preview what Cleanbox would do**:
    ```bash
-   ./cleanbox --pretend --verbose
+   ./cleanbox clean --pretend --verbose
    ```
 4. **If the preview looks good, run it for real**:
    ```bash
    ./cleanbox clean
    ```
-   (Note: `./cleanbox` and `./cleanbox clean` are equivalent - both run the default cleaning action)
+   (Note: `./cleanbox` shows help by default. Use `./cleanbox clean` to run the cleaning action)
 5. **Check your junk/spam folder** after the first run to make sure nothing important was moved there
 6. **Continue organizing emails** - Cleanbox will become more accurate over time
 
@@ -155,7 +155,7 @@ list_domain_map:
 
 **Run cleaning:**
 ```bash
-./cleanbox --pretend        # Preview first (same as ./cleanbox clean --pretend)
+./cleanbox clean --pretend  # Preview first
 ./cleanbox clean            # Run for real
 ```
 
@@ -297,7 +297,7 @@ list_domain_map:
 ./cleanbox config set list_folders "['Newsletters', 'Social', 'Notifications']"
 
 # Preview what will happen
-./cleanbox --pretend --verbose
+./cleanbox clean --pretend --verbose
 
 # Run cleaning
 ./cleanbox clean
@@ -343,7 +343,7 @@ list_domain_map:
 **Usage:**
 ```bash
 # Preview newsletter filing
-./cleanbox --pretend --verbose
+./cleanbox clean --pretend --verbose
 
 # Run automatic filing
 ./cleanbox clean

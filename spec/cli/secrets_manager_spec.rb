@@ -5,9 +5,12 @@ require 'fileutils'
 
 RSpec.describe CLI::SecretsManager do
   let(:secrets_dir) { Dir.mktmpdir }
-  let(:env_file_path) { File.expand_path('.env') }
+  let(:env_file_path) { File.join(Dir.mktmpdir, '.env') }
 
   before do
+    # Stub the ENV_FILE_PATH to use our temporary file
+    stub_const('CLI::SecretsManager::ENV_FILE_PATH', env_file_path)
+    
     # Clear ENV for test isolation
     @original_env = ENV.to_hash
     ENV.delete('CLEANBOX_PASSWORD')

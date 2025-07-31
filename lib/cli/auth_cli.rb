@@ -12,8 +12,8 @@ module CLI
       @logger = Logger.new(STDOUT)
     end
 
-    def run
-      subcommand = ARGV[0]
+    def run(subcommand = nil)
+      subcommand ||= ARGV.first
       case subcommand
       when 'setup'
         setup_auth
@@ -182,8 +182,8 @@ module CLI
       puts "  - Connection settings from config file"
       puts "  - Credentials from .env file"
       puts ""
-      print "Are you sure? (y/N): "
-      response = gets.chomp.strip.downcase
+              print "Are you sure? (y/N): "
+        response = gets.chomp.strip.downcase
 
       if response == 'y' || response == 'yes'
         reset_auth_config

@@ -32,6 +32,12 @@ This guide covers how to use Cleanbox effectively, from basic commands to advanc
 # Interactive setup wizard (analyzes your email and configures Cleanbox)
 ./cleanbox setup
 
+# Standalone authentication management
+./cleanbox auth setup    # Set up authentication only
+./cleanbox auth test     # Test current authentication
+./cleanbox auth show     # Show authentication status
+./cleanbox auth reset    # Reset authentication configuration
+
 # Initialize configuration file
 ./cleanbox config init
 
@@ -40,6 +46,22 @@ This guide covers how to use Cleanbox effectively, from basic commands to advanc
 
 # Initialize domain rules file (for customization)
 ./cleanbox config init-domain-rules
+```
+
+### Authentication Management
+
+```bash
+# Set up authentication (interactive)
+./cleanbox auth setup
+
+# Test current authentication
+./cleanbox auth test
+
+# Show authentication status and configuration
+./cleanbox auth show
+
+# Reset authentication (removes credentials)
+./cleanbox auth reset
 ```
 
 ### Sent Analysis

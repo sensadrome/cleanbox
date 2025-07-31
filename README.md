@@ -60,6 +60,12 @@ nano ~/.cleanbox.yml
 # Show all folders
 ./cleanbox folders
 
+# Manage authentication
+./cleanbox auth setup    # Set up authentication
+./cleanbox auth test     # Test authentication
+./cleanbox auth show     # Show auth status
+./cleanbox auth reset    # Reset authentication
+
 # Show help (default when no arguments provided)
 ./cleanbox
 ```

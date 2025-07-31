@@ -62,7 +62,22 @@ Cleanbox supports OAuth2 authentication with Microsoft 365, which is more secure
 ```
 This will analyze your email structure and create both configuration files automatically.
 
-**Option B: Manual Configuration**
+**Option B: Standalone Authentication Setup**
+```bash
+# Set up authentication only (without full setup wizard)
+./cleanbox auth setup
+
+# Test your authentication
+./cleanbox auth test
+
+# Show current authentication status
+./cleanbox auth show
+
+# Reset authentication configuration
+./cleanbox auth reset
+```
+
+**Option C: Manual Configuration**
 
 The setup wizard will create two files:
 
@@ -83,7 +98,7 @@ CLEANBOX_TENANT_ID=your-tenant-id
 
 **Security Note**: The `.env` file is automatically added to `.gitignore` to prevent accidental commits of sensitive data.
 
-**Option C: Container Deployment**
+**Option D: Container Deployment**
 For container deployments, use Podman secrets:
 
 ```bash

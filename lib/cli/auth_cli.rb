@@ -8,6 +8,7 @@ require_relative '../auth/authentication_manager'
 module CLI
   class AuthCLI
     def initialize(data_dir: nil, config_path: nil)
+      @data_dir = data_dir
       @config_manager = ConfigManager.new(config_path, data_dir)
       @logger = Logger.new(STDOUT)
     end
@@ -67,16 +68,20 @@ module CLI
       connection_data = get_connection_details
       return unless connection_data
 
-      # Test connection
+      # Test connection or setup OAuth2
       puts ""
-      puts "🔍 Testing connection..."
-      unless test_connection(connection_data[:details], connection_data[:secrets])
-        puts "❌ Connection test failed. Please check your credentials and try again."
-        return
-      end
+      if connection_data[:details][:auth_type] == 'oauth2_microsoft_user'
+        setup_user_oauth2(connection_data[:details])
+      else
+        puts "🔍 Testing connection..."
+        unless test_connection(connection_data[:details], connection_data[:secrets])
+          puts "❌ Connection test failed. Please check your credentials and try again."
+          return
+        end
 
-      # Save configuration
-      save_auth_config(connection_data[:details], connection_data[:secrets])
+        # Save configuration
+        save_auth_config(connection_data[:details], connection_data[:secrets])
+      end
 
       puts ""
       puts "✅ Authentication setup complete!"
@@ -139,7 +144,7 @@ module CLI
       puts ""
       
       # Check secrets status
-      secrets_status = CLI::SecretsManager.auth_secrets_status(config[:auth_type])
+      secrets_status = CLI::SecretsManager.auth_secrets_status(config[:auth_type], data_dir: @data_dir)
       
       if secrets_status[:configured]
         puts "✅ Credentials: Configured"
@@ -232,13 +237,21 @@ module CLI
 
       # Authentication type
       auth_type = prompt_choice("Authentication Method", [
-        { key: 'oauth2_microsoft', label: 'OAuth2 (Microsoft 365/Outlook)' },
+        { key: 'oauth2_microsoft_user', label: 'OAuth2 (Microsoft 365 - User-based)' },
+        { key: 'oauth2_microsoft', label: 'OAuth2 (Microsoft 365 - Application-level)' },
         { key: 'password', label: 'Password (IMAP)' }
       ])
       details[:auth_type] = auth_type
 
       # Credentials
-      if details[:auth_type] == 'oauth2_microsoft'
+      case details[:auth_type]
+      when 'oauth2_microsoft_user'
+        # User-based OAuth2 - no secrets needed, will use default client_id
+        puts ""
+        puts "ℹ️  Using default OAuth2 client for user-based authentication."
+        puts "   Users will be prompted to consent to permissions."
+        puts ""
+      when 'oauth2_microsoft'
         secrets['CLEANBOX_CLIENT_ID'] = prompt("OAuth2 Client ID") { |id| !id.empty? }
         secrets['CLEANBOX_CLIENT_SECRET'] = prompt("OAuth2 Client Secret", secret: true) { |id| !id.empty? }
         secrets['CLEANBOX_TENANT_ID'] = prompt("OAuth2 Tenant ID") { |id| !id.empty? }
@@ -316,7 +329,7 @@ module CLI
       config = @config_manager.load_config rescue {}
       return false unless config[:host] && config[:username] && config[:auth_type]
       
-      CLI::SecretsManager.auth_secrets_available?(config[:auth_type])
+      CLI::SecretsManager.auth_secrets_available?(config[:auth_type], data_dir: @data_dir)
     end
 
     def load_secrets
@@ -386,6 +399,73 @@ module CLI
           puts "❌ Invalid choice. Please enter 1-#{choices.length}."
         end
       end
+    end
+
+    def setup_user_oauth2(details)
+      require_relative '../microsoft_365_user_token'
+      
+      # Set the data directory for authentication tokens
+      Auth::AuthenticationManager.data_dir = @data_dir if @data_dir
+      
+      puts "🔐 Microsoft 365 User-based OAuth2 Setup"
+      puts "========================================"
+      puts ""
+      
+      user_token = Microsoft365UserToken.new(logger: @logger)
+      
+      # Generate authorization URL
+      auth_url = user_token.authorization_url
+      
+      puts "Please visit this URL to authorize Cleanbox:"
+      puts ""
+      puts auth_url
+      puts ""
+      puts "After you grant permissions, you'll receive an authorization code."
+      puts "Please enter the authorization code: "
+      
+      authorization_code = gets.chomp.strip
+      
+      if authorization_code.empty?
+        puts "❌ No authorization code provided. Setup cancelled."
+        return
+      end
+      
+      puts ""
+      puts "🔄 Exchanging authorization code for tokens..."
+      
+      begin
+        if user_token.exchange_code_for_tokens(authorization_code)
+          # Save tokens
+          token_file = default_token_file(details[:username])
+          user_token.save_tokens_to_file(token_file)
+          
+          # Save configuration (without secrets)
+          config = @config_manager.load_config rescue {}
+          config.merge!(details)
+          @config_manager.save_config(config)
+          
+          puts "✅ OAuth2 setup successful!"
+          puts "✅ Tokens saved to: #{token_file}"
+          puts "✅ Configuration saved to: #{@config_manager.config_path}"
+          puts ""
+          puts "You can now run:"
+          puts "  ./cleanbox auth test    # Test your connection"
+          puts "  ./cleanbox auth show    # View current settings"
+          puts "  ./cleanbox setup        # Complete setup wizard"
+        else
+          puts "❌ Failed to exchange authorization code for tokens."
+          puts "Please check the authorization code and try again."
+        end
+      rescue => e
+        puts "❌ OAuth2 setup failed: #{e.message}"
+        puts "Please try again or contact support if the problem persists."
+      end
+    end
+
+    def default_token_file(username)
+      # Sanitize username for filename
+      safe_username = username.gsub(/[^a-zA-Z0-9]/, '_')
+      File.join(Dir.home, '.cleanbox', 'tokens', "#{safe_username}.json")
     end
   end
 end 

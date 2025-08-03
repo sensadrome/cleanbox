@@ -566,7 +566,7 @@ module CLI
       config = @config_manager.load_config rescue {}
       return false unless config[:host] && config[:username] && config[:auth_type]
       
-      CLI::SecretsManager.auth_secrets_available?(config[:auth_type])
+      CLI::SecretsManager.auth_secrets_available?(config[:auth_type], data_dir: @data_dir)
     end
   end
 end 

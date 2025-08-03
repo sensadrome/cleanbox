@@ -69,7 +69,7 @@ RSpec.describe Auth::AuthenticationManager do
   end
 
   describe '.authenticate_imap' do
-    context 'with Microsoft OAuth2 authentication' do
+    context 'with Microsoft OAuth2 authentication (application-level)' do
       let(:mock_token) { double('Microsoft365ApplicationToken') }
       let(:oauth_options) { options.merge(auth_type: 'oauth2_microsoft') }
 
@@ -110,6 +110,84 @@ RSpec.describe Auth::AuthenticationManager do
         )
 
         described_class.authenticate_imap(mock_imap, auto_options)
+      end
+    end
+
+    context 'with Microsoft OAuth2 authentication (user-based)' do
+      let(:mock_user_token) { double('Microsoft365UserToken') }
+      let(:user_oauth_options) { options.merge(auth_type: 'oauth2_microsoft_user') }
+
+      before do
+        allow(Microsoft365UserToken).to receive(:new).and_return(mock_user_token)
+        allow(mock_user_token).to receive(:load_tokens_from_file).and_return(true)
+        allow(mock_user_token).to receive(:token).and_return('test_user_oauth_token')
+      end
+
+      it 'creates Microsoft365UserToken with correct parameters' do
+        expect(Microsoft365UserToken).to receive(:new).with(
+          client_id: 'test_client_id',
+          logger: nil
+        )
+
+        described_class.authenticate_imap(mock_imap, user_oauth_options)
+      end
+
+      it 'authenticates IMAP with XOAUTH2 method using user token' do
+        expect(mock_imap).to receive(:authenticate).with(
+          'XOAUTH2',
+          'test@example.com',
+          'test_user_oauth_token'
+        )
+
+        described_class.authenticate_imap(mock_imap, user_oauth_options)
+      end
+
+      it 'raises error when no valid tokens found' do
+        allow(mock_user_token).to receive(:load_tokens_from_file).and_return(false)
+        
+        expect { described_class.authenticate_imap(mock_imap, user_oauth_options) }
+          .to raise_error('No valid tokens found. Please run \'cleanbox auth setup\' to authenticate.')
+      end
+
+      it 'raises error when token is nil' do
+        allow(mock_user_token).to receive(:token).and_return(nil)
+        
+        expect { described_class.authenticate_imap(mock_imap, user_oauth_options) }
+          .to raise_error('No valid tokens found. Please run \'cleanbox auth setup\' to authenticate.')
+      end
+    end
+
+    describe '.data_dir' do
+      it 'sets and returns data directory' do
+        test_data_dir = '/test/data/dir'
+        described_class.data_dir = test_data_dir
+        expect(described_class.data_dir).to eq(test_data_dir)
+      end
+
+      it 'returns home directory when not set' do
+        described_class.data_dir = nil
+        expect(described_class.data_dir).to eq(Dir.home)
+      end
+    end
+
+    describe '.default_token_file' do
+      it 'uses data directory when set' do
+        test_data_dir = '/test/data/dir'
+        described_class.data_dir = test_data_dir
+        expected_path = File.join(test_data_dir, 'tokens', 'test_user_com.json')
+        expect(described_class.send(:default_token_file, 'test@user.com')).to eq(expected_path)
+      end
+
+      it 'uses home directory when data directory not set' do
+        described_class.data_dir = nil
+        expected_path = File.join(Dir.home, '.cleanbox', 'tokens', 'test_user_com.json')
+        expect(described_class.send(:default_token_file, 'test@user.com')).to eq(expected_path)
+      end
+
+      it 'sanitizes username for filename' do
+        described_class.data_dir = '/test/data/dir'
+        expected_path = File.join('/test/data/dir', 'tokens', 'test_user_com.json')
+        expect(described_class.send(:default_token_file, 'test@user.com')).to eq(expected_path)
       end
     end
 

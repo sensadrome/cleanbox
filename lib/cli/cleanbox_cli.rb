@@ -41,7 +41,7 @@ module CLI
       if @options[:data_dir]
         File.expand_path(@options[:data_dir])
       else
-        # Otherwise, fall back to working directory
+        # Otherwise, fall back to working directory (for cache and domain rules)
         Dir.pwd
       end
     end
@@ -134,6 +134,9 @@ module CLI
       # Set the data directory for domain rules
       Analysis::DomainMapper.data_dir = data_dir
       
+      # Set the data directory for authentication tokens
+      Auth::AuthenticationManager.data_dir = data_dir
+      
       # Run analysis
       CLI::AnalyzerCLI.new(imap, @options).run
       exit 0
@@ -151,6 +154,9 @@ module CLI
       
       # Set the data directory for domain rules
       Analysis::DomainMapper.data_dir = data_dir
+      
+      # Set the data directory for authentication tokens
+      Auth::AuthenticationManager.data_dir = data_dir
       
       # Run sent analysis
       CLI::SentAnalysisCLI.new(imap, @options).run
@@ -176,6 +182,9 @@ module CLI
       
       # Set the data directory for domain rules
       Analysis::DomainMapper.data_dir = data_dir
+      
+      # Set the data directory for authentication tokens
+      Auth::AuthenticationManager.data_dir = data_dir
       
       Cleanbox.new(imap, @options).send(action)
     end

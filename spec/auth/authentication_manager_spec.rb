@@ -174,7 +174,7 @@ RSpec.describe Auth::AuthenticationManager do
       it 'uses data directory when set' do
         test_data_dir = '/test/data/dir'
         described_class.data_dir = test_data_dir
-        expected_path = File.join(test_data_dir, '.cleanbox', 'tokens', 'test_user_com.json')
+        expected_path = File.join(test_data_dir, 'tokens', 'test_user_com.json')
         expect(described_class.send(:default_token_file, 'test@user.com')).to eq(expected_path)
       end
 
@@ -186,7 +186,7 @@ RSpec.describe Auth::AuthenticationManager do
 
       it 'sanitizes username for filename' do
         described_class.data_dir = '/test/data/dir'
-        expected_path = File.join('/test/data/dir', '.cleanbox', 'tokens', 'test_user_com.json')
+        expected_path = File.join('/test/data/dir', 'tokens', 'test_user_com.json')
         expect(described_class.send(:default_token_file, 'test@user.com')).to eq(expected_path)
       end
     end

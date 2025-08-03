@@ -41,8 +41,8 @@ module CLI
       if @options[:data_dir]
         File.expand_path(@options[:data_dir])
       else
-        # Otherwise, return nil to use default locations (home directory)
-        nil
+        # Otherwise, fall back to working directory (for cache and domain rules)
+        Dir.pwd
       end
     end
 

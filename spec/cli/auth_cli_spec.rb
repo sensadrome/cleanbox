@@ -68,7 +68,7 @@ RSpec.describe CLI::AuthCLI do
         username: 'test@example.com',
         auth_type: 'oauth2_microsoft'
       })
-      allow(CLI::SecretsManager).to receive(:auth_secrets_available?).with('oauth2_microsoft').and_return(false)
+      allow(CLI::SecretsManager).to receive(:auth_secrets_available?).with('oauth2_microsoft', data_dir: temp_dir).and_return(false)
 
       # Test that auth_configured? returns false when credentials are missing
       expect(auth_cli.send(:auth_configured?)).to be false
@@ -453,7 +453,7 @@ RSpec.describe CLI::AuthCLI do
       it 'shows configuration details' do
         auth_cli.send(:show_auth)
 
-        expect(CLI::SecretsManager).to have_received(:auth_secrets_status).with('oauth2_microsoft')
+        expect(CLI::SecretsManager).to have_received(:auth_secrets_status).with('oauth2_microsoft', data_dir: temp_dir)
       end
     end
 
@@ -834,6 +834,133 @@ RSpec.describe CLI::AuthCLI do
       result = auth_cli.send(:prompt_choice, 'Test choices', choices)
 
       expect(result).to eq('option2')
+    end
+  end
+
+  describe '#setup_user_oauth2' do
+    let(:details) { { username: 'test@example.com' } }
+    let(:user_token) { instance_double('Microsoft365UserToken') }
+    let(:auth_url) { 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=test&scope=test&response_type=code&redirect_uri=test' }
+
+    before do
+      allow(Microsoft365UserToken).to receive(:new).and_return(user_token)
+      allow(user_token).to receive(:authorization_url).and_return(auth_url)
+      allow(user_token).to receive(:exchange_code_for_tokens).and_return(true)
+      allow(user_token).to receive(:save_tokens_to_file)
+      allow(auth_cli).to receive(:puts)
+      allow(auth_cli).to receive(:print)
+      allow(auth_cli).to receive(:gets)
+      allow(auth_cli).to receive(:default_token_file).and_return('/tmp/test_token.json')
+      allow_any_instance_of(CLI::ConfigManager).to receive(:load_config).and_return({})
+      allow_any_instance_of(CLI::ConfigManager).to receive(:save_config)
+    end
+
+    context 'when authorization code is provided' do
+      before do
+        allow(auth_cli).to receive(:gets).and_return('test_auth_code')
+      end
+
+      it 'displays authorization URL and prompts for code' do
+        auth_cli.send(:setup_user_oauth2, details)
+
+        expect(auth_cli).to have_received(:puts).with('🔐 Microsoft 365 User-based OAuth2 Setup')
+        expect(auth_cli).to have_received(:puts).with('========================================')
+        expect(auth_cli).to have_received(:puts).with(auth_url)
+        expect(auth_cli).to have_received(:puts).with('Please visit this URL to authorize Cleanbox:')
+        expect(auth_cli).to have_received(:puts).with('After you grant permissions, you\'ll receive an authorization code.')
+        expect(auth_cli).to have_received(:puts).with('Please enter the authorization code: ')
+      end
+
+      it 'exchanges code for tokens and saves configuration' do
+        auth_cli.send(:setup_user_oauth2, details)
+
+        expect(user_token).to have_received(:exchange_code_for_tokens).with('test_auth_code')
+        expect(user_token).to have_received(:save_tokens_to_file).with('/tmp/test_token.json')
+        # Note: We can't easily test the ConfigManager save_config call with the current setup
+        # The important part is that the method completes successfully
+      end
+
+      it 'displays success messages' do
+        auth_cli.send(:setup_user_oauth2, details)
+
+        expect(auth_cli).to have_received(:puts).with('✅ OAuth2 setup successful!')
+        expect(auth_cli).to have_received(:puts).with('✅ Tokens saved to: /tmp/test_token.json')
+        expect(auth_cli).to have_received(:puts).with(/✅ Configuration saved to: .*\.cleanbox\.yml/)
+      end
+    end
+
+    context 'when no authorization code is provided' do
+      before do
+        allow(auth_cli).to receive(:gets).and_return('')
+      end
+
+      it 'cancels setup and displays error message' do
+        auth_cli.send(:setup_user_oauth2, details)
+
+        expect(auth_cli).to have_received(:puts).with('❌ No authorization code provided. Setup cancelled.')
+        expect(user_token).not_to have_received(:exchange_code_for_tokens)
+      end
+    end
+
+    context 'when token exchange fails' do
+      before do
+        allow(auth_cli).to receive(:gets).and_return('test_auth_code')
+        allow(user_token).to receive(:exchange_code_for_tokens).and_return(false)
+      end
+
+      it 'displays error message' do
+        auth_cli.send(:setup_user_oauth2, details)
+
+        expect(auth_cli).to have_received(:puts).with('❌ Failed to exchange authorization code for tokens.')
+        expect(auth_cli).to have_received(:puts).with('Please check the authorization code and try again.')
+      end
+    end
+
+    context 'when token exchange raises an error' do
+      before do
+        allow(auth_cli).to receive(:gets).and_return('test_auth_code')
+        allow(user_token).to receive(:exchange_code_for_tokens).and_raise(StandardError.new('Test error'))
+      end
+
+      it 'displays error message with details' do
+        auth_cli.send(:setup_user_oauth2, details)
+
+        expect(auth_cli).to have_received(:puts).with('❌ OAuth2 setup failed: Test error')
+        expect(auth_cli).to have_received(:puts).with('Please try again or contact support if the problem persists.')
+      end
+    end
+
+    context 'when data_dir is set' do
+      let(:auth_cli_with_data_dir) { described_class.new(data_dir: '/tmp/test_data') }
+
+      before do
+        allow(auth_cli_with_data_dir).to receive(:puts)
+        allow(auth_cli_with_data_dir).to receive(:print)
+        allow(auth_cli_with_data_dir).to receive(:gets).and_return('test_auth_code')
+        allow(auth_cli_with_data_dir).to receive(:default_token_file).and_return('/tmp/test_token.json')
+        allow_any_instance_of(CLI::ConfigManager).to receive(:load_config).and_return({})
+        allow_any_instance_of(CLI::ConfigManager).to receive(:save_config)
+      end
+
+      it 'sets the data directory for authentication manager' do
+        expect(Auth::AuthenticationManager).to receive(:data_dir=).with('/tmp/test_data')
+        
+        auth_cli_with_data_dir.send(:setup_user_oauth2, details)
+      end
+    end
+  end
+
+  describe '#default_token_file' do
+    it 'sanitizes username and returns correct path' do
+      result = auth_cli.send(:default_token_file, 'test@example.com')
+      
+      expect(result).to eq(File.join(Dir.home, '.cleanbox', 'tokens', 'test_example_com.json'))
+    end
+
+    it 'handles special characters in username' do
+      result = auth_cli.send(:default_token_file, 'test+user@example.com')
+      
+      expect(result).to eq(File.join(Dir.home, '.cleanbox', 'tokens', 'test_user_example_com.json'))
     end
   end
 end 

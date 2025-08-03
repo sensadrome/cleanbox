@@ -14,6 +14,15 @@ module Auth
         @data_dir || Dir.home
       end
 
+      def token_data_dir
+        # For tokens, always use home directory unless explicitly set to a custom directory
+        if @data_dir && @data_dir != Dir.pwd
+          @data_dir
+        else
+          Dir.home
+        end
+      end
+
       def determine_auth_type(host, auth_type)
         return auth_type if auth_type.present?
         
@@ -50,10 +59,10 @@ module Auth
         safe_username = username.gsub(/[^a-zA-Z0-9]/, '_')
         
         # Use .cleanbox/tokens for home directory, just tokens for custom data directory
-        if data_dir == Dir.home
-          File.join(data_dir, '.cleanbox', 'tokens', "#{safe_username}.json")
+        if token_data_dir == Dir.home
+          File.join(token_data_dir, '.cleanbox', 'tokens', "#{safe_username}.json")
         else
-          File.join(data_dir, 'tokens', "#{safe_username}.json")
+          File.join(token_data_dir, 'tokens', "#{safe_username}.json")
         end
       end
 

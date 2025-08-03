@@ -9,6 +9,11 @@ This file tracks planned improvements, features, and tasks for the Cleanbox proj
   - Implement refresh token handling
   - Add token expiration and renewal logic
   - Update authentication documentation
+- [x] **Add User-based OAuth2 for Microsoft 365** ✅
+  - Implement user-based OAuth2 authentication flow
+  - Add authorization URL generation and manual code entry
+  - Support token persistence with proper data directory handling
+  - Enable sharing Cleanbox without domain admin privileges
 - [ ] **Add Gmail OAuth2 Support**
   - Implement Gmail API integration
   - Handle label-based organization vs folder-based

@@ -45,12 +45,36 @@ module CLI
         puts "   Note: This file is already in .gitignore"
       end
 
-      def auth_secrets_available?(auth_type)
+      def auth_secrets_available?(auth_type, data_dir: nil)
         load_env_file
         
         case auth_type
         when 'oauth2_microsoft'
           !!(ENV['CLEANBOX_CLIENT_ID'] && ENV['CLEANBOX_CLIENT_SECRET'] && ENV['CLEANBOX_TENANT_ID'])
+        when 'oauth2_microsoft_user'
+          # For user-based OAuth2, we check if tokens exist instead of secrets
+          require_relative '../microsoft_365_user_token'
+          require_relative '../auth/authentication_manager'
+          
+          # Get the username from config to check for token file
+          config_manager = CLI::ConfigManager.new(nil, data_dir)
+          config = config_manager.load_config rescue {}
+          username = config[:username]
+          
+          return false unless username
+          
+          # Set the data directory for the authentication manager
+          Auth::AuthenticationManager.data_dir = data_dir if data_dir
+          
+          # Check if token file exists and has valid tokens
+          token_file = Auth::AuthenticationManager.default_token_file(username)
+          
+          return false unless File.exist?(token_file)
+          
+          # Try to load tokens to verify they're valid
+          user_token = Microsoft365UserToken.new
+          user_token.load_tokens_from_file(token_file)
+          user_token.has_valid_tokens?
         when 'password'
           !!ENV['CLEANBOX_PASSWORD']
         else
@@ -58,7 +82,7 @@ module CLI
         end
       end
 
-      def auth_secrets_status(auth_type)
+      def auth_secrets_status(auth_type, data_dir: nil)
         # Store original environment state before loading .env file
         original_env = {}
         case auth_type
@@ -83,6 +107,50 @@ module CLI
             ].compact,
             source: detect_secret_source_with_original(['CLEANBOX_CLIENT_ID', 'CLEANBOX_CLIENT_SECRET', 'CLEANBOX_TENANT_ID'], original_env)
           }
+        when 'oauth2_microsoft_user'
+          # For user-based OAuth2, check if tokens exist
+          require_relative '../microsoft_365_user_token'
+          require_relative '../auth/authentication_manager'
+          
+          config_manager = CLI::ConfigManager.new(nil, data_dir)
+          config = config_manager.load_config rescue {}
+          username = config[:username]
+          
+          if username
+            Auth::AuthenticationManager.data_dir = data_dir if data_dir
+            token_file = Auth::AuthenticationManager.default_token_file(username)
+            
+
+            
+            if File.exist?(token_file)
+              user_token = Microsoft365UserToken.new
+              if user_token.load_tokens_from_file(token_file) && user_token.has_valid_tokens?
+                {
+                  configured: true,
+                  missing: [],
+                  source: 'tokens'
+                }
+              else
+                {
+                  configured: false,
+                  missing: ['valid_tokens'],
+                  source: 'none'
+                }
+              end
+            else
+              {
+                configured: false,
+                missing: ['token_file'],
+                source: 'none'
+              }
+            end
+          else
+            {
+              configured: false,
+              missing: ['username'],
+              source: 'none'
+            }
+          end
         when 'password'
           {
             configured: !!ENV['CLEANBOX_PASSWORD'],

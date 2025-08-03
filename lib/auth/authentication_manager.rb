@@ -45,6 +45,18 @@ module Auth
         end
       end
 
+      def default_token_file(username)
+        # Sanitize username for filename
+        safe_username = username.gsub(/[^a-zA-Z0-9]/, '_')
+        
+        # Use .cleanbox/tokens for home directory, just tokens for custom data directory
+        if data_dir == Dir.home
+          File.join(data_dir, '.cleanbox', 'tokens', "#{safe_username}.json")
+        else
+          File.join(data_dir, 'tokens', "#{safe_username}.json")
+        end
+      end
+
       private
 
       def authenticate_microsoft_oauth2(imap, options)
@@ -83,12 +95,6 @@ module Auth
 
       def authenticate_password(imap, options)
         imap.authenticate('PLAIN', options[:username], options[:password])
-      end
-
-      def default_token_file(username)
-        # Sanitize username for filename
-        safe_username = username.gsub(/[^a-zA-Z0-9]/, '_')
-        File.join(data_dir, '.cleanbox', 'tokens', "#{safe_username}.json")
       end
     end
   end

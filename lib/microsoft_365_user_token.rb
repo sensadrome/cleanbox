@@ -3,6 +3,8 @@
 require 'json'
 require 'uri'
 require 'securerandom'
+require 'logger'
+require 'time'
 
 class Microsoft365UserToken
   DEFAULT_CLIENT_ID = 'b3fc8598-3357-4f5d-ac0a-969016f6bb24'
@@ -17,7 +19,7 @@ class Microsoft365UserToken
     @client_id = client_id || DEFAULT_CLIENT_ID
     @redirect_uri = redirect_uri || DEFAULT_REDIRECT_URI
     @scope = scope || DEFAULT_SCOPE
-    @logger = logger || Logger.new(STDOUT)
+    @logger = logger || Logger.new(STDOUT).tap { |l| l.level = Logger::INFO }
     @access_token = nil
     @refresh_token = nil
     @expires_at = nil
@@ -80,7 +82,6 @@ class Microsoft365UserToken
 
     FileUtils.mkdir_p(File.dirname(file_path))
     File.write(file_path, token_data.to_json)
-    @logger.debug "Tokens saved to #{file_path}"
   end
 
   def load_tokens_from_file(file_path)
@@ -92,7 +93,6 @@ class Microsoft365UserToken
     @expires_at = Time.parse(token_data['expires_at']) if token_data['expires_at']
     @client_id = token_data['client_id'] if token_data['client_id']
     
-    @logger.debug "Tokens loaded from #{file_path}"
     true
   rescue JSON::ParserError, ArgumentError => e
     @logger.error "Failed to load tokens from #{file_path}: #{e.message}"
@@ -173,7 +173,6 @@ class Microsoft365UserToken
         @expires_at = Time.now + token_data['expires_in'].to_i
       end
       
-      @logger.debug "Token response parsed successfully"
       true
     rescue JSON::ParserError => e
       @logger.error "Failed to parse token response: #{e.message}"

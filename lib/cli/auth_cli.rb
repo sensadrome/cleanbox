@@ -8,6 +8,7 @@ require_relative '../auth/authentication_manager'
 module CLI
   class AuthCLI
     def initialize(data_dir: nil, config_path: nil)
+      @data_dir = data_dir
       @config_manager = ConfigManager.new(config_path, data_dir)
       @logger = Logger.new(STDOUT)
     end
@@ -143,7 +144,7 @@ module CLI
       puts ""
       
       # Check secrets status
-      secrets_status = CLI::SecretsManager.auth_secrets_status(config[:auth_type])
+      secrets_status = CLI::SecretsManager.auth_secrets_status(config[:auth_type], data_dir: @data_dir)
       
       if secrets_status[:configured]
         puts "✅ Credentials: Configured"
@@ -328,7 +329,7 @@ module CLI
       config = @config_manager.load_config rescue {}
       return false unless config[:host] && config[:username] && config[:auth_type]
       
-      CLI::SecretsManager.auth_secrets_available?(config[:auth_type])
+      CLI::SecretsManager.auth_secrets_available?(config[:auth_type], data_dir: @data_dir)
     end
 
     def load_secrets

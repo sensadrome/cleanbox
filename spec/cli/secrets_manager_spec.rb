@@ -183,20 +183,19 @@ RSpec.describe CLI::SecretsManager do
 
     context 'when auth_type is oauth2_microsoft_user' do
       let(:temp_dir) { Dir.mktmpdir }
-      let(:config_file) { File.join(temp_dir, 'cleanbox.yml') }
-
-      before do
-        # Create a temporary config file
-        File.write(config_file, { username: 'test@example.com' }.to_yaml)
-      end
 
       after do
         FileUtils.rm_rf(temp_dir)
       end
 
       context 'when username is missing from config' do
+        let(:config_options) { { host: 'outlook.office365.com' } }
+
         before do
-          File.write(config_file, { host: 'outlook.office365.com' }.to_yaml)
+          # Mock Microsoft365UserToken to avoid HTTP requests
+          allow(Microsoft365UserToken).to receive(:new).and_return(
+            double('Microsoft365UserToken', has_valid_tokens?: false, load_tokens_from_file: true)
+          )
         end
 
         it 'returns false' do
@@ -204,17 +203,33 @@ RSpec.describe CLI::SecretsManager do
         end
       end
 
-      context 'when token file does not exist' do
+      context 'when username is present but token file does not exist' do
+        let(:config_options) { { username: 'test@example.com', data_dir: temp_dir } }
+
+        before do
+          # Mock Microsoft365UserToken to avoid HTTP requests
+          allow(Microsoft365UserToken).to receive(:new).and_return(
+            double('Microsoft365UserToken', has_valid_tokens?: false, load_tokens_from_file: true)
+          )
+        end
+
         it 'returns false' do
           expect(described_class.auth_secrets_available?('oauth2_microsoft_user', data_dir: temp_dir)).to be false
         end
       end
 
       context 'when token file exists but tokens are invalid' do
+        let(:config_options) { { username: 'test@example.com', data_dir: temp_dir } }
+
         before do
           token_file = File.join(temp_dir, 'tokens', 'test_example_com.json')
           FileUtils.mkdir_p(File.dirname(token_file))
           File.write(token_file, { access_token: 'invalid', refresh_token: 'invalid' }.to_json)
+          
+          # Mock Microsoft365UserToken to avoid HTTP requests
+          allow(Microsoft365UserToken).to receive(:new).and_return(
+            double('Microsoft365UserToken', has_valid_tokens?: false, load_tokens_from_file: true)
+          )
         end
 
         it 'returns false' do
@@ -223,6 +238,8 @@ RSpec.describe CLI::SecretsManager do
       end
 
       context 'when token file exists with valid tokens' do
+        let(:config_options) { { username: 'test@example.com', data_dir: temp_dir } }
+
         before do
           token_file = File.join(temp_dir, 'tokens', 'test_example_com.json')
           FileUtils.mkdir_p(File.dirname(token_file))
@@ -231,6 +248,11 @@ RSpec.describe CLI::SecretsManager do
             refresh_token: 'valid_refresh_token',
             expires_at: (Time.now + 3600).iso8601
           }.to_json)
+          
+          # Mock Microsoft365UserToken to avoid HTTP requests
+          allow(Microsoft365UserToken).to receive(:new).and_return(
+            double('Microsoft365UserToken', has_valid_tokens?: true, load_tokens_from_file: true)
+          )
         end
 
         it 'returns true' do
@@ -339,21 +361,13 @@ RSpec.describe CLI::SecretsManager do
 
     context 'when auth_type is oauth2_microsoft_user' do
       let(:temp_dir) { Dir.mktmpdir }
-      let(:config_file) { File.join(temp_dir, 'cleanbox.yml') }
-
-      before do
-        # Create a temporary config file
-        File.write(config_file, { username: 'test@example.com' }.to_yaml)
-      end
 
       after do
         FileUtils.rm_rf(temp_dir)
       end
 
       context 'when username is missing from config' do
-        before do
-          File.write(config_file, { host: 'outlook.office365.com' }.to_yaml)
-        end
+        let(:config_options) { { host: 'outlook.office365.com', username: nil } }
 
         it 'returns unconfigured status with username missing' do
           status = described_class.auth_secrets_status('oauth2_microsoft_user', data_dir: temp_dir)
@@ -363,7 +377,9 @@ RSpec.describe CLI::SecretsManager do
         end
       end
 
-      context 'when token file does not exist' do
+      context 'when username is present but token file does not exist' do
+        let(:config_options) { { username: 'test@example.com', data_dir: temp_dir } }
+
         it 'returns unconfigured status with token_file missing' do
           status = described_class.auth_secrets_status('oauth2_microsoft_user', data_dir: temp_dir)
           expect(status[:configured]).to be false
@@ -373,10 +389,17 @@ RSpec.describe CLI::SecretsManager do
       end
 
       context 'when token file exists but tokens are invalid' do
+        let(:config_options) { { username: 'test@example.com', data_dir: temp_dir } }
+
         before do
           token_file = File.join(temp_dir, 'tokens', 'test_example_com.json')
           FileUtils.mkdir_p(File.dirname(token_file))
           File.write(token_file, { access_token: 'invalid', refresh_token: 'invalid' }.to_json)
+          
+          # Mock Microsoft365UserToken to avoid HTTP requests
+          allow(Microsoft365UserToken).to receive(:new).and_return(
+            double('Microsoft365UserToken', has_valid_tokens?: false, load_tokens_from_file: true)
+          )
         end
 
         it 'returns unconfigured status with valid_tokens missing' do
@@ -388,6 +411,8 @@ RSpec.describe CLI::SecretsManager do
       end
 
       context 'when token file exists with valid tokens' do
+        let(:config_options) { { username: 'test@example.com', data_dir: temp_dir } }
+
         before do
           token_file = File.join(temp_dir, 'tokens', 'test_example_com.json')
           FileUtils.mkdir_p(File.dirname(token_file))
@@ -396,6 +421,11 @@ RSpec.describe CLI::SecretsManager do
             refresh_token: 'valid_refresh_token',
             expires_at: (Time.now + 3600).iso8601
           }.to_json)
+          
+          # Mock Microsoft365UserToken to avoid HTTP requests
+          allow(Microsoft365UserToken).to receive(:new).and_return(
+            double('Microsoft365UserToken', has_valid_tokens?: true, load_tokens_from_file: true)
+          )
         end
 
         it 'returns configured status with tokens source' do

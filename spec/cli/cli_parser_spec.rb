@@ -4,8 +4,7 @@ require 'spec_helper'
 require 'cli/cli_parser'
 
 RSpec.describe CLI::CLIParser do
-  let(:options) { Hash.new { |h, k| h[k] = [] } }
-  let(:parser) { described_class.new(options) }
+  let(:parser) { described_class.new }
 
   describe '#parse!' do
     after { ARGV.clear }
@@ -13,131 +12,131 @@ RSpec.describe CLI::CLIParser do
     context 'with global options' do
       it 'sets verbose mode with -v' do
         ARGV.replace(['-v'])
-        parser.parse!
-        expect(options[:verbose]).to be true
-        expect(options[:level]).to eq('debug')
+        result = parser.parse!
+        expect(result[:verbose]).to be true
+        expect(result[:level]).to eq('debug')
       end
 
       it 'sets verbose mode with --verbose' do
         ARGV.replace(['--verbose'])
-        parser.parse!
-        expect(options[:verbose]).to be true
-        expect(options[:level]).to eq('debug')
+        result = parser.parse!
+        expect(result[:verbose]).to be true
+        expect(result[:level]).to eq('debug')
       end
 
       it 'sets pretend mode' do
         ARGV.replace(['-n'])
-        parser.parse!
-        expect(options[:pretend]).to be true
+        result = parser.parse!
+        expect(result[:pretend]).to be true
       end
 
       it 'sets config file' do
         ARGV.replace(['-c', 'myconfig.yml'])
-        parser.parse!
-        expect(options[:config_file]).to eq('myconfig.yml')
+        result = parser.parse!
+        expect(result[:config_file]).to eq('myconfig.yml')
       end
 
       it 'sets data directory' do
         ARGV.replace(['-D', '/custom/data/dir'])
-        parser.parse!
-        expect(options[:data_dir]).to eq('/custom/data/dir')
+        result = parser.parse!
+        expect(result[:data_dir]).to eq('/custom/data/dir')
       end
 
       it 'sets log level' do
         ARGV.replace(['-L', 'info'])
-        parser.parse!
-        expect(options[:level]).to eq('info')
+        result = parser.parse!
+        expect(result[:level]).to eq('info')
       end
 
       it 'sets log file' do
         ARGV.replace(['-l', 'log.txt'])
-        parser.parse!
-        expect(options[:log_file]).to eq('log.txt')
+        result = parser.parse!
+        expect(result[:log_file]).to eq('log.txt')
       end
     end
 
     context 'with connection options' do
       it 'sets host' do
         ARGV.replace(['-H', 'mail.example.com'])
-        parser.parse!
-        expect(options[:host]).to eq('mail.example.com')
+        result = parser.parse!
+        expect(result[:host]).to eq('mail.example.com')
       end
 
       it 'sets username' do
         ARGV.replace(['-u', 'user@example.com'])
-        parser.parse!
-        expect(options[:username]).to eq('user@example.com')
+        result = parser.parse!
+        expect(result[:username]).to eq('user@example.com')
       end
 
       it 'sets password' do
         ARGV.replace(['-p', 'secret'])
-        parser.parse!
-        expect(options[:password]).to eq('secret')
+        result = parser.parse!
+        expect(result[:password]).to eq('secret')
       end
 
       it 'sets client_id' do
         ARGV.replace(['-C', 'clientid'])
-        parser.parse!
-        expect(options[:client_id]).to eq('clientid')
+        result = parser.parse!
+        expect(result[:client_id]).to eq('clientid')
       end
 
       it 'sets client_secret' do
         ARGV.replace(['-S', 'secret'])
-        parser.parse!
-        expect(options[:client_secret]).to eq('secret')
+        result = parser.parse!
+        expect(result[:client_secret]).to eq('secret')
       end
 
       it 'sets tenant_id' do
         ARGV.replace(['-T', 'tenantid'])
-        parser.parse!
-        expect(options[:tenant_id]).to eq('tenantid')
+        result = parser.parse!
+        expect(result[:tenant_id]).to eq('tenantid')
       end
     end
 
     context 'with processing options' do
       it 'sets valid-from date' do
         ARGV.replace(['-f', '2023-01-01'])
-        parser.parse!
-        expect(options[:valid_from]).to eq('2023-01-01')
+        result = parser.parse!
+        expect(result[:valid_from]).to eq('2023-01-01')
       end
 
       it 'accumulates unjunk folders' do
         ARGV.replace(['-J', 'Spam', '-J', 'Junk'])
-        parser.parse!
-        expect(options[:unjunk_folders]).to include('Spam', 'Junk')
-        expect(options[:unjunk]).to be true
+        result = parser.parse!
+        expect(result[:unjunk_folders]).to include('Spam', 'Junk')
+        expect(result[:unjunk]).to be true
       end
 
       it 'accumulates file-from folders' do
         ARGV.replace(['-F', 'Receipts', '-F', 'Invoices'])
-        parser.parse!
-        expect(options[:file_from_folders]).to include('Receipts', 'Invoices')
+        result = parser.parse!
+        expect(result[:file_from_folders]).to include('Receipts', 'Invoices')
       end
 
       it 'sets brief mode for analysis' do
         ARGV.replace(['--brief'])
-        parser.parse!
-        expect(options[:brief]).to be true
+        result = parser.parse!
+        expect(result[:brief]).to be true
       end
 
       it 'sets detailed mode for analysis' do
         ARGV.replace(['--detailed'])
-        parser.parse!
-        expect(options[:detailed]).to be true
+        result = parser.parse!
+        expect(result[:detailed]).to be true
       end
 
       it 'sets analysis folder' do
         ARGV.replace(['--folder', 'Work'])
-        parser.parse!
-        expect(options[:analysis_folder]).to eq('Work')
+        result = parser.parse!
+        expect(result[:analysis_folder]).to eq('Work')
       end
 
       it 'handles multiple analysis options together' do
         ARGV.replace(['--brief', '--detailed', '--folder', 'Inbox'])
-        parser.parse!
-        expect(options[:brief]).to be true
-        expect(options[:detailed]).to be true
-        expect(options[:analysis_folder]).to eq('Inbox')
+        result = parser.parse!
+        expect(result[:brief]).to be true
+        expect(result[:detailed]).to be true
+        expect(result[:analysis_folder]).to eq('Inbox')
       end
     end
 
@@ -171,14 +170,14 @@ RSpec.describe CLI::CLIParser do
     context 'with multiple options' do
       it 'parses a combination of options' do
         ARGV.replace(['-v', '-n', '-c', 'foo.yml', '-H', 'mail.com', '-u', 'me', '-p', 'pw', '-F', 'A', '-F', 'B'])
-        parser.parse!
-        expect(options[:verbose]).to be true
-        expect(options[:pretend]).to be true
-        expect(options[:config_file]).to eq('foo.yml')
-        expect(options[:host]).to eq('mail.com')
-        expect(options[:username]).to eq('me')
-        expect(options[:password]).to eq('pw')
-        expect(options[:file_from_folders]).to eq(['A', 'B'])
+        result = parser.parse!
+        expect(result[:verbose]).to be true
+        expect(result[:pretend]).to be true
+        expect(result[:config_file]).to eq('foo.yml')
+        expect(result[:host]).to eq('mail.com')
+        expect(result[:username]).to eq('me')
+        expect(result[:password]).to eq('pw')
+        expect(result[:file_from_folders]).to eq(['A', 'B'])
       end
     end
   end

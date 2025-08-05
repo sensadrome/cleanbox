@@ -7,6 +7,7 @@ RSpec.describe 'SetupWizard Integration' do
   let(:temp_dir) { Dir.mktmpdir('cleanbox_test') }
   let(:config_path) { File.join(temp_dir, 'config.yml') }
   let(:env_path) { File.join(temp_dir, '.env') }
+  let(:config_options) { { config_file: config_path } }
 
   before do
     # Ensure test isolation: remove any test config/env files before each test
@@ -48,6 +49,7 @@ RSpec.describe 'SetupWizard Integration' do
       
       # Mock gets on the specific wizard instance
       allow(wizard).to receive(:gets).and_return(
+        '2',                      # Complete setup (overwrite everything) - handle existing config
         '2',                      # Skip authentication setup
         'outlook.office365.com',  # IMAP Host
         'test@example.com',       # Email Address
@@ -81,6 +83,7 @@ RSpec.describe 'SetupWizard Integration' do
       
       # Mock gets on the specific wizard instance for happy path
       allow(wizard).to receive(:gets).and_return(
+        '2',                      # Complete setup (overwrite everything) - handle existing config
         '2',                      # Skip authentication setup
         'outlook.office365.com',  # IMAP Host
         'test@example.com',       # Email Address
@@ -135,6 +138,7 @@ RSpec.describe 'SetupWizard Integration' do
       
       # Mock gets on the specific wizard instance for interactive categorization
       allow(wizard).to receive(:gets).and_return(
+        '2',                      # Complete setup (overwrite everything) - handle existing config
         '2',                      # Skip authentication setup
         'outlook.office365.com',  # IMAP Host
         'test@example.com',       # Email Address
@@ -193,6 +197,7 @@ RSpec.describe 'SetupWizard Integration' do
       
       # Mock gets on the specific wizard instance with overrides
       allow(wizard).to receive(:gets).and_return(
+        '2',                      # Complete setup (overwrite everything) - handle existing config
         '2',                      # Skip authentication setup
         'outlook.office365.com',  # IMAP Host
         'test@example.com',       # Email Address

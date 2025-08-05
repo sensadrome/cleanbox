@@ -2,22 +2,19 @@
 
 require_relative '../microsoft_365_application_token'
 require_relative '../microsoft_365_user_token'
+require_relative '../configuration'
 
 module Auth
   class AuthenticationManager
     class << self
-      def data_dir=(dir)
-        @data_dir = dir
-      end
-
       def data_dir
-        @data_dir || Dir.home
+        Configuration.data_dir || Dir.home
       end
 
       def token_data_dir
         # For tokens, always use home directory unless explicitly set to a custom directory
-        if @data_dir && @data_dir != Dir.pwd
-          @data_dir
+        if data_dir && data_dir != Dir.pwd
+          data_dir
         else
           Dir.home
         end

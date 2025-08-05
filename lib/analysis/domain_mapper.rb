@@ -2,6 +2,7 @@
 
 require 'logger'
 require 'yaml'
+require_relative '../configuration'
 
 module Analysis
   class DomainMapper
@@ -9,12 +10,8 @@ module Analysis
     DEFAULT_DOMAIN_RULES_FILE = File.expand_path('../../../config/domain_rules.yml', __FILE__)
     
     class << self
-      def data_dir=(dir)
-        @data_dir = dir
-      end
-
       def data_dir
-        @data_dir
+        Configuration.data_dir
       end
 
       def user_domain_rules_file

@@ -4,20 +4,15 @@ require 'spec_helper'
 require 'cli/setup_wizard'
 
 RSpec.describe CLI::SetupWizard do
+  let(:temp_dir) { Dir.mktmpdir('cleanbox_test') }
+  let(:config_path) { File.join(temp_dir, '.cleanbox.yml') }
+  let(:config_options) { { config_file: config_path } }
   let(:wizard) { described_class.new(verbose: false) }
-  let(:mock_config_manager) { instance_double(CLI::ConfigManager) }
   let(:mock_imap) { instance_double(Net::IMAP) }
   let(:mock_analyzer) { instance_double(Analysis::EmailAnalyzer) }
 
   before do
     # Mock dependencies
-    allow(CLI::ConfigManager).to receive(:new).and_return(mock_config_manager)
-    allow(mock_config_manager).to receive(:load_config).and_return({})
-    allow(mock_config_manager).to receive(:save_config)
-    allow(mock_config_manager).to receive(:config_path).and_return('/tmp/test_config.yml')
-    allow(mock_config_manager).to receive(:data_dir).and_return('/tmp')
-    allow(mock_config_manager).to receive(:config_file_exists?).and_return(false)
-    
     allow(CLI::SecretsManager).to receive(:create_env_file)
     allow(CLI::SecretsManager).to receive(:value_from_env_or_secrets).and_return('test_value')
     allow(CLI::SecretsManager).to receive(:auth_secrets_available?).and_return(false)
@@ -25,11 +20,12 @@ RSpec.describe CLI::SetupWizard do
     allow(Net::IMAP).to receive(:new).and_return(mock_imap)
     allow(Auth::AuthenticationManager).to receive(:authenticate_imap)
     
-    # Mock file existence check
-    allow(File).to receive(:exist?).and_return(false)
-    
     # Mock system calls
     allow(wizard).to receive(:system)
+  end
+
+  after do
+    FileUtils.remove_entry(temp_dir) if Dir.exist?(temp_dir)
   end
 
   describe '#initialize' do
@@ -49,7 +45,6 @@ RSpec.describe CLI::SetupWizard do
     context 'when configuration file exists' do
       before do
         allow(File).to receive(:exist?).and_return(true)
-        allow(mock_config_manager).to receive(:config_file_exists?).and_return(true)
         allow(wizard).to receive(:auth_configured?).and_return(true)
       end
 
@@ -64,9 +59,6 @@ RSpec.describe CLI::SetupWizard do
 
         before do
           allow(wizard).to receive(:gets).and_return("1\n")
-          
-          # Mock the config manager to return existing config for update mode
-          allow(mock_config_manager).to receive(:load_config).and_return(existing_config)
           
           # Mock the prompt methods that get_connection_details calls
           allow(wizard).to receive(:prompt).and_return('test_value')
@@ -100,7 +92,7 @@ RSpec.describe CLI::SetupWizard do
           expect { wizard.run }.to output(/Using existing connection settings/).to_stdout
         end
 
-        it 'loads existing config for update mode' do
+        it 'uses existing config for update mode' do
           allow(wizard).to receive(:interactive_configuration).and_return({
             whitelist_folders: ['Work'],
             list_folders: ['Newsletters'],
@@ -108,7 +100,6 @@ RSpec.describe CLI::SetupWizard do
           })
           allow(wizard).to receive(:save_configuration)
           allow(wizard).to receive(:validate_and_preview)
-          expect(mock_config_manager).to receive(:load_config).ordered
           wizard.run
         end
 
@@ -202,7 +193,6 @@ RSpec.describe CLI::SetupWizard do
     context 'when configuration file does not exist' do
       before do
         allow(File).to receive(:exist?).and_return(false)
-        allow(mock_config_manager).to receive(:config_file_exists?).and_return(false)
         allow(wizard).to receive(:auth_configured?).and_return(false)
         # Mock the user to choose to skip authentication setup
         allow(wizard).to receive(:gets).and_return("2\n")
@@ -253,7 +243,6 @@ RSpec.describe CLI::SetupWizard do
       context 'when connection fails' do
         before do
           allow(File).to receive(:exist?).and_return(false)
-          allow(mock_config_manager).to receive(:config_file_exists?).and_return(false)
           allow(wizard).to receive(:auth_configured?).and_return(false)
           # Mock the user to choose to skip authentication setup
           allow(wizard).to receive(:gets).and_return("2\n")
@@ -284,21 +273,12 @@ RSpec.describe CLI::SetupWizard do
 
   describe '#auth_configured?' do
     context 'when no config file exists' do
-      before do
-        allow(mock_config_manager).to receive(:config_file_exists?).and_return(false)
-      end
-
       it 'returns false' do
         expect(wizard.send(:auth_configured?)).to be false
       end
     end
 
     context 'when config file exists but has no auth fields' do
-      before do
-        allow(mock_config_manager).to receive(:config_file_exists?).and_return(true)
-        allow(mock_config_manager).to receive(:load_config).and_return({})
-      end
-
       it 'returns false' do
         expect(wizard.send(:auth_configured?)).to be false
       end
@@ -306,12 +286,6 @@ RSpec.describe CLI::SetupWizard do
 
     context 'when config file exists with auth fields but no secrets' do
       before do
-        allow(mock_config_manager).to receive(:config_file_exists?).and_return(true)
-        allow(mock_config_manager).to receive(:load_config).and_return({
-          host: 'outlook.office365.com',
-          username: 'test@example.com',
-          auth_type: 'oauth2_microsoft'
-        })
         allow(CLI::SecretsManager).to receive(:auth_secrets_available?).and_return(false)
       end
 
@@ -321,13 +295,15 @@ RSpec.describe CLI::SetupWizard do
     end
 
     context 'when config file exists with auth fields and secrets' do
-      before do
-        allow(mock_config_manager).to receive(:config_file_exists?).and_return(true)
-        allow(mock_config_manager).to receive(:load_config).and_return({
+      let(:config_options) do
+        {
           host: 'outlook.office365.com',
           username: 'test@example.com',
           auth_type: 'oauth2_microsoft'
-        })
+        }
+      end
+
+      before do
         allow(CLI::SecretsManager).to receive(:auth_secrets_available?).and_return(true)
       end
 

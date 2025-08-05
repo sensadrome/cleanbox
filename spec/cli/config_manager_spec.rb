@@ -6,6 +6,7 @@ require 'fileutils'
 
 RSpec.describe CLI::ConfigManager do
   let(:temp_config_path) { Tempfile.new(['test_config', '.yml']).path }
+  let(:config_options) { { config_file: temp_config_path } }
   let(:config_manager) { described_class.new(temp_config_path) }
 
   before do
@@ -27,67 +28,27 @@ RSpec.describe CLI::ConfigManager do
     File.delete(integration_temp_config_path) if File.exist?(integration_temp_config_path)
   end
 
-  describe '#initialize' do
-    context 'with custom config path' do
-      it 'uses the provided path' do
-        custom_path = '/custom/path/config.yml'
-        manager = described_class.new(custom_path)
-        expect(manager.config_path).to eq(custom_path)
-      end
-    end
 
-    context 'without config path' do
-      it 'uses default path from environment' do
-        # Test environment variable scenario
-        allow(ENV).to receive(:[]).and_return(nil)  # Default mock
-        allow(ENV).to receive(:[]).with('CLEANBOX_CONFIG').and_return('/custom/config.yml')
-        manager = described_class.new(nil, '/custom/data/dir')
-        expect(manager.config_path).to eq('/custom/config.yml')
-      end
-
-      it 'uses data directory config when no environment variable' do
-        allow(ENV).to receive(:[]).and_return(nil)  # Default mock
-        allow(ENV).to receive(:[]).with('CLEANBOX_CONFIG').and_return(nil)
-        data_dir = '/custom/data/dir'
-        data_dir_config = File.join(data_dir, 'cleanbox.yml')
-        
-        # Mock File.exist? to return true for data directory config
-        allow(File).to receive(:exist?).and_return(false)  # Default mock
-        allow(File).to receive(:exist?).with(data_dir_config).and_return(true)
-        
-        manager = described_class.new(nil, data_dir)
-        expect(manager.config_path).to eq(data_dir_config)
-      end
-
-      it 'uses home directory fallback when no environment or data dir config' do
-        allow(ENV).to receive(:[]).and_return(nil)  # Default mock
-        allow(ENV).to receive(:[]).with('CLEANBOX_CONFIG').and_return(nil)
-        data_dir = '/custom/data/dir'
-        data_dir_config = File.join(data_dir, 'cleanbox.yml')
-        home_config = File.expand_path('~/.cleanbox.yml')
-        
-        # Mock File.exist? to return false for data directory config
-        allow(File).to receive(:exist?).and_return(false)  # Default mock
-        allow(File).to receive(:exist?).with(data_dir_config).and_return(false)
-        
-        manager = described_class.new(nil, data_dir)
-        expect(manager.config_path).to eq(home_config)
-      end
-    end
-
-    context 'with data directory' do
-      it 'sets data directory' do
-        data_dir = '/custom/data/dir'
-        manager = described_class.new(temp_config_path, data_dir)
-        expect(manager.data_dir).to eq(data_dir)
-      end
-    end
-  end
 
   describe '#show' do
     context 'when config file does not exist' do
+      # Override the shared context for this specific test
+      let(:config_options) do
+        { config_file: '/non/existent/config.yml' }
+      end
+
+      let(:non_existent_config_manager) do
+        described_class.new('/non/existent/config.yml')
+      end
+
+      before do
+        # Reconfigure Configuration with the non-existent file
+        Configuration.reset!
+        Configuration.configure(config_options)
+      end
+
       it 'shows appropriate message' do
-        expect { config_manager.show }.to output("No configuration file found at #{temp_config_path}\n").to_stdout
+        expect { non_existent_config_manager.show }.to output("No configuration file found at /non/existent/config.yml\n").to_stdout
       end
     end
 
@@ -101,10 +62,15 @@ RSpec.describe CLI::ConfigManager do
         }
       end
 
+      let(:config_options) do
+        super().merge(config_file: temp_config_path)
+      end
+
       before do
         File.write(temp_config_path, sample_config.to_yaml)
         # Ensure the file exists
         expect(File.exist?(temp_config_path)).to be true
+        Configuration.reload!
       end
 
       it 'shows recognized keys' do
@@ -120,16 +86,21 @@ RSpec.describe CLI::ConfigManager do
 
       it 'shows missing recognized keys' do
         expect { config_manager.show }.to output(/Recognized keys you have not set/).to_stdout
-        expect { config_manager.show }.to output(/- auth_type/).to_stdout
+        expect { config_manager.show }.to output(/- valid_from/).to_stdout
       end
     end
   end
 
   describe '#get' do
     context 'when key exists' do
+      let(:config_options) do
+        super().merge(config_file: temp_config_path)
+      end
+
       before do
         config = { username: 'test@example.com', folders: ['Inbox', 'Sent'] }
         File.write(temp_config_path, config.to_yaml)
+        Configuration.reload!
       end
 
       it 'shows string value' do
@@ -142,9 +113,14 @@ RSpec.describe CLI::ConfigManager do
     end
 
     context 'when key does not exist' do
+      let(:config_options) do
+        super().merge(config_file: temp_config_path)
+      end
+
       before do
         config = { username: 'test@example.com' }
         File.write(temp_config_path, config.to_yaml)
+        Configuration.reload!
       end
 
       it 'shows not found message' do
@@ -780,6 +756,10 @@ RSpec.describe CLI::ConfigManager do
   end
 
   describe 'integration scenarios' do
+    let(:config_options) do
+      super().merge(config_file: integration_temp_config_path)
+    end
+
     it 'handles full config lifecycle' do
       # Initialize config
       integration_config_manager.init
@@ -787,11 +767,15 @@ RSpec.describe CLI::ConfigManager do
 
       # Set values
       integration_config_manager.set('username', 'test@example.com')
+      Configuration.reload!
       integration_config_manager.set('host', 'outlook.office365.com')
+      Configuration.reload!
       integration_config_manager.set('folders', '["Inbox", "Sent"]')
+      Configuration.reload!
 
       # Add to arrays
       integration_config_manager.add('folders', 'Drafts')
+      Configuration.reload!
 
       # Get values
       expect { integration_config_manager.get('username') }.to output(/test@example\.com/).to_stdout

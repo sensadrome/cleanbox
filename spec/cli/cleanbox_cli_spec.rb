@@ -5,24 +5,34 @@ require 'spec_helper'
 RSpec.describe CLI::CleanboxCLI do
   let(:cli) { described_class.new }
 
-  before do
-    # Mock the config manager to return predictable test data
-    allow_any_instance_of(CLI::ConfigManager).to receive(:load_config).and_return({
+  # Override the default config options for this test
+  let(:config_options) do
+    {
       host: 'test.example.com',
       username: 'test@example.com',
       auth_type: 'password',
       whitelist_folders: ['Family', 'Work'],
-      list_folders: ['Newsletters']
-    })
+      list_folders: ['Newsletters'],
+      # Use a non-existent config file to avoid loading real config
+      config_file: '/non/existent/test_config.yml',
+      data_dir: nil
+    }
+  end
 
+  before do
     # Mock secrets manager to return nil for all secrets
     allow(CLI::SecretsManager).to receive(:value_from_env_or_secrets).and_return(nil)
     
-    # Mock CLI parser to prevent actual argument parsing during tests
-    allow_any_instance_of(CLI::CLIParser).to receive(:parse!)
+    # Mock CLI parser to prevent actual argument parsing for most tests
+    allow_any_instance_of(CLI::CLIParser).to receive(:parse!).and_return({})
   end
 
   describe '#initialize' do
+    before do
+      # Override the global mock to return our test config options for these tests
+      allow_any_instance_of(CLI::CLIParser).to receive(:parse!).and_return(config_options)
+    end
+
     it 'creates a new CLI instance' do
       expect(cli).to be_a(CLI::CleanboxCLI)
     end
@@ -47,8 +57,8 @@ RSpec.describe CLI::CleanboxCLI do
         # Mock ARGV to be empty
         allow(ARGV).to receive(:empty?).and_return(true)
         allow(ARGV).to receive(:include?).and_return(false)
-        # Mock parse_options to prevent actual argument parsing
-        allow(cli).to receive(:parse_options)
+        # Mock parse_command_line_options to prevent actual argument parsing
+        allow(cli).to receive(:parse_command_line_options)
         # Mock validate_options to prevent validation errors
         # allow(cli).to receive(:validate_options)
         allow(CLI::Validator).to receive(:validate_required_options!)
@@ -68,8 +78,8 @@ RSpec.describe CLI::CleanboxCLI do
         # Mock puts to suppress CLI output during tests
         allow($stdout).to receive(:puts)
         allow($stderr).to receive(:puts)
-        # Mock parse_options to prevent actual argument parsing
-        allow(cli).to receive(:parse_options)
+        # Mock parse_command_line_options to prevent actual argument parsing
+        allow(cli).to receive(:parse_command_line_options)
         # Mock validate_options to prevent validation errors
         allow(cli).to receive(:validate_options)
         # Mock execute_action to prevent network calls
@@ -81,7 +91,7 @@ RSpec.describe CLI::CleanboxCLI do
       end
 
       it 'runs the setup wizard' do
-        expect(CLI::SetupWizard).to receive(:new).with(verbose: nil)
+        expect(CLI::SetupWizard).to receive(:new).with(verbose: false)
         cli.run
       end
     end
@@ -90,7 +100,7 @@ RSpec.describe CLI::CleanboxCLI do
       before do
         ARGV.replace(['config', 'show'])
         allow(cli).to receive(:exit)
-        allow(cli).to receive(:parse_options)
+        allow(cli).to receive(:parse_command_line_options)
         allow(cli).to receive(:validate_options)
         allow(cli).to receive(:execute_action)
         allow(cli.config_manager).to receive(:handle_command)
@@ -109,7 +119,7 @@ RSpec.describe CLI::CleanboxCLI do
     context 'when unjunk option is provided' do
       before do
         allow(cli).to receive(:exit)
-        allow(cli).to receive(:parse_options)
+        allow(cli).to receive(:parse_command_line_options)
         allow(cli).to receive(:validate_options)
         allow(cli).to receive(:execute_action)
         allow(ARGV).to receive(:empty?).and_return(false)
@@ -124,58 +134,7 @@ RSpec.describe CLI::CleanboxCLI do
     end
   end
 
-  describe 'data directory handling' do
-    describe '#resolve_data_dir' do
-      it 'returns absolute path when data_dir is set' do
-        cli.options[:data_dir] = '/relative/path'
-        expect(cli.send(:resolve_data_dir)).to eq(File.expand_path('/relative/path'))
-      end
 
-      it 'returns working directory when data_dir is not set' do
-        cli.options[:data_dir] = nil
-        expect(cli.send(:resolve_data_dir)).to eq(Dir.pwd)
-      end
-    end
-
-    describe '#data_dir' do
-      it 'caches the resolved data directory' do
-        cli.options[:data_dir] = '/test/path'
-        # Clear the cached value to force recalculation
-        cli.instance_variable_set(:@data_dir, nil)
-        first_call = cli.send(:data_dir)
-        second_call = cli.send(:data_dir)
-        expect(first_call).to eq(second_call)
-        expect(first_call).to eq(File.expand_path('/test/path'))
-      end
-    end
-  end
-
-  describe 'default_options' do
-    it 'includes all required configuration keys' do
-      options = cli.send(:default_options)
-      
-      expect(options).to include(
-        :host,
-        :username,
-        :auth_type,
-        :whitelist_folders,
-        :list_folders,
-        :list_domain_map,
-        :data_dir
-      )
-    end
-
-    it 'sets default values correctly' do
-      options = cli.send(:default_options)
-      
-      expect(options[:host]).to eq('')
-      expect(options[:sent_folder]).to eq('Sent Items')
-      expect(options[:sent_since_months]).to eq(24)
-      expect(options[:valid_since_months]).to eq(12)
-      expect(options[:list_since_months]).to eq(12)
-      expect(options[:data_dir]).to be_nil
-    end
-  end
 
   describe '#determine_action' do
     it 'returns unjunk! when unjunk option is set' do
@@ -243,7 +202,7 @@ RSpec.describe CLI::CleanboxCLI do
     it 'runs setup wizard when setup command is present' do
       ARGV.replace(['setup'])
       cli.send(:handle_setup_command)
-      expect(CLI::SetupWizard).to have_received(:new).with(verbose: nil)
+      expect(CLI::SetupWizard).to have_received(:new).with(verbose: false)
     end
 
     it 'does nothing when setup command is not present' do
@@ -281,15 +240,16 @@ RSpec.describe CLI::CleanboxCLI do
   end
 
   describe '#update_config_manager_if_needed' do
+
     it 'updates config manager when config_file is set' do
       cli.options[:config_file] = '/custom/config.yml'
-      expect(cli).to receive(:load_config)
+      expect(CLI::ConfigManager).to receive(:new).with('/custom/config.yml')
       cli.send(:update_config_manager_if_needed)
     end
 
     it 'does nothing when config_file is not set' do
       cli.options[:config_file] = nil
-      expect(cli).not_to receive(:load_config)
+      expect(CLI::ConfigManager).not_to receive(:new)
       cli.send(:update_config_manager_if_needed)
     end
   end
@@ -352,15 +312,7 @@ RSpec.describe CLI::CleanboxCLI do
       allow(ARGV).to receive(:last).and_return('list')
     end
 
-    it 'sets data directory for cache operations' do
-      expect(CleanboxFolderChecker).to receive(:data_dir=).with(cli.send(:data_dir))
-      cli.send(:execute_action)
-    end
 
-    it 'sets data directory for domain rules' do
-      expect(Analysis::DomainMapper).to receive(:data_dir=).with(cli.send(:data_dir))
-      cli.send(:execute_action)
-    end
 
     it 'creates Cleanbox instance with IMAP connection and options' do
       expect(Cleanbox).to receive(:new).with(mock_imap, cli.options)
@@ -391,15 +343,7 @@ RSpec.describe CLI::CleanboxCLI do
       cli.send(:handle_analyze_command)
     end
 
-    it 'sets data directory for cache operations' do
-      expect(CleanboxFolderChecker).to receive(:data_dir=).with(cli.send(:data_dir))
-      cli.send(:handle_analyze_command)
-    end
 
-    it 'sets data directory for domain rules' do
-      expect(Analysis::DomainMapper).to receive(:data_dir=).with(cli.send(:data_dir))
-      cli.send(:handle_analyze_command)
-    end
 
     it 'creates AnalyzerCLI with IMAP connection and options' do
       expect(CLI::AnalyzerCLI).to receive(:new).with(mock_imap, cli.options)

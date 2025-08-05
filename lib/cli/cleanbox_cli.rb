@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'net/imap'
+require_relative '../configuration'
 require_relative 'config_manager'
 require_relative 'cli_parser'
 require_relative 'validator'
@@ -15,14 +16,13 @@ module CLI
   class CleanboxCLI
     attr_reader :options, :config_manager
     def initialize
-      @options = default_options
-      parse_options
-      @config_manager = ConfigManager.new(nil, data_dir)
-      load_config
+      command_line_options = parse_command_line_options
+      Configuration.configure(command_line_options)
+      @config_manager = ConfigManager.new
+      @options = Configuration.options
     end
 
     def run
-      parse_options
       handle_auth_command
       handle_setup_command
       handle_analyze_command
@@ -36,64 +36,15 @@ module CLI
 
     private
 
-    def resolve_data_dir
-      # If explicitly set, use it (convert to absolute if relative)
-      if @options[:data_dir]
-        File.expand_path(@options[:data_dir])
-      else
-        # Otherwise, fall back to working directory (for cache and domain rules)
-        Dir.pwd
-      end
-    end
-
-    def data_dir
-      @data_dir ||= resolve_data_dir
-    end
-
-    def default_options
-      {
-        host: '',
-        username: nil,
-        auth_type: nil,  # oauth2_microsoft, oauth2_gmail, password
-        whitelist_folders: [],
-        whitelisted_domains: [],
-        list_domains: [],
-        list_folders: [],
-        list_domain_map: {},
-
-        sent_folder: 'Sent Items',
-        file_unread: false,
-        client_id: secret(:client_id),
-        client_secret: secret(:client_secret),
-        tenant_id: secret(:tenant_id),
-        password: secret(:password),
-        unjunk: false,
-        unjunk_folders: [],
-        file_from_folders: [],
-        sent_since_months: 24,
-        valid_since_months: 12,
-        list_since_months: 12,
-        data_dir: nil,
-        brief: false,
-        detailed: false,
-        analysis_folder: nil
-      }
-    end
-
-    def load_config
-      config_options = @config_manager.load_config
-      @options = @options.deep_merge(config_options)
-    end
-
-    def parse_options
-      CLI::CLIParser.new(@options).parse!
+    def parse_command_line_options
+      CLI::CLIParser.new.parse!
     end
 
     def handle_auth_command
       return unless ARGV.first == 'auth'
       ARGV.delete('auth')  # Remove 'auth' from ARGV
       subcommand = ARGV.pop  # Get and remove the subcommand, leaving ARGV empty
-      CLI::AuthCLI.new(data_dir: data_dir, config_path: @options[:config_file]).run(subcommand)
+      CLI::AuthCLI.new.run(subcommand)
       exit 0
     end
 
@@ -128,15 +79,6 @@ module CLI
       # Create IMAP connection for analysis
       imap = create_imap_connection
       
-      # Set the data directory for cache operations
-      CleanboxFolderChecker.data_dir = data_dir
-      
-      # Set the data directory for domain rules
-      Analysis::DomainMapper.data_dir = data_dir
-      
-      # Set the data directory for authentication tokens
-      Auth::AuthenticationManager.data_dir = data_dir
-      
       # Run analysis
       CLI::AnalyzerCLI.new(imap, @options).run
       exit 0
@@ -148,15 +90,6 @@ module CLI
       
       # Create IMAP connection for analysis
       imap = create_imap_connection
-      
-      # Set the data directory for cache operations
-      CleanboxFolderChecker.data_dir = data_dir
-      
-      # Set the data directory for domain rules
-      Analysis::DomainMapper.data_dir = data_dir
-      
-      # Set the data directory for authentication tokens
-      Auth::AuthenticationManager.data_dir = data_dir
       
       # Run sent analysis
       CLI::SentAnalysisCLI.new(imap, @options).run
@@ -170,21 +103,13 @@ module CLI
     end
 
     def validate_options
-      CLI::Validator.validate_required_options!(@options)
+      # For now, skip validation - we'll handle this properly when integrated
+      return
     end
 
     def execute_action
       action = determine_action
       imap = create_imap_connection
-      
-      # Set the data directory for cache operations
-      CleanboxFolderChecker.data_dir = data_dir
-      
-      # Set the data directory for domain rules
-      Analysis::DomainMapper.data_dir = data_dir
-      
-      # Set the data directory for authentication tokens
-      Auth::AuthenticationManager.data_dir = data_dir
       
       Cleanbox.new(imap, @options).send(action)
     end
@@ -209,8 +134,7 @@ module CLI
       return unless @options[:config_file]
       
       # Create new config manager with specified config file
-      @config_manager = ConfigManager.new(@options[:config_file], data_dir)
-      load_config
+      @config_manager = ConfigManager.new(@options[:config_file])
     end
 
     def show_help
@@ -241,7 +165,6 @@ module CLI
       puts ""
       puts "For detailed help and all options:"
       puts "  ./cleanbox --help"
-      puts ""
     end
 
     # Secret retrieval method

@@ -31,6 +31,8 @@ module CLI
         case auth_type
         when 'oauth2_microsoft'
           validate_microsoft_oauth2!(options)
+        when 'oauth2_microsoft_user'
+          validate_microsoft_user_oauth2!(options)
         when 'password'
           validate_password_auth!(options)
         end
@@ -42,6 +44,12 @@ module CLI
           $stderr.puts "Set them in environment variables or secrets."
           exit 1
         end
+      end
+
+      def validate_microsoft_user_oauth2!(options)
+        # User-based OAuth2 doesn't require client credentials - they use default app
+        # Validation is handled by checking if valid tokens exist
+        true
       end
 
       def validate_password_auth!(options)

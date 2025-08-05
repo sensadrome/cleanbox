@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'yaml'
+require_relative 'configuration'
 
 # Utility class for checking folders
 class CleanboxFolderChecker < CleanboxConnection
@@ -140,12 +141,8 @@ class CleanboxFolderChecker < CleanboxConnection
 
   # Class methods for cache management
   class << self
-    def data_dir=(dir)
-      @data_dir = dir
-    end
-
     def data_dir
-      @data_dir || Dir.pwd
+      Configuration.data_dir || Dir.pwd
     end
 
     def cache_dir

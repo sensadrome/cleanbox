@@ -38,6 +38,8 @@ module CLI
         analyze_recommendations
       when 'summary'
         analyze_summary
+      when nil, ''
+        show_help
       else
         show_help
       end

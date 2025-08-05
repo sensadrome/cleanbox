@@ -4,8 +4,8 @@ require 'optparse'
 
 module CLI
   class CLIParser
-    def initialize(options)
-      @options = options
+    def initialize
+      @options = {}
     end
 
     def parse!
@@ -16,6 +16,7 @@ module CLI
         setup_processing_options(opts)
         setup_commands_help(opts)
       end.parse!
+      @options
     end
 
     private
@@ -92,11 +93,13 @@ module CLI
       end
 
       opts.on('-J', '--unjunk FOLDER', 'Unjunk based on mail in FOLDER (can use multiple times)') do |folder|
+        @options[:unjunk_folders] ||= []
         @options[:unjunk_folders] << folder
         @options[:unjunk] = true
       end
 
       opts.on('-F', '--file-from FOLDER', 'File (from the Inbox) based on mail in FOLDER (can use multiple times)') do |folder|
+        @options[:file_from_folders] ||= []
         @options[:file_from_folders] << folder
       end
 

@@ -69,7 +69,24 @@ class Microsoft365UserToken
   end
 
   def has_valid_tokens?
-    !(@access_token.nil? || @refresh_token.nil? || token_expired?)
+    # Try to get a valid token (this will refresh if needed)
+    return false if @refresh_token.nil?
+    
+    # If we have a valid access token, we're good
+    return true if @access_token && !token_expired?
+    
+    # If access token is expired but we have a refresh token, try to refresh
+    if @refresh_token
+      begin
+        refresh_access_token
+        return @access_token && !token_expired?
+      rescue => e
+        @logger&.error "Failed to refresh token: #{e.message}"
+        return false
+      end
+    end
+    
+    false
   end
 
   def save_tokens_to_file(file_path)

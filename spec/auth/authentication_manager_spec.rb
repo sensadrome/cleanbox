@@ -158,36 +158,45 @@ RSpec.describe Auth::AuthenticationManager do
     end
 
     describe '.data_dir' do
-      it 'sets and returns data directory' do
-        test_data_dir = '/test/data/dir'
-        described_class.data_dir = test_data_dir
-        expect(described_class.data_dir).to eq(test_data_dir)
+      context 'when data_dir is set in Configuration' do
+        let(:config_options) { { data_dir: '/test/data/dir' } }
+
+        it 'returns data directory from Configuration' do
+          expect(described_class.data_dir).to eq('/test/data/dir')
+        end
       end
 
-      it 'returns home directory when not set' do
-        described_class.data_dir = nil
-        expect(described_class.data_dir).to eq(Dir.home)
+      context 'when data_dir is not set in Configuration' do
+        let(:config_options) { { data_dir: nil } }
+
+        it 'returns home directory when Configuration.data_dir is nil' do
+          expect(described_class.data_dir).to eq(Dir.home)
+        end
       end
     end
 
     describe '.default_token_file' do
-      it 'uses data directory when set' do
-        test_data_dir = '/test/data/dir'
-        described_class.data_dir = test_data_dir
-        expected_path = File.join(test_data_dir, 'tokens', 'test_user_com.json')
-        expect(described_class.send(:default_token_file, 'test@user.com')).to eq(expected_path)
+      context 'when data_dir is set in Configuration' do
+        let(:config_options) { { data_dir: '/test/data/dir' } }
+
+        it 'uses data directory when set' do
+          expected_path = File.join('/test/data/dir', 'tokens', 'test_user_com.json')
+          expect(described_class.send(:default_token_file, 'test@user.com')).to eq(expected_path)
+        end
+
+        it 'sanitizes username for filename' do
+          expected_path = File.join('/test/data/dir', 'tokens', 'test_user_com.json')
+          expect(described_class.send(:default_token_file, 'test@user.com')).to eq(expected_path)
+        end
       end
 
-      it 'uses home directory when data directory not set' do
-        described_class.data_dir = nil
-        expected_path = File.join(Dir.home, '.cleanbox', 'tokens', 'test_user_com.json')
-        expect(described_class.send(:default_token_file, 'test@user.com')).to eq(expected_path)
-      end
+      context 'when data_dir is not set in Configuration' do
+        let(:config_options) { { data_dir: nil } }
 
-      it 'sanitizes username for filename' do
-        described_class.data_dir = '/test/data/dir'
-        expected_path = File.join('/test/data/dir', 'tokens', 'test_user_com.json')
-        expect(described_class.send(:default_token_file, 'test@user.com')).to eq(expected_path)
+        it 'uses home directory when data directory not set' do
+          expected_path = File.join(Dir.home, '.cleanbox', 'tokens', 'test_user_com.json')
+          expect(described_class.send(:default_token_file, 'test@user.com')).to eq(expected_path)
+        end
       end
     end
 

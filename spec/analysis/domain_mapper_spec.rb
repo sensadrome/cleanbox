@@ -55,8 +55,6 @@ RSpec.describe Analysis::DomainMapper do
     let(:empty_rules) { { 'domain_patterns' => {}, 'folder_patterns' => {} } }
 
     before do
-      # Reset data directory before each test
-      described_class.data_dir = nil
       # Prevent actual file system access
       allow(File).to receive(:exist?).and_call_original
       allow(YAML).to receive(:load_file).and_call_original
@@ -68,95 +66,82 @@ RSpec.describe Analysis::DomainMapper do
       RSpec::Mocks.space.proxy_for(YAML).reset
     end
 
-    describe '.data_dir=' do
-      it 'sets the data directory' do
-        data_dir = '/custom/data/dir'
-        described_class.data_dir = data_dir
-        expect(described_class.data_dir).to eq(data_dir)
-      end
-    end
+
 
     describe '.data_dir' do
-      it 'returns the set data directory' do
-        data_dir = '/custom/data/dir'
-        described_class.data_dir = data_dir
-        expect(described_class.data_dir).to eq(data_dir)
+      context 'when data_dir is set' do
+        let(:config_options) { { data_dir: '/custom/data/dir' } }
+        
+        it 'returns the set data directory' do
+          expect(described_class.data_dir).to eq('/custom/data/dir')
+        end
       end
 
-      it 'returns nil when not set' do
-        described_class.data_dir = nil
-        expect(described_class.data_dir).to be_nil
+      context 'when data_dir is not set' do
+        it 'returns nil when not set' do
+          expect(described_class.data_dir).to be_nil
+        end
       end
     end
 
     describe '.user_domain_rules_file' do
-      it 'returns data directory file when it exists' do
-        data_dir = '/custom/data/dir'
-        data_dir_file = File.join(data_dir, 'domain_rules.yml')
-        described_class.data_dir = data_dir
+      context 'when data_dir is set' do
+        let(:config_options) { { data_dir: '/custom/data/dir' } }
+        let(:data_dir_file) { File.join('/custom/data/dir', 'domain_rules.yml') }
         
+        it 'returns data directory file when it exists' do
+          allow(File).to receive(:exist?).with(data_dir_file).and_return(true)
+          allow(File).to receive(:exist?).with(user_file).and_return(true)
+          
+          expect(described_class.user_domain_rules_file).to eq(data_dir_file)
+        end
+
+        it 'returns home directory file when data directory file does not exist' do
+          allow(File).to receive(:exist?).with(data_dir_file).and_return(false)
+          allow(File).to receive(:exist?).with(user_file).and_return(true)
+          
+          expect(described_class.user_domain_rules_file).to eq(user_file)
+        end
+
+        it 'returns nil when data directory file does not exist and no home directory file' do
+          allow(File).to receive(:exist?).with(data_dir_file).and_return(false)
+          allow(File).to receive(:exist?).with(user_file).and_return(false)
+          
+          expect(described_class.user_domain_rules_file).to be_nil
+        end
+      end
+
+      context 'when data_dir is not set' do
+        it 'returns nil when no data directory and no home directory file' do
+          allow(File).to receive(:exist?).with(user_file).and_return(false)
+          
+          expect(described_class.user_domain_rules_file).to be_nil
+        end
+      end
+    end
+
+    context 'when data_dir is set' do
+      let(:config_options) { { data_dir: '/custom/data/dir' } }
+      let(:data_dir_file) { File.join('/custom/data/dir', 'domain_rules.yml') }
+      
+      it 'loads the user file from data directory when present' do
         allow(File).to receive(:exist?).with(data_dir_file).and_return(true)
-        allow(File).to receive(:exist?).with(user_file).and_return(true)
+        allow(YAML).to receive(:load_file).with(data_dir_file).and_return(custom_user_rules)
+        allow(File).to receive(:exist?).with(default_file).and_return(true)
         
-        expect(described_class.user_domain_rules_file).to eq(data_dir_file)
+        domain_mapper = described_class.new([])
+        expect(domain_mapper.send(:domain_rules)).to eq(custom_user_rules)
       end
 
-      it 'returns home directory file when data directory file does not exist' do
-        data_dir = '/custom/data/dir'
-        data_dir_file = File.join(data_dir, 'domain_rules.yml')
-        described_class.data_dir = data_dir
-        
+      it 'loads the user file from home directory when data directory file is absent' do
         allow(File).to receive(:exist?).with(data_dir_file).and_return(false)
         allow(File).to receive(:exist?).with(user_file).and_return(true)
+        allow(YAML).to receive(:load_file).with(user_file).and_return(custom_user_rules)
+        allow(File).to receive(:exist?).with(default_file).and_return(true)
         
-        expect(described_class.user_domain_rules_file).to eq(user_file)
+        domain_mapper = described_class.new([])
+        expect(domain_mapper.send(:domain_rules)).to eq(custom_user_rules)
       end
-
-      it 'returns nil when no data directory and no home directory file' do
-        described_class.data_dir = nil
-        
-        allow(File).to receive(:exist?).with(user_file).and_return(false)
-        
-        expect(described_class.user_domain_rules_file).to be_nil
-      end
-
-      it 'returns nil when data directory file does not exist and no home directory file' do
-        data_dir = '/custom/data/dir'
-        data_dir_file = File.join(data_dir, 'domain_rules.yml')
-        described_class.data_dir = data_dir
-        
-        allow(File).to receive(:exist?).with(data_dir_file).and_return(false)
-        allow(File).to receive(:exist?).with(user_file).and_return(false)
-        
-        expect(described_class.user_domain_rules_file).to be_nil
-      end
-    end
-
-    it 'loads the user file from data directory when present' do
-      data_dir = '/custom/data/dir'
-      data_dir_file = File.join(data_dir, 'domain_rules.yml')
-      described_class.data_dir = data_dir
-      
-      allow(File).to receive(:exist?).with(data_dir_file).and_return(true)
-      allow(YAML).to receive(:load_file).with(data_dir_file).and_return(custom_user_rules)
-      allow(File).to receive(:exist?).with(default_file).and_return(true)
-      
-      domain_mapper = described_class.new([])
-      expect(domain_mapper.send(:domain_rules)).to eq(custom_user_rules)
-    end
-
-    it 'loads the user file from home directory when data directory file is absent' do
-      data_dir = '/custom/data/dir'
-      data_dir_file = File.join(data_dir, 'domain_rules.yml')
-      described_class.data_dir = data_dir
-      
-      allow(File).to receive(:exist?).with(data_dir_file).and_return(false)
-      allow(File).to receive(:exist?).with(user_file).and_return(true)
-      allow(YAML).to receive(:load_file).with(user_file).and_return(custom_user_rules)
-      allow(File).to receive(:exist?).with(default_file).and_return(true)
-      
-      domain_mapper = described_class.new([])
-      expect(domain_mapper.send(:domain_rules)).to eq(custom_user_rules)
     end
 
     it 'loads the default file if user file is absent' do

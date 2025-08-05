@@ -2,6 +2,7 @@ require 'tmpdir'
 require 'securerandom'
 require 'logger'
 require 'yaml'
+require 'tempfile'
 
 # Main application entry point
 require_relative '../lib/connection'
@@ -43,6 +44,7 @@ require 'vcr'
 require 'mail'
 
 # Require the main application files
+require 'configuration'
 require 'cli/cleanbox_cli'
 require 'cli/config_manager'
 require 'cli/secrets_manager'
@@ -59,6 +61,14 @@ require 'folder_checker'
 # Helper method for creating mock IMAP error responses
 def mock_imap_error_response(text)
   OpenStruct.new(data: OpenStruct.new(text: text))
+end
+
+def test_home_config_dir
+  @@test_home_config_dir ||= Dir.mktmpdir('cleanbox_test_home')
+end
+
+def test_home_config_path 
+  @@test_home_config_path ||= File.join(test_home_config_dir, '.cleanbox.yml')
 end
 
 RSpec.configure do |config|
@@ -172,4 +182,39 @@ RSpec.configure do |config|
   config.after(:suite) do
     FileUtils.rm_rf(Dir[File.join(Dir.pwd, 'tmp', 'test_*')])
   end
+
+  # Set up test home config file
+  config.before(:suite) do
+    File.write(test_home_config_path, {}.to_yaml)
+  end
+
+  config.after(:suite) do
+    if Dir.exist?(test_home_config_dir)
+      FileUtils.remove_entry(test_home_config_dir)
+    end
+  end
+
+  # Configure Configuration for each test
+  config.before(:each) do
+    # Reset Configuration to a clean state for each test
+    Configuration.reset! if Configuration.respond_to?(:reset!)
+    
+    # Mock home_config to use our test file
+    allow(Configuration).to receive(:home_config).and_return(test_home_config_path)
+    
+    # Configure Configuration with the test options
+    Configuration.configure(config_options)
+  end
 end
+
+# Shared context for default configuration options
+RSpec.shared_context 'default config options' do
+  let(:config_options) do
+    { 
+      data_dir: nil
+    }
+  end
+end
+
+# Include the shared context globally
+RSpec.configure { |c| c.include_context 'default config options' }

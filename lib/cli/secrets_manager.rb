@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'dotenv'
+require_relative '../configuration'
 
 module CLI
   class SecretsManager
@@ -8,6 +9,10 @@ module CLI
     ENV_FILE_PATH = File.expand_path('.env')
 
     class << self
+      def config
+        Configuration.options
+      end
+
       def value_from_env_or_secrets(variable)
         # Load .env file if it exists
         load_env_file
@@ -57,14 +62,11 @@ module CLI
           require_relative '../auth/authentication_manager'
           
           # Get the username from config to check for token file
-          config_manager = CLI::ConfigManager.new(nil, data_dir)
-          config = config_manager.load_config rescue {}
           username = config[:username]
           
           return false unless username
           
-          # Set the data directory for the authentication manager
-          Auth::AuthenticationManager.data_dir = data_dir if data_dir
+
           
           # Check if token file exists and has valid tokens
           token_file = Auth::AuthenticationManager.default_token_file(username)
@@ -111,13 +113,11 @@ module CLI
           # For user-based OAuth2, check if tokens exist
           require_relative '../microsoft_365_user_token'
           require_relative '../auth/authentication_manager'
+          require_relative '../configuration'
           
-          config_manager = CLI::ConfigManager.new(nil, data_dir)
-          config = config_manager.load_config rescue {}
-          username = config[:username]
+          username = Configuration.options[:username]
           
           if username
-            Auth::AuthenticationManager.data_dir = data_dir if data_dir
             token_file = Auth::AuthenticationManager.default_token_file(username)
             
 

@@ -1,16 +1,27 @@
 # frozen_string_literal: true
 
 require 'net/imap'
+require_relative '../configuration'
 require_relative 'config_manager'
 require_relative 'secrets_manager'
 require_relative '../auth/authentication_manager'
 
 module CLI
   class AuthCLI
-    def initialize(data_dir: nil, config_path: nil)
-      @data_dir = data_dir
-      @config_manager = ConfigManager.new(config_path, data_dir)
+    def initialize
       @logger = Logger.new(STDOUT)
+    end
+
+    def config
+      Configuration.options
+    end
+
+    def data_dir
+      Configuration.data_dir
+    end
+
+    def config_manager
+      @config_manager ||= ConfigManager.new
     end
 
     def run(subcommand = nil)
@@ -102,7 +113,6 @@ module CLI
         return
       end
 
-      config = @config_manager.load_config
       secrets = load_secrets
 
       puts "Testing connection to #{config[:host]}..."
@@ -123,14 +133,12 @@ module CLI
       puts "==============================="
       puts ""
 
-      unless @config_manager.config_file_exists?
+      unless Configuration.config_loaded?
         puts "❌ No configuration file found."
         puts "Run './cleanbox auth setup' to configure authentication."
         return
       end
 
-      config = @config_manager.load_config
-      
       unless config[:host] && config[:username] && config[:auth_type]
         puts "❌ Incomplete authentication configuration."
         puts "Missing: #{[:host, :username, :auth_type].select { |k| !config[k] }.join(', ')}"
@@ -144,7 +152,7 @@ module CLI
       puts ""
       
       # Check secrets status
-      secrets_status = CLI::SecretsManager.auth_secrets_status(config[:auth_type], data_dir: @data_dir)
+      secrets_status = CLI::SecretsManager.auth_secrets_status(config[:auth_type], data_dir: data_dir)
       
       if secrets_status[:configured]
         puts "✅ Credentials: Configured"
@@ -168,7 +176,7 @@ module CLI
       end
 
       puts ""
-      puts "Configuration file: #{@config_manager.config_path}"
+      puts "Configuration file: #{Configuration.config_file_path}"
       puts "Secrets file: #{CLI::SecretsManager::ENV_FILE_PATH}"
     end
 
@@ -187,8 +195,8 @@ module CLI
       puts "  - Connection settings from config file"
       puts "  - Credentials from .env file"
       puts ""
-              print "Are you sure? (y/N): "
-        response = gets.chomp.strip.downcase
+      print "Are you sure? (y/N): "
+      response = gets.chomp.strip.downcase
 
       if response == 'y' || response == 'yes'
         reset_auth_config
@@ -297,26 +305,26 @@ module CLI
       CLI::SecretsManager.create_env_file(secrets)
       
       # Load existing config or create new
-      config = @config_manager.load_config rescue {}
+      config = config_manager.load_config rescue {}
       
       # Update with authentication settings
       config.merge!(details)
       
       # Save configuration
-      @config_manager.save_config(config)
+      config_manager.save_config(config)
       
       puts "✅ Authentication configuration saved"
-      puts "Configuration file: #{@config_manager.config_path}"
+      puts "Configuration file: #{config_manager.config_path}"
       puts "Secrets file: #{CLI::SecretsManager::ENV_FILE_PATH}"
     end
 
     def reset_auth_config
       # Remove authentication settings from config
-      config = @config_manager.load_config rescue {}
+      config = config_manager.load_config rescue {}
       config.delete(:host)
       config.delete(:username)
       config.delete(:auth_type)
-      @config_manager.save_config(config)
+      config_manager.save_config(config)
 
       # Remove .env file
       env_file = CLI::SecretsManager::ENV_FILE_PATH
@@ -324,12 +332,10 @@ module CLI
     end
 
     def auth_configured?
-      return false unless @config_manager.config_file_exists?
-      
-      config = @config_manager.load_config rescue {}
+      return false unless Configuration.config_loaded?
       return false unless config[:host] && config[:username] && config[:auth_type]
       
-      CLI::SecretsManager.auth_secrets_available?(config[:auth_type], data_dir: @data_dir)
+      CLI::SecretsManager.auth_secrets_available?(config[:auth_type], data_dir: data_dir)
     end
 
     def load_secrets
@@ -404,8 +410,7 @@ module CLI
     def setup_user_oauth2(details)
       require_relative '../microsoft_365_user_token'
       
-      # Set the data directory for authentication tokens
-      Auth::AuthenticationManager.data_dir = @data_dir if @data_dir
+
       
       puts "🔐 Microsoft 365 User-based OAuth2 Setup"
       puts "========================================"
@@ -440,13 +445,13 @@ module CLI
           user_token.save_tokens_to_file(token_file)
           
           # Save configuration (without secrets)
-          config = @config_manager.load_config rescue {}
+          config = config_manager.load_config rescue {}
           config.merge!(details)
-          @config_manager.save_config(config)
+          config_manager.save_config(config)
           
           puts "✅ OAuth2 setup successful!"
           puts "✅ Tokens saved to: #{token_file}"
-          puts "✅ Configuration saved to: #{@config_manager.config_path}"
+          puts "✅ Configuration saved to: #{config_manager.config_path}"
           puts ""
           puts "You can now run:"
           puts "  ./cleanbox auth test    # Test your connection"

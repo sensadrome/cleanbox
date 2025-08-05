@@ -8,17 +8,21 @@ require_relative '../auth/authentication_manager'
 require_relative '../analysis/email_analyzer'
 require_relative '../analysis/folder_categorizer'
 require_relative '../analysis/domain_mapper'
+require_relative '../configuration'
 
 module CLI
   class SetupWizard
     attr_reader :config_manager, :imap_connection, :provider, :verbose, :update_mode
 
     def initialize(verbose: false)
-      @config_manager = ConfigManager.new
       @analysis_results = {}
       @verbose = verbose
       @logger = Logger.new(STDOUT)
       @logger.level = verbose ? Logger::DEBUG : Logger::INFO
+    end
+
+    def config_manager
+      @config_manager ||= ConfigManager.new
     end
 
     def run
@@ -27,7 +31,7 @@ module CLI
       puts ""
 
       # Check for existing configuration
-      if File.exist?(@config_manager.config_path)
+      if File.exist?(Configuration.config_file_path)
         puts "⚠️  Configuration file already exists!"
         puts ""
         puts "What would you like to do?"
@@ -75,7 +79,7 @@ module CLI
         when '1'
           puts "✅ Will set up authentication first."
           puts ""
-          auth_cli = CLI::AuthCLI.new(data_dir: @config_manager.data_dir)
+          auth_cli = CLI::AuthCLI.new
           auth_cli.send(:setup_auth)
           puts ""
         when '2'
@@ -137,7 +141,7 @@ module CLI
       # Load existing config if in update mode or if auth is already configured
       existing_config = {}
       if @update_mode || auth_configured?
-        existing_config = @config_manager.load_config
+        existing_config = Configuration.options
         puts "Using existing connection settings..."
         puts ""
       end
@@ -171,7 +175,8 @@ module CLI
         puts "Authentication: #{default_auth_type} (from existing config)"
       else
         auth_type = prompt_choice("Authentication Method", [
-          { key: 'oauth2_microsoft', label: 'OAuth2 (Microsoft 365/Outlook)' },
+          { key: 'oauth2_microsoft_user', label: 'OAuth2 (Microsoft 365 User - Recommended)' },
+          { key: 'oauth2_microsoft', label: 'OAuth2 (Microsoft 365 Application)' },
           { key: 'password', label: 'Password (IMAP)' }
         ])
         details[:auth_type] = auth_type
@@ -181,11 +186,15 @@ module CLI
       if @update_mode
         puts "Using existing credentials from .env file"
       else
-        if details[:auth_type] == 'oauth2_microsoft'
+        case details[:auth_type]
+        when 'oauth2_microsoft'
           secrets['CLEANBOX_CLIENT_ID'] = prompt("OAuth2 Client ID") { |id| !id.empty? }
           secrets['CLEANBOX_CLIENT_SECRET'] = prompt("OAuth2 Client Secret", secret: true) { |id| !id.empty? }
           secrets['CLEANBOX_TENANT_ID'] = prompt("OAuth2 Tenant ID") { |id| !id.empty? }
-        else
+        when 'oauth2_microsoft_user'
+          puts "For user-based OAuth2, you'll be redirected to Microsoft to authorize Cleanbox."
+          puts "No additional credentials needed - using Microsoft's default application."
+        when 'password'
           secrets['CLEANBOX_PASSWORD'] = prompt("IMAP Password", secret: true) { |pwd| !pwd.empty? }
         end
       end
@@ -259,7 +268,7 @@ module CLI
       {
         host: '',
         username: nil,
-        auth_type: nil,  # oauth2_microsoft, oauth2_gmail, password
+        auth_type: nil,  # oauth2_microsoft, oauth2_microsoft_user, oauth2_gmail, password
         client_id: secret(:client_id),
         client_secret: secret(:client_secret),
         tenant_id: secret(:tenant_id),
@@ -451,7 +460,23 @@ module CLI
       end
       
       # Load existing config or create new
-      config = @update_mode ? @config_manager.load_config : {}
+      config = @update_mode ? Configuration.options : {}
+      
+      # Detect sent folder automatically
+      sent_folder = detect_sent_folder
+      
+      # Set sensible defaults for other configuration options
+      default_config = {
+        sent_folder: sent_folder || 'Sent Items',
+        file_unread: false,
+        sent_since_months: 24,
+        valid_since_months: 12,
+        list_since_months: 12,
+        verbose: false,
+        level: 'info',
+        log_file: nil,
+        data_dir: nil
+      }
       
       # Update with new settings
       if @update_mode
@@ -465,6 +490,7 @@ module CLI
       else
         # In full setup mode, update everything
         config.merge!(connection_details)
+        config.merge!(default_config)
         config.merge!({
           whitelist_folders: final_config[:whitelist_folders],
           list_folders: final_config[:list_folders],
@@ -474,9 +500,9 @@ module CLI
       end
       
       # Save configuration
-      @config_manager.save_config(config)
+      config_manager.save_config(config)
       
-      puts "Configuration saved to #{@config_manager.config_path}"
+      puts "Configuration saved to #{config_manager.config_path}"
       puts ""
       puts "🔐 Security Note:"
       puts "   - Sensitive credentials are stored in .env file"
@@ -549,8 +575,8 @@ module CLI
       end
       
       loop do
-        print "Choice (1-#{choices.length}): "
-        choice = gets.chomp.to_i
+              print "Choice (1-#{choices.length}): "
+      choice = gets.chomp.to_i
         
         if choice >= 1 && choice <= choices.length
           return choices[choice - 1][:key]
@@ -560,13 +586,22 @@ module CLI
       end
     end
 
+    def detect_sent_folder
+      # Use the same logic as the main Cleanbox class
+      imap_folders.detect { |f| f.attr.include?(:Sent) }&.name
+    end
+
+    def imap_folders
+      @imap_folders ||= @imap_connection.list('', '*')
+    end
+
     def auth_configured?
-      return false unless @config_manager.config_file_exists?
+      return false unless Configuration.config_loaded?
       
-      config = @config_manager.load_config rescue {}
+      config = Configuration.options
       return false unless config[:host] && config[:username] && config[:auth_type]
       
-      CLI::SecretsManager.auth_secrets_available?(config[:auth_type], data_dir: @data_dir)
+      CLI::SecretsManager.auth_secrets_available?(config[:auth_type], data_dir: Configuration.data_dir)
     end
   end
 end 

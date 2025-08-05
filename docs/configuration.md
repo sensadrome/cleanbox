@@ -276,7 +276,7 @@ Cleanbox validates your configuration before running:
 - `auth_type` - Authentication method
 
 **Invalid authentication type:**
-- Must be one of: `oauth2_microsoft`, `oauth2_gmail`, `password`
+- Must be one of: `oauth2_microsoft`, `oauth2_microsoft_user`, `oauth2_gmail`, `password`
 
 **Missing credentials:**
 - OAuth2 requires: `client_id`, `client_secret`, `tenant_id`

@@ -209,6 +209,13 @@ This file tracks planned improvements, features, and tasks for the Cleanbox proj
   - Improve code organization
   - Reduce code duplication
   - Add better error handling
+- [ ] **Refactor SecretsManager for Better Separation of Concerns**
+  - Extract token validation logic from `auth_secrets_available?` method
+  - Create specialized classes for different auth types (OAuth2MicrosoftChecker, OAuth2MicrosoftUserChecker, PasswordChecker)
+  - Remove tight coupling to AuthenticationManager and Microsoft365UserToken from SecretsManager
+  - Implement Strategy pattern or delegate to specialized classes
+  - Reduce "God Object" behavior in SecretsManager
+  - Improve testability by separating concerns
 - [ ] **Add Type Safety and Validation**
   - Implement runtime type checking for configuration
   - Add schema validation for YAML config files

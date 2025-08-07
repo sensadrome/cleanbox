@@ -11,7 +11,7 @@ class Microsoft365ApplicationToken
     @client_id = client_id
     @client_secret = client_secret
     @tenant_id = tenant_id
-    @logger = logger || Logger.new(STDOUT)
+    @logger = logger || Logger.new($stdout)
   end
 
   def token

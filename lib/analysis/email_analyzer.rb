@@ -9,7 +9,7 @@ module Analysis
 
     def initialize(imap_connection, logger: nil, folder_categorizer_class: FolderCategorizer)
       @imap_connection = imap_connection
-      @logger = logger || Logger.new(STDOUT)
+      @logger = logger || Logger.new($stdout)
       @folder_categorizer_class = folder_categorizer_class
       @analysis_results = {}
     end
@@ -27,7 +27,7 @@ module Analysis
         next if folder.name == 'INBOX'
 
         # Call progress callback if provided
-        progress_callback.call(index + 1, total_folders, folder.name) if progress_callback
+        progress_callback&.call(index + 1, total_folders, folder.name)
 
         @logger.debug "Analyzing folder #{index + 1}/#{total_folders}: #{folder.name}"
 
@@ -138,7 +138,7 @@ module Analysis
 
       @logger.debug '  Getting folder status'
       status = @imap_connection.status(folder.name, %w[MESSAGES UNSEEN])
-      message_count = status['MESSAGES']&.to_i || 0
+      message_count = status['MESSAGES'].to_i
 
       @logger.debug "  Analyzing #{message_count} messages in #{folder.name}"
       senders = analyze_folder_senders(folder.name, message_count)
@@ -162,7 +162,7 @@ module Analysis
     end
 
     def analyze_folder_senders(folder_name, message_count)
-      return [] if message_count == 0
+      return [] if message_count.zero?
 
       begin
         @logger.debug "    Fetching #{[message_count, 100].min} messages for sender analysis"

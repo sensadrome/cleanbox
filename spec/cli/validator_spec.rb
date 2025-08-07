@@ -17,7 +17,7 @@ RSpec.describe CLI::Validator do
 
   before do
     # Stub exit to raise error instead of exiting
-    allow_any_instance_of(Object).to receive(:exit) { |_, code = 1| raise SystemExit.new(code) }
+    allow_any_instance_of(Object).to receive(:exit) { |_, code = 1| raise SystemExit, code }
     # Capture stderr output
     @stderr = StringIO.new
     @orig_stderr = $stderr
@@ -26,7 +26,6 @@ RSpec.describe CLI::Validator do
     @orig_verbose = $VERBOSE
     $VERBOSE = true
   end
-
 
   after do
     $stderr = @orig_stderr

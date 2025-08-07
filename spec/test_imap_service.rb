@@ -26,7 +26,7 @@ class TestImapService
   def authenticate(_method, _username, _password_or_token)
     auth_data = @fixture_data['auth']
 
-    raise Net::IMAP::NoResponseError.new(mock_imap_error_response(auth_data['error'])) if auth_data['success'] == false
+    raise Net::IMAP::NoResponseError, mock_imap_error_response(auth_data['error']) if auth_data['success'] == false
 
     # Simulate successful authentication
     @authenticated = true
@@ -50,9 +50,7 @@ class TestImapService
     @current_folder = folder_name
     folder_data = find_folder(folder_name)
 
-    unless folder_data
-      raise Net::IMAP::NoResponseError.new(mock_imap_error_response("Folder not found: #{folder_name}"))
-    end
+    raise Net::IMAP::NoResponseError, mock_imap_error_response("Folder not found: #{folder_name}") unless folder_data
 
     # Simulate successful folder selection
     true
@@ -146,6 +144,6 @@ class TestImapService
   def confirm_authenticated!
     return if @authenticated
 
-    raise Net::IMAP::NoResponseError.new(mock_imap_error_response('Not authenticated'))
+    raise Net::IMAP::NoResponseError, mock_imap_error_response('Not authenticated')
   end
 end

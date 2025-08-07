@@ -12,7 +12,7 @@ module CLI
     def initialize(imap_connection, options)
       @imap_connection = imap_connection
       @options = options
-      @logger = Logger.new(STDOUT)
+      @logger = Logger.new($stdout)
       @logger.level = options[:verbose] ? Logger::DEBUG : Logger::INFO
 
       # Initialize analyzer components
@@ -566,7 +566,7 @@ module CLI
 
       # Check for unread messages
       inbox_data = analyze_inbox_state
-      puts "  • Unread messages in inbox: #{inbox_data[:unread_messages]}" if inbox_data[:unread_messages] > 0
+      puts "  • Unread messages in inbox: #{inbox_data[:unread_messages]}" if inbox_data[:unread_messages].positive?
 
       puts ''
     end

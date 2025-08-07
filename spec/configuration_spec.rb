@@ -13,7 +13,7 @@ RSpec.describe 'Configuration Integration' do
     end
 
     after do
-      FileUtils.remove_entry(temp_dir) if Dir.exist?(temp_dir)
+      FileUtils.rm_rf(temp_dir)
       # Clean up environment variables
       ENV.delete('CLEANBOX_DATA_DIR')
       ENV.delete('CLEANBOX_CONFIG')
@@ -166,7 +166,7 @@ RSpec.describe 'Configuration Integration' do
     let(:temp_dir) { Dir.mktmpdir('cleanbox_test') }
 
     after do
-      FileUtils.remove_entry(temp_dir) if Dir.exist?(temp_dir)
+      FileUtils.rm_rf(temp_dir)
     end
 
     it 'clears all configuration state' do

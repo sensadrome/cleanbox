@@ -44,7 +44,7 @@ class CleanboxFolderChecker < CleanboxConnection
   end
 
   def logger_object
-    options[:logger] || Logger.new(STDOUT)
+    options[:logger] || Logger.new($stdout)
   end
 
   def get_cached_email_addresses
@@ -87,9 +87,9 @@ class CleanboxFolderChecker < CleanboxConnection
     status = imap_connection.status(folder, %w[MESSAGES UIDNEXT UIDVALIDITY])
 
     {
-      messages: status['MESSAGES']&.to_i || 0,
-      uidnext: status['UIDNEXT']&.to_i || 0,
-      uidvalidity: status['UIDVALIDITY']&.to_i || 0
+      messages: status['MESSAGES'].to_i,
+      uidnext: status['UIDNEXT'].to_i,
+      uidvalidity: status['UIDVALIDITY'].to_i
     }
   end
 
@@ -190,9 +190,9 @@ class CleanboxFolderChecker < CleanboxConnection
       # Get current folder stats
       status = imap_connection.status(folder_name, %w[MESSAGES UIDNEXT UIDVALIDITY])
       current_stats = {
-        messages: status['MESSAGES']&.to_i || 0,
-        uidnext: status['UIDNEXT']&.to_i || 0,
-        uidvalidity: status['UIDVALIDITY']&.to_i || 0
+        messages: status['MESSAGES'].to_i,
+        uidnext: status['UIDNEXT'].to_i,
+        uidvalidity: status['UIDVALIDITY'].to_i
       }
 
       # Update cache with new stats (keep existing emails)

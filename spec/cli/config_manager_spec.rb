@@ -11,12 +11,12 @@ RSpec.describe CLI::ConfigManager do
 
   before do
     # Clean up any existing test config
-    File.delete(temp_config_path) if File.exist?(temp_config_path)
+    FileUtils.rm_f(temp_config_path)
   end
 
   after do
     # Clean up test config
-    File.delete(temp_config_path) if File.exist?(temp_config_path)
+    FileUtils.rm_f(temp_config_path)
   end
 
   # Use a separate temp file for integration tests to avoid conflicts
@@ -25,7 +25,7 @@ RSpec.describe CLI::ConfigManager do
 
   after do
     # Clean up integration test config
-    File.delete(integration_temp_config_path) if File.exist?(integration_temp_config_path)
+    FileUtils.rm_f(integration_temp_config_path)
   end
 
   describe '#show' do
@@ -368,7 +368,7 @@ RSpec.describe CLI::ConfigManager do
     let(:user_domain_rules_path) { File.join(temp_data_dir, 'domain_rules.yml') }
 
     after do
-      FileUtils.remove_entry(temp_data_dir) if Dir.exist?(temp_data_dir)
+      FileUtils.rm_rf(temp_data_dir)
     end
 
     context 'when domain rules file does not exist' do
@@ -395,7 +395,7 @@ RSpec.describe CLI::ConfigManager do
         home_domain_rules_path = File.expand_path('~/.cleanbox/domain_rules.yml')
 
         # Clean up any existing file
-        File.delete(home_domain_rules_path) if File.exist?(home_domain_rules_path)
+        FileUtils.rm_f(home_domain_rules_path)
 
         expect do
           config_manager_without_data_dir.init_domain_rules
@@ -405,7 +405,7 @@ RSpec.describe CLI::ConfigManager do
         expect(File.read(home_domain_rules_path)).to eq(File.read(default_domain_rules_path))
 
         # Clean up
-        File.delete(home_domain_rules_path) if File.exist?(home_domain_rules_path)
+        FileUtils.rm_f(home_domain_rules_path)
       end
 
       it 'creates directory structure if needed' do
@@ -422,7 +422,7 @@ RSpec.describe CLI::ConfigManager do
 
       it 'creates domain rules file with helpful information' do
         # Ensure the domain rules file doesn't exist for this test
-        File.delete(user_domain_rules_path) if File.exist?(user_domain_rules_path)
+        FileUtils.rm_f(user_domain_rules_path)
 
         expect do
           config_manager_with_data_dir.init_domain_rules
@@ -432,7 +432,7 @@ RSpec.describe CLI::ConfigManager do
         expect(File.read(user_domain_rules_path)).to eq(File.read(default_domain_rules_path))
 
         # Clean up
-        File.delete(user_domain_rules_path) if File.exist?(user_domain_rules_path)
+        FileUtils.rm_f(user_domain_rules_path)
       end
     end
 
@@ -461,7 +461,7 @@ RSpec.describe CLI::ConfigManager do
     context 'when default domain rules file does not exist' do
       it 'shows error and exits' do
         # Ensure the user domain rules file doesn't exist
-        File.delete(user_domain_rules_path) if File.exist?(user_domain_rules_path)
+        FileUtils.rm_f(user_domain_rules_path)
 
         # Mock File.exist? to return true by default, then specifically mock the files we care about
         allow(File).to receive(:exist?).and_return(true) # Default mock

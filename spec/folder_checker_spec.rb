@@ -26,7 +26,7 @@ RSpec.describe CleanboxFolderChecker do
   end
 
   after do
-    FileUtils.remove_entry(temp_cache_dir) if Dir.exist?(temp_cache_dir)
+    FileUtils.rm_rf(temp_cache_dir)
   rescue Errno::ENOENT
     # Directory already removed
   end

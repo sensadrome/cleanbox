@@ -54,7 +54,7 @@ module CLI
       return unless ARGV.first == 'config'
 
       # Extract config subcommand and arguments
-      config_args = ARGV[1..-1]
+      config_args = ARGV[1..]
 
       # Check if --all flag is present in the original ARGV
       show_all = ARGV.include?('--all')

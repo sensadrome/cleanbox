@@ -13,7 +13,7 @@ module Analysis
       @domains = folder_data[:domains] || []
       @attributes = folder_data[:attributes] || {}
       @imap_connection = imap_connection
-      @logger = logger || Logger.new(STDOUT)
+      @logger = logger || Logger.new($stdout)
     end
 
     def skip?

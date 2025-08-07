@@ -60,7 +60,7 @@ RSpec.describe CLI::SecretsManager do
 
     context 'when secrets file exists' do
       before do
-        ENV['SECRETS_PATH'] = secrets_dir + '/'
+        ENV['SECRETS_PATH'] = "#{secrets_dir}/"
         File.write(File.join(secrets_dir, 'password'), "secretfromfile\n")
       end
 
@@ -495,7 +495,7 @@ RSpec.describe CLI::SecretsManager do
       end
 
       it 'returns the value from the file if it exists' do
-        ENV['SECRETS_PATH'] = secrets_dir + '/'
+        ENV['SECRETS_PATH'] = "#{secrets_dir}/"
         File.write(File.join(secrets_dir, 'mysecret'), "shhh\n")
         expect(described_class.send(:password_from_secrets, 'mysecret')).to eq('shhh')
       end

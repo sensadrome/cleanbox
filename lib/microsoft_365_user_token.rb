@@ -19,7 +19,7 @@ class Microsoft365UserToken
     @client_id = client_id || DEFAULT_CLIENT_ID
     @redirect_uri = redirect_uri || DEFAULT_REDIRECT_URI
     @scope = scope || DEFAULT_SCOPE
-    @logger = logger || Logger.new(STDOUT).tap { |l| l.level = Logger::INFO }
+    @logger = logger || Logger.new($stdout).tap { |l| l.level = Logger::INFO }
     @access_token = nil
     @refresh_token = nil
     @expires_at = nil

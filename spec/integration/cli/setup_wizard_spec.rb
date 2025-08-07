@@ -30,7 +30,7 @@ RSpec.describe 'SetupWizard Integration' do
   end
 
   after do
-    FileUtils.rm_rf(temp_dir) if Dir.exist?(temp_dir)
+    FileUtils.rm_rf(temp_dir)
   end
 
   describe 'connection failure' do
@@ -250,7 +250,7 @@ RSpec.describe 'SetupWizard Integration' do
 
     # Mock the authentication manager to use our test service's auth methods
     allow(Auth::AuthenticationManager).to receive(:authenticate_imap) do |_imap, _options|
-      raise Net::IMAP::NoResponseError.new(test_imap.auth_error) unless test_imap.auth_success?
+      raise Net::IMAP::NoResponseError, test_imap.auth_error unless test_imap.auth_success?
 
       # Simulate successful authentication by calling authenticate on the test service
       test_imap.authenticate('oauth2', 'test@example.com', 'token')

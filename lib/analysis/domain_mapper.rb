@@ -26,7 +26,7 @@ module Analysis
 
     def initialize(folders, logger: nil)
       @folders = folders
-      @logger = logger || Logger.new(STDOUT)
+      @logger = logger || Logger.new($stdout)
       @mappings = {}
     end
 

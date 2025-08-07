@@ -10,7 +10,7 @@ class MessageActionRunner
     @imap = imap
     @junk_folder = junk_folder
     @pretending = pretending
-    @logger = logger || Logger.new(STDOUT)
+    @logger = logger || Logger.new($stdout)
     @changed_folders = Set.new
   end
 

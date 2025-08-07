@@ -22,7 +22,7 @@ module CLI
       if File.exist?(@config_path)
         puts "Configuration from #{@config_path}:"
         recognized_keys = get_recognized_keys
-        filtered_config = config_data.select { |key, _| recognized_keys.include?(key) }
+        filtered_config = config_data.slice(*recognized_keys)
         puts filtered_config.to_yaml
 
         # Deprecated keys: present in config, not recognized
@@ -66,7 +66,7 @@ module CLI
 
       # Try to parse value as YAML for complex types
       begin
-        parsed_value = YAML.load(value)
+        parsed_value = YAML.safe_load(value)
         config[key] = parsed_value
       rescue StandardError
         # If YAML parsing fails, treat as string
@@ -82,7 +82,7 @@ module CLI
 
       # Try to parse value as YAML for complex types
       begin
-        parsed_value = YAML.load(value)
+        parsed_value = YAML.safe_load(value)
       rescue StandardError
         # If YAML parsing fails, treat as string
         parsed_value = value
@@ -120,7 +120,7 @@ module CLI
 
       # Try to parse value as YAML for complex types
       begin
-        parsed_value = YAML.load(value)
+        parsed_value = YAML.safe_load(value)
       rescue StandardError
         # If YAML parsing fails, treat as string
         parsed_value = value

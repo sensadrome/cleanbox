@@ -9,7 +9,7 @@ require_relative '../auth/authentication_manager'
 module CLI
   class AuthCLI
     def initialize
-      @logger = Logger.new(STDOUT)
+      @logger = Logger.new($stdout)
     end
 
     def config
@@ -141,7 +141,7 @@ module CLI
 
       unless config[:host] && config[:username] && config[:auth_type]
         puts '❌ Incomplete authentication configuration.'
-        puts "Missing: #{%i[host username auth_type].select { |k| !config[k] }.join(', ')}"
+        puts "Missing: #{%i[host username auth_type].reject { |k| config[k] }.join(', ')}"
         puts "Run './cleanbox auth setup' to complete configuration."
         return
       end
@@ -334,7 +334,7 @@ module CLI
 
       # Remove .env file
       env_file = CLI::SecretsManager::ENV_FILE_PATH
-      File.delete(env_file) if File.exist?(env_file)
+      FileUtils.rm_f(env_file)
     end
 
     def auth_configured?
@@ -400,7 +400,7 @@ module CLI
         print "Choice (1-#{choices.length}): "
         choice = gets.chomp.to_i
 
-        return choices[choice - 1][:key] if choice >= 1 && choice <= choices.length
+        return choices[choice - 1][:key] if choice.between?(1, choices.length)
 
         puts "❌ Invalid choice. Please enter 1-#{choices.length}."
       end

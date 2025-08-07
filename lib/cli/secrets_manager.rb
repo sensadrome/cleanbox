@@ -45,7 +45,7 @@ module CLI
           env_content << "#{key}=#{value}"
         end
 
-        File.write(ENV_FILE_PATH, env_content.join("\n") + "\n")
+        File.write(ENV_FILE_PATH, "#{env_content.join("\n")}\n")
         puts '✅ Created .env file with sensitive credentials'
         puts "   Location: #{ENV_FILE_PATH}"
         puts '   Note: This file is already in .gitignore'

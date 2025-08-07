@@ -17,7 +17,7 @@ module CLI
     def initialize(verbose: false)
       @analysis_results = {}
       @verbose = verbose
-      @logger = Logger.new(STDOUT)
+      @logger = Logger.new($stdout)
       @logger.level = verbose ? Logger::DEBUG : Logger::INFO
     end
 
@@ -569,7 +569,7 @@ module CLI
         print "Choice (1-#{choices.length}): "
         choice = gets.chomp.to_i
 
-        return choices[choice - 1][:key] if choice >= 1 && choice <= choices.length
+        return choices[choice - 1][:key] if choice.between?(1, choices.length)
 
         puts "❌ Invalid choice. Please enter 1-#{choices.length}."
       end

@@ -92,7 +92,7 @@ class Cleanbox < CleanboxConnection
   end
 
   def logger_object
-    return Logger.new(STDOUT) unless options[:log_file]
+    return Logger.new($stdout) unless options[:log_file]
 
     Logger.new(options[:log_file], 'monthly')
   end

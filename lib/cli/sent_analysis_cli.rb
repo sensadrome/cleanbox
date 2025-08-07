@@ -12,7 +12,7 @@ module CLI
     def initialize(imap_connection, options)
       @imap_connection = imap_connection
       @options = options
-      @logger = Logger.new(STDOUT)
+      @logger = Logger.new($stdout)
       @logger.level = options[:verbose] ? Logger::DEBUG : Logger::INFO
       @data_dir = options[:data_dir] || Dir.pwd
 
@@ -57,7 +57,7 @@ module CLI
         percentage = (current.to_f / total * 100).round(1)
         # Clear the line and write progress
         print "\r\033[K  📈 Progress: #{percentage}% (#{current}/#{total}) - #{folder_name}"
-        STDOUT.flush
+        $stdout.flush
       end
 
       folder_results = @email_analyzer.analyze_folders(progress_callback)
@@ -199,7 +199,7 @@ module CLI
       folder_overlaps.each_with_index do |folder, index|
         puts "#{index + 1}. #{folder[:folder_name]} (#{folder[:categorization]})"
         puts "   Overlap: #{folder[:overlap_count]}/#{folder[:total_senders]} (#{folder[:overlap_percentage]}%)"
-        puts "   Overlapping emails: #{folder[:overlap_emails].join(', ')}" if folder[:overlap_count] > 0
+        puts "   Overlapping emails: #{folder[:overlap_emails].join(', ')}" if folder[:overlap_count].positive?
         puts ''
       end
 

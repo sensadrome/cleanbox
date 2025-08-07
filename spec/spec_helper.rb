@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'tmpdir'
 require 'securerandom'
 require 'logger'
@@ -182,7 +184,7 @@ RSpec.configure do |config|
   config.after(:suite) do
     FileUtils.rm_rf(Dir[File.join(Dir.pwd, 'tmp', 'test_*')])
     # Clean up relative directory created by configuration tests
-    FileUtils.rm_rf(File.join(Dir.pwd, 'relative')) if Dir.exist?(File.join(Dir.pwd, 'relative'))
+    FileUtils.rm_rf(File.join(Dir.pwd, 'relative'))
   end
 
   # Set up test home config file
@@ -191,7 +193,7 @@ RSpec.configure do |config|
   end
 
   config.after(:suite) do
-    FileUtils.remove_entry(test_home_config_dir) if Dir.exist?(test_home_config_dir)
+    FileUtils.rm_rf(test_home_config_dir)
   end
 
   # Configure Configuration for each test

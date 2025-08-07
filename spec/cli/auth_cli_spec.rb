@@ -16,7 +16,7 @@ RSpec.describe CLI::AuthCLI do
   end
 
   after do
-    FileUtils.remove_entry temp_dir if Dir.exist?(temp_dir)
+    FileUtils.rm_rf temp_dir
   end
 
   describe 'authentication configuration detection' do
@@ -68,7 +68,7 @@ RSpec.describe CLI::AuthCLI do
         File.write(config_path, config_content)
 
         # Ensure no .env file exists for this test
-        File.delete(env_path) if File.exist?(env_path)
+        FileUtils.rm_f(env_path)
         # Clear any environment variables that might interfere
         ENV.delete('CLEANBOX_CLIENT_ID')
         ENV.delete('CLEANBOX_CLIENT_SECRET')

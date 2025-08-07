@@ -8,8 +8,8 @@ RSpec.describe MessageProcessor do
       whitelisted_emails: ['whitelist@example.com'],
       whitelisted_domains: ['trusted.com'],
       list_domains: ['list.example.com'],
-      list_domain_map: {'list.example.com' => 'Lists'},
-      sender_map: {'sender@example.com' => 'Work'},
+      list_domain_map: { 'list.example.com' => 'Lists' },
+      sender_map: { 'sender@example.com' => 'Work' },
       list_folder: 'Lists'
     }
   end
@@ -22,7 +22,7 @@ RSpec.describe MessageProcessor do
 
       it 'returns keep action' do
         decision = processor.decide_for_new_message(message)
-        expect(decision).to eq({action: :keep})
+        expect(decision).to eq({ action: :keep })
       end
     end
 
@@ -31,7 +31,7 @@ RSpec.describe MessageProcessor do
 
       it 'returns keep action' do
         decision = processor.decide_for_new_message(message)
-        expect(decision).to eq({action: :keep})
+        expect(decision).to eq({ action: :keep })
       end
     end
 
@@ -40,7 +40,7 @@ RSpec.describe MessageProcessor do
 
       it 'returns move action to list folder' do
         decision = processor.decide_for_new_message(message)
-        expect(decision).to eq({action: :move, folder: 'Lists'})
+        expect(decision).to eq({ action: :move, folder: 'Lists' })
       end
     end
 
@@ -49,7 +49,7 @@ RSpec.describe MessageProcessor do
 
       it 'returns junk action' do
         decision = processor.decide_for_new_message(message)
-        expect(decision).to eq({action: :junk})
+        expect(decision).to eq({ action: :junk })
       end
     end
   end
@@ -60,7 +60,7 @@ RSpec.describe MessageProcessor do
 
       it 'returns move action to mapped folder' do
         decision = processor.decide_for_filing(message)
-        expect(decision).to eq({action: :move, folder: 'Work'})
+        expect(decision).to eq({ action: :move, folder: 'Work' })
       end
     end
 
@@ -69,7 +69,7 @@ RSpec.describe MessageProcessor do
 
       it 'returns move action to list folder' do
         decision = processor.decide_for_filing(message)
-        expect(decision).to eq({action: :move, folder: 'Lists'})
+        expect(decision).to eq({ action: :move, folder: 'Lists' })
       end
     end
 
@@ -78,7 +78,7 @@ RSpec.describe MessageProcessor do
 
       it 'returns keep action' do
         decision = processor.decide_for_filing(message)
-        expect(decision).to eq({action: :keep})
+        expect(decision).to eq({ action: :keep })
       end
     end
   end
@@ -88,7 +88,7 @@ RSpec.describe MessageProcessor do
 
     it 'uses filing logic' do
       decision = processor.decide_for_unjunking(message)
-      expect(decision).to eq({action: :move, folder: 'Work'})
+      expect(decision).to eq({ action: :move, folder: 'Work' })
     end
   end
 
@@ -105,20 +105,24 @@ RSpec.describe MessageProcessor do
     end
 
     context 'when message has valid DKIM' do
-      let(:message) { build_message_with_headers('list@example.com', 'example.com', {'Authentication-Results' => 'dkim=pass'}) }
+      let(:message) do
+        build_message_with_headers('list@example.com', 'example.com', { 'Authentication-Results' => 'dkim=pass' })
+      end
 
       it 'treats as valid list email' do
         decision = processor.decide_for_new_message(message)
-        expect(decision).to eq({action: :move, folder: 'Lists'})
+        expect(decision).to eq({ action: :move, folder: 'Lists' })
       end
     end
 
     context 'when message has invalid DKIM but domain is in list_domains' do
-      let(:message) { build_message_with_headers('list@example.com', 'example.com', {'Authentication-Results' => 'dkim=fail'}) }
+      let(:message) do
+        build_message_with_headers('list@example.com', 'example.com', { 'Authentication-Results' => 'dkim=fail' })
+      end
 
       it 'still treats as valid list email' do
         decision = processor.decide_for_new_message(message)
-        expect(decision).to eq({action: :move, folder: 'Lists'})
+        expect(decision).to eq({ action: :move, folder: 'Lists' })
       end
     end
   end
@@ -136,11 +140,11 @@ RSpec.describe MessageProcessor do
     end
 
     context 'when message has fake headers' do
-      let(:message) { build_message_with_headers('list@example.com', 'example.com', {'X-Antiabuse' => 'fake'}) }
+      let(:message) { build_message_with_headers('list@example.com', 'example.com', { 'X-Antiabuse' => 'fake' }) }
 
       it 'treats as junk even if domain is in list_domains' do
         decision = processor.decide_for_new_message(message)
-        expect(decision).to eq({action: :junk})
+        expect(decision).to eq({ action: :junk })
       end
     end
   end
@@ -149,18 +153,16 @@ RSpec.describe MessageProcessor do
 
   def build_message(from_address, from_domain)
     double('message',
-      from_address: from_address,
-      from_domain: from_domain,
-      message: double('mail', header_fields: [])
-    )
+           from_address: from_address,
+           from_domain: from_domain,
+           message: double('mail', header_fields: []))
   end
 
   def build_message_with_headers(from_address, from_domain, headers_hash)
     header_fields = headers_hash.map { |k, v| double('header', name: k, to_s: v) }
     double('message',
-      from_address: from_address,
-      from_domain: from_domain,
-      message: double('mail', header_fields: header_fields)
-    )
+           from_address: from_address,
+           from_domain: from_domain,
+           message: double('mail', header_fields: header_fields))
   end
-end 
+end

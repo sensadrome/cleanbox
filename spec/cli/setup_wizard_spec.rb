@@ -16,10 +16,10 @@ RSpec.describe CLI::SetupWizard do
     allow(CLI::SecretsManager).to receive(:create_env_file)
     allow(CLI::SecretsManager).to receive(:value_from_env_or_secrets).and_return('test_value')
     allow(CLI::SecretsManager).to receive(:auth_secrets_available?).and_return(false)
-    
+
     allow(Net::IMAP).to receive(:new).and_return(mock_imap)
     allow(Auth::AuthenticationManager).to receive(:authenticate_imap)
-    
+
     # Mock system calls
     allow(wizard).to receive(:system)
   end
@@ -49,22 +49,22 @@ RSpec.describe CLI::SetupWizard do
       end
 
       context 'when user chooses update mode (1)' do
-        let(:existing_config) {
+        let(:existing_config) do
           {
             host: 'outlook.office365.com',
             username: 'test@example.com',
             auth_type: 'oauth2_microsoft'
           }
-        }
+        end
 
         before do
           allow(wizard).to receive(:gets).and_return("1\n")
-          
+
           # Mock the prompt methods that get_connection_details calls
           allow(wizard).to receive(:prompt).and_return('test_value')
           allow(wizard).to receive(:prompt_with_default).and_return('outlook.office365.com')
           allow(wizard).to receive(:prompt_choice).and_return('oauth2_microsoft')
-          
+
           # Mock IMAP connection methods to prevent actual connection attempts
           allow(mock_imap).to receive(:list).and_return([])
           allow(mock_imap).to receive(:select).and_return(double('response', data: []))
@@ -83,10 +83,10 @@ RSpec.describe CLI::SetupWizard do
 
         it 'uses existing config in update mode' do
           allow(wizard).to receive(:interactive_configuration).and_return({
-            whitelist_folders: ['Work'],
-            list_folders: ['Newsletters'],
-            domain_mappings: { 'example.com' => 'Newsletters' }
-          })
+                                                                            whitelist_folders: ['Work'],
+                                                                            list_folders: ['Newsletters'],
+                                                                            domain_mappings: { 'example.com' => 'Newsletters' }
+                                                                          })
           allow(wizard).to receive(:save_configuration)
           allow(wizard).to receive(:validate_and_preview)
           expect { wizard.run }.to output(/Using existing connection settings/).to_stdout
@@ -94,63 +94,64 @@ RSpec.describe CLI::SetupWizard do
 
         it 'uses existing config for update mode' do
           allow(wizard).to receive(:interactive_configuration).and_return({
-            whitelist_folders: ['Work'],
-            list_folders: ['Newsletters'],
-            domain_mappings: { 'example.com' => 'Newsletters' }
-          })
+                                                                            whitelist_folders: ['Work'],
+                                                                            list_folders: ['Newsletters'],
+                                                                            domain_mappings: { 'example.com' => 'Newsletters' }
+                                                                          })
           allow(wizard).to receive(:save_configuration)
           allow(wizard).to receive(:validate_and_preview)
           wizard.run
         end
 
         context 'with missing host' do
-          let(:existing_config) {
+          let(:existing_config) do
             {
               username: 'test@example.com',
               auth_type: 'oauth2_microsoft'
             }
-          }
+          end
 
           it 'prompts for host' do
             # Mock prompt_with_default to output the expected message and return a value
-            allow(wizard).to receive(:prompt_with_default).with("IMAP Host", "outlook.office365.com") do |message, default|
+            allow(wizard).to receive(:prompt_with_default).with('IMAP Host',
+                                                                'outlook.office365.com') do |message, default|
               puts "#{message}: #{default}"
-              "outlook.office365.com"
+              'outlook.office365.com'
             end
-            
+
             # Mock other required methods to prevent actual execution
             allow(wizard).to receive(:interactive_configuration).and_return({
-              whitelist_folders: ['Work'],
-              list_folders: ['Newsletters'],
-              domain_mappings: { 'example.com' => 'Newsletters' }
-            })
+                                                                              whitelist_folders: ['Work'],
+                                                                              list_folders: ['Newsletters'],
+                                                                              domain_mappings: { 'example.com' => 'Newsletters' }
+                                                                            })
             allow(wizard).to receive(:save_configuration)
             allow(wizard).to receive(:validate_and_preview)
-            
+
             expect { wizard.run }.to output(/IMAP Host/).to_stdout
           end
         end
-        
       end
 
       context 'when user chooses full setup mode (2)' do
         before do
           allow(wizard).to receive(:gets).and_return("2\n")
           allow(wizard).to receive(:get_connection_details).and_return({
-            details: { host: 'test.com', username: 'test@example.com' },
-            secrets: { 'CLEANBOX_PASSWORD' => 'password123' }
-          })
+                                                                         details: { host: 'test.com',
+                                                                                    username: 'test@example.com' },
+                                                                         secrets: { 'CLEANBOX_PASSWORD' => 'password123' }
+                                                                       })
           allow(wizard).to receive(:connect_and_analyze)
           allow(wizard).to receive(:generate_recommendations).and_return({
-            whitelist_folders: ['Work'],
-            list_folders: ['Newsletters'],
-            domain_mappings: { 'example.com' => 'Newsletters' }
-          })
+                                                                           whitelist_folders: ['Work'],
+                                                                           list_folders: ['Newsletters'],
+                                                                           domain_mappings: { 'example.com' => 'Newsletters' }
+                                                                         })
           allow(wizard).to receive(:interactive_configuration).and_return({
-            whitelist_folders: ['Work'],
-            list_folders: ['Newsletters'],
-            domain_mappings: { 'example.com' => 'Newsletters' }
-          })
+                                                                            whitelist_folders: ['Work'],
+                                                                            list_folders: ['Newsletters'],
+                                                                            domain_mappings: { 'example.com' => 'Newsletters' }
+                                                                          })
           allow(wizard).to receive(:save_configuration)
           allow(wizard).to receive(:validate_and_preview)
         end
@@ -197,20 +198,21 @@ RSpec.describe CLI::SetupWizard do
         # Mock the user to choose to skip authentication setup
         allow(wizard).to receive(:gets).and_return("2\n")
         allow(wizard).to receive(:get_connection_details).and_return({
-          details: { host: 'test.com', username: 'test@example.com' },
-          secrets: { 'CLEANBOX_PASSWORD' => 'password123' }
-        })
+                                                                       details: { host: 'test.com',
+                                                                                  username: 'test@example.com' },
+                                                                       secrets: { 'CLEANBOX_PASSWORD' => 'password123' }
+                                                                     })
         allow(wizard).to receive(:connect_and_analyze)
         allow(wizard).to receive(:generate_recommendations).and_return({
-          whitelist_folders: ['Work'],
-          list_folders: ['Newsletters'],
-          domain_mappings: { 'example.com' => 'Newsletters' }
-        })
+                                                                         whitelist_folders: ['Work'],
+                                                                         list_folders: ['Newsletters'],
+                                                                         domain_mappings: { 'example.com' => 'Newsletters' }
+                                                                       })
         allow(wizard).to receive(:interactive_configuration).and_return({
-          whitelist_folders: ['Work'],
-          list_folders: ['Newsletters'],
-          domain_mappings: { 'example.com' => 'Newsletters' }
-        })
+                                                                          whitelist_folders: ['Work'],
+                                                                          list_folders: ['Newsletters'],
+                                                                          domain_mappings: { 'example.com' => 'Newsletters' }
+                                                                        })
         allow(wizard).to receive(:save_configuration)
         allow(wizard).to receive(:validate_and_preview)
       end
@@ -223,14 +225,14 @@ RSpec.describe CLI::SetupWizard do
       it 'calls all setup steps in order' do
         # Mock the authentication setup to skip it
         allow_any_instance_of(CLI::AuthCLI).to receive(:setup_auth)
-        
+
         expect(wizard).to receive(:get_connection_details).ordered
         expect(wizard).to receive(:connect_and_analyze).ordered
         expect(wizard).to receive(:generate_recommendations).ordered
         expect(wizard).to receive(:interactive_configuration).ordered
         expect(wizard).to receive(:save_configuration).ordered
         expect(wizard).to receive(:validate_and_preview).ordered
-        
+
         wizard.run
       end
 
@@ -247,23 +249,24 @@ RSpec.describe CLI::SetupWizard do
           # Mock the user to choose to skip authentication setup
           allow(wizard).to receive(:gets).and_return("2\n")
           allow(wizard).to receive(:get_connection_details).and_return({
-            details: { host: 'test.com', username: 'test@example.com' },
-            secrets: { 'CLEANBOX_PASSWORD' => 'password123' }
-          })
+                                                                         details: { host: 'test.com',
+                                                                                    username: 'test@example.com' },
+                                                                         secrets: { 'CLEANBOX_PASSWORD' => 'password123' }
+                                                                       })
           allow(wizard).to receive(:connect_and_analyze).and_raise(RuntimeError, 'Connection failed')
         end
 
         it 'handles connection errors gracefully' do
           # Mock the authentication setup to skip it
           allow_any_instance_of(CLI::AuthCLI).to receive(:setup_auth)
-          
+
           expect { wizard.run }.to output(/❌ Connection failed: Connection failed/).to_stdout
         end
 
         it 'does not proceed with setup' do
           # Mock the authentication setup to skip it
           allow_any_instance_of(CLI::AuthCLI).to receive(:setup_auth)
-          
+
           expect(wizard).not_to receive(:generate_recommendations)
           wizard.run
         end
@@ -326,20 +329,21 @@ RSpec.describe CLI::SetupWizard do
           # Mock the AuthCLI methods to prevent actual execution
           allow_any_instance_of(CLI::AuthCLI).to receive(:setup_auth)
           allow(wizard).to receive(:get_connection_details).and_return({
-            details: { host: 'test.com', username: 'test@example.com' },
-            secrets: { 'CLEANBOX_PASSWORD' => 'password123' }
-          })
+                                                                         details: { host: 'test.com',
+                                                                                    username: 'test@example.com' },
+                                                                         secrets: { 'CLEANBOX_PASSWORD' => 'password123' }
+                                                                       })
           allow(wizard).to receive(:connect_and_analyze)
           allow(wizard).to receive(:generate_recommendations).and_return({
-            whitelist_folders: ['Work'],
-            list_folders: ['Newsletters'],
-            domain_mappings: { 'example.com' => 'Newsletters' }
-          })
+                                                                           whitelist_folders: ['Work'],
+                                                                           list_folders: ['Newsletters'],
+                                                                           domain_mappings: { 'example.com' => 'Newsletters' }
+                                                                         })
           allow(wizard).to receive(:interactive_configuration).and_return({
-            whitelist_folders: ['Work'],
-            list_folders: ['Newsletters'],
-            domain_mappings: { 'example.com' => 'Newsletters' }
-          })
+                                                                            whitelist_folders: ['Work'],
+                                                                            list_folders: ['Newsletters'],
+                                                                            domain_mappings: { 'example.com' => 'Newsletters' }
+                                                                          })
           allow(wizard).to receive(:save_configuration)
           allow(wizard).to receive(:validate_and_preview)
         end
@@ -357,20 +361,21 @@ RSpec.describe CLI::SetupWizard do
         before do
           allow(wizard).to receive(:gets).and_return("2\n")
           allow(wizard).to receive(:get_connection_details).and_return({
-            details: { host: 'test.com', username: 'test@example.com' },
-            secrets: { 'CLEANBOX_PASSWORD' => 'password123' }
-          })
+                                                                         details: { host: 'test.com',
+                                                                                    username: 'test@example.com' },
+                                                                         secrets: { 'CLEANBOX_PASSWORD' => 'password123' }
+                                                                       })
           allow(wizard).to receive(:connect_and_analyze)
           allow(wizard).to receive(:generate_recommendations).and_return({
-            whitelist_folders: ['Work'],
-            list_folders: ['Newsletters'],
-            domain_mappings: { 'example.com' => 'Newsletters' }
-          })
+                                                                           whitelist_folders: ['Work'],
+                                                                           list_folders: ['Newsletters'],
+                                                                           domain_mappings: { 'example.com' => 'Newsletters' }
+                                                                         })
           allow(wizard).to receive(:interactive_configuration).and_return({
-            whitelist_folders: ['Work'],
-            list_folders: ['Newsletters'],
-            domain_mappings: { 'example.com' => 'Newsletters' }
-          })
+                                                                            whitelist_folders: ['Work'],
+                                                                            list_folders: ['Newsletters'],
+                                                                            domain_mappings: { 'example.com' => 'Newsletters' }
+                                                                          })
           allow(wizard).to receive(:save_configuration)
           allow(wizard).to receive(:validate_and_preview)
         end
@@ -400,20 +405,21 @@ RSpec.describe CLI::SetupWizard do
         allow(File).to receive(:exist?).and_return(false)
         allow(wizard).to receive(:auth_configured?).and_return(true)
         allow(wizard).to receive(:get_connection_details).and_return({
-          details: { host: 'test.com', username: 'test@example.com' },
-          secrets: { 'CLEANBOX_PASSWORD' => 'password123' }
-        })
+                                                                       details: { host: 'test.com',
+                                                                                  username: 'test@example.com' },
+                                                                       secrets: { 'CLEANBOX_PASSWORD' => 'password123' }
+                                                                     })
         allow(wizard).to receive(:connect_and_analyze)
         allow(wizard).to receive(:generate_recommendations).and_return({
-          whitelist_folders: ['Work'],
-          list_folders: ['Newsletters'],
-          domain_mappings: { 'example.com' => 'Newsletters' }
-        })
+                                                                         whitelist_folders: ['Work'],
+                                                                         list_folders: ['Newsletters'],
+                                                                         domain_mappings: { 'example.com' => 'Newsletters' }
+                                                                       })
         allow(wizard).to receive(:interactive_configuration).and_return({
-          whitelist_folders: ['Work'],
-          list_folders: ['Newsletters'],
-          domain_mappings: { 'example.com' => 'Newsletters' }
-        })
+                                                                          whitelist_folders: ['Work'],
+                                                                          list_folders: ['Newsletters'],
+                                                                          domain_mappings: { 'example.com' => 'Newsletters' }
+                                                                        })
         allow(wizard).to receive(:save_configuration)
         allow(wizard).to receive(:validate_and_preview)
       end
@@ -449,25 +455,25 @@ RSpec.describe CLI::SetupWizard do
 
       it 'accepts empty response as yes' do
         allow(wizard).to receive(:gets).and_return("\n")
-        
+
         result = wizard.send(:interactive_folder_categorization, folders)
-        
+
         expect(result.first[:categorization]).to eq(:whitelist)
       end
 
       it 'accepts "y" as yes' do
         allow(wizard).to receive(:gets).and_return("y\n")
-        
+
         result = wizard.send(:interactive_folder_categorization, folders)
-        
+
         expect(result.first[:categorization]).to eq(:whitelist)
       end
 
       it 'accepts "yes" as yes' do
         allow(wizard).to receive(:gets).and_return("yes\n")
-        
+
         result = wizard.send(:interactive_folder_categorization, folders)
-        
+
         expect(result.first[:categorization]).to eq(:whitelist)
       end
     end
@@ -480,33 +486,33 @@ RSpec.describe CLI::SetupWizard do
 
       it 'allows user to choose whitelist when disagreeing' do
         allow(wizard).to receive(:gets).and_return("n\n", "w\n")
-        
+
         result = wizard.send(:interactive_folder_categorization, folders)
-        
+
         expect(result.first[:categorization]).to eq(:whitelist)
       end
 
       it 'allows user to choose list when disagreeing' do
         allow(wizard).to receive(:gets).and_return("n\n", "l\n")
-        
+
         result = wizard.send(:interactive_folder_categorization, folders)
-        
+
         expect(result.first[:categorization]).to eq(:list)
       end
 
       it 'allows user to choose skip when disagreeing' do
         allow(wizard).to receive(:gets).and_return("n\n", "s\n")
-        
+
         result = wizard.send(:interactive_folder_categorization, folders)
-        
+
         expect(result.first[:categorization]).to eq(:skip)
       end
 
       it 'uses default when invalid choice is provided' do
         allow(wizard).to receive(:gets).and_return("n\n", "invalid\n")
-        
+
         result = wizard.send(:interactive_folder_categorization, folders)
-        
+
         expect(result.first[:categorization]).to eq(:list)
       end
     end
@@ -519,33 +525,33 @@ RSpec.describe CLI::SetupWizard do
 
       it 'allows direct choice of whitelist' do
         allow(wizard).to receive(:gets).and_return("w\n")
-        
+
         result = wizard.send(:interactive_folder_categorization, folders)
-        
+
         expect(result.first[:categorization]).to eq(:whitelist)
       end
 
       it 'allows direct choice of list' do
         allow(wizard).to receive(:gets).and_return("l\n")
-        
+
         result = wizard.send(:interactive_folder_categorization, folders)
-        
+
         expect(result.first[:categorization]).to eq(:list)
       end
 
       it 'allows direct choice of skip' do
         allow(wizard).to receive(:gets).and_return("s\n")
-        
+
         result = wizard.send(:interactive_folder_categorization, folders)
-        
+
         expect(result.first[:categorization]).to eq(:skip)
       end
 
       it 'uses default when invalid direct choice is provided' do
         allow(wizard).to receive(:gets).and_return("x\n")
-        
+
         result = wizard.send(:interactive_folder_categorization, folders)
-        
+
         expect(result.first[:categorization]).to eq(:whitelist)
       end
     end
@@ -558,9 +564,9 @@ RSpec.describe CLI::SetupWizard do
 
       it 'processes all folders with different user choices' do
         allow(wizard).to receive(:gets).and_return("Y\n", "n\n", "w\n", "l\n")
-        
+
         result = wizard.send(:interactive_folder_categorization, folders)
-        
+
         expect(result.length).to eq(3)
         expect(result[0][:categorization]).to eq(:whitelist)  # Accepted default
         expect(result[1][:categorization]).to eq(:whitelist)  # Disagreed, chose whitelist
@@ -568,4 +574,4 @@ RSpec.describe CLI::SetupWizard do
       end
     end
   end
-end 
+end

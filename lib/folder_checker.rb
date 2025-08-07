@@ -49,22 +49,22 @@ class CleanboxFolderChecker < CleanboxConnection
 
   def get_cached_email_addresses
     return nil unless cache_enabled?
-    
+
     cache = self.class.load_folder_cache(folder)
     return nil unless cache
-    
+
     current_stats = get_folder_stats
     return nil unless self.class.cache_valid?(folder, current_stats)
-    
+
     logger.debug "Using cached email addresses for folder #{folder}"
     cache['emails']
   end
 
   def fetch_and_cache_email_addresses
     logger.debug "Fetching email addresses for folder #{folder}"
-    
+
     emails = found_addresses.map { |a| [a.mailbox, a.host].join('@').downcase }.sort.uniq
-    
+
     # Cache the results
     if cache_enabled?
       current_stats = get_folder_stats
@@ -76,16 +76,16 @@ class CleanboxFolderChecker < CleanboxConnection
       self.class.save_folder_cache(folder, cache_data)
       logger.debug "Cached #{emails.length} email addresses for folder #{folder}"
     end
-    
+
     emails
   end
 
   def get_folder_stats
     return { messages: 0, uidnext: 0, uidvalidity: 0 } unless folder_exists?
-    
+
     # Get IMAP folder status - much faster than processing messages
     status = imap_connection.status(folder, %w[MESSAGES UIDNEXT UIDVALIDITY])
-    
+
     {
       messages: status['MESSAGES']&.to_i || 0,
       uidnext: status['UIDNEXT']&.to_i || 0,
@@ -117,11 +117,11 @@ class CleanboxFolderChecker < CleanboxConnection
   def date_search
     # Use valid_from if present, otherwise use valid_since_months (default 12 months)
     date = if options[:valid_from].present?
-      Date.parse(options[:valid_from])
-    else
-      months = options[:valid_since_months] || 12
-      Date.today << months
-    end
+             Date.parse(options[:valid_from])
+           else
+             months = options[:valid_since_months] || 12
+             Date.today << months
+           end
     ['SINCE', date.strftime('%d-%b-%Y')]
   end
 
@@ -156,7 +156,7 @@ class CleanboxFolderChecker < CleanboxConnection
     def load_folder_cache(folder_name)
       cache_file = cache_file_for_folder(folder_name)
       return nil unless File.exist?(cache_file)
-      
+
       YAML.load_file(cache_file)
     rescue Psych::SyntaxError, StandardError
       nil
@@ -171,22 +171,22 @@ class CleanboxFolderChecker < CleanboxConnection
     def cache_valid?(folder_name, current_stats)
       cache = load_folder_cache(folder_name)
       return false unless cache
-      
+
       cached_stats = cache['stats']
       return false unless cached_stats
-      
+
       # Check if any of the IMAP status values have changed
       return false unless cached_stats[:messages] == current_stats[:messages]
       return false unless cached_stats[:uidnext] == current_stats[:uidnext]
       return false unless cached_stats[:uidvalidity] == current_stats[:uidvalidity]
-      
+
       true
     end
 
     def update_cache_stats(folder_name, imap_connection)
       cache = load_folder_cache(folder_name)
       return unless cache
-      
+
       # Get current folder stats
       status = imap_connection.status(folder_name, %w[MESSAGES UIDNEXT UIDVALIDITY])
       current_stats = {
@@ -194,11 +194,11 @@ class CleanboxFolderChecker < CleanboxConnection
         uidnext: status['UIDNEXT']&.to_i || 0,
         uidvalidity: status['UIDVALIDITY']&.to_i || 0
       }
-      
+
       # Update cache with new stats (keep existing emails)
       cache['stats'] = current_stats
       cache['cached_at'] = Time.now.iso8601
-      
+
       save_folder_cache(folder_name, cache)
     end
   end

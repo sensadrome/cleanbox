@@ -20,7 +20,7 @@ RSpec.describe CleanboxMessage do
       allow(message).to receive(:message).and_return(
         double('Mail', from: ['test@example.com'])
       )
-      
+
       expect(message.from_address).to eq('test@example.com')
     end
 
@@ -28,7 +28,7 @@ RSpec.describe CleanboxMessage do
       allow(message).to receive(:message).and_return(
         double('Mail', from: ['TEST@EXAMPLE.COM'])
       )
-      
+
       expect(message.from_address).to eq('test@example.com')
     end
   end
@@ -36,13 +36,13 @@ RSpec.describe CleanboxMessage do
   describe '#from_domain' do
     it 'extracts the domain from the from address' do
       allow(message).to receive(:from_address).and_return('user@example.com')
-      
+
       expect(message.from_domain).to eq('example.com')
     end
 
     it 'handles complex domains' do
       allow(message).to receive(:from_address).and_return('user@sub.example.com')
-      
+
       expect(message.from_domain).to eq('sub.example.com')
     end
   end
@@ -50,13 +50,13 @@ RSpec.describe CleanboxMessage do
   describe '#message' do
     it 'parses the IMAP message header data' do
       expect(Mail).to receive(:read_from_string).with("From: test@example.com\r\nSubject: Test Email\r\n\r\n")
-      
+
       message.message
     end
 
     it 'caches the parsed message' do
       expect(Mail).to receive(:read_from_string).once.and_return(double('Mail'))
-      
+
       message.message
       message.message # Should not call Mail.read_from_string again
     end
@@ -68,7 +68,7 @@ RSpec.describe CleanboxMessage do
       mock_header = double('Header', name: 'Authentication-Results', to_s: 'dkim=pass')
       allow(mock_mail).to receive(:header_fields).and_return([mock_header])
       allow(message).to receive(:message).and_return(mock_mail)
-      
+
       expect(message.authentication_result).to eq(mock_header)
     end
 
@@ -76,7 +76,7 @@ RSpec.describe CleanboxMessage do
       mock_mail = double('Mail')
       allow(mock_mail).to receive(:header_fields).and_return([])
       allow(message).to receive(:message).and_return(mock_mail)
-      
+
       expect(message.authentication_result).to be_nil
     end
 
@@ -85,7 +85,7 @@ RSpec.describe CleanboxMessage do
       mock_header = double('Header', name: 'Authentication-Results')
       allow(mock_mail).to receive(:header_fields).and_return([mock_header])
       allow(message).to receive(:message).and_return(mock_mail)
-      
+
       message.authentication_result
       message.authentication_result # Should not search header_fields again
     end
@@ -97,7 +97,7 @@ RSpec.describe CleanboxMessage do
       mock_header = double('Header', name: 'X-Antiabuse')
       allow(mock_mail).to receive(:header_fields).and_return([mock_header])
       allow(message).to receive(:message).and_return(mock_mail)
-      
+
       expect(message.has_fake_headers?).to be true
     end
 
@@ -105,7 +105,7 @@ RSpec.describe CleanboxMessage do
       mock_mail = double('Mail')
       allow(mock_mail).to receive(:header_fields).and_return([])
       allow(message).to receive(:message).and_return(mock_mail)
-      
+
       expect(message.has_fake_headers?).to be false
     end
 
@@ -114,8 +114,8 @@ RSpec.describe CleanboxMessage do
       mock_header = double('Header', name: 'Subject')
       allow(mock_mail).to receive(:header_fields).and_return([mock_header])
       allow(message).to receive(:message).and_return(mock_mail)
-      
+
       expect(message.has_fake_headers?).to be false
     end
   end
-end 
+end

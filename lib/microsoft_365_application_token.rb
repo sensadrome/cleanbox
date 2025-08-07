@@ -27,11 +27,9 @@ class Microsoft365ApplicationToken
       response_body = token_request_response
       @logger.debug "Token response status: #{@response_code}" if ENV['CLEANBOX_DEBUG']
       @logger.debug "Token response body: #{response_body}" if ENV['CLEANBOX_DEBUG']
-      
-      if response_body.empty?
-        raise "Empty response from Microsoft OAuth endpoint"
-      end
-      
+
+      raise 'Empty response from Microsoft OAuth endpoint' if response_body.empty?
+
       JSON.parse(response_body)
     rescue JSON::ParserError => e
       @logger.error "Failed to parse OAuth response: #{e.message}"

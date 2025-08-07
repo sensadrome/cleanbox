@@ -17,39 +17,40 @@ RSpec.describe CLI::Validator do
 
   before do
     # Stub exit to raise error instead of exiting
-    allow_any_instance_of(Object).to receive(:exit) { |_, code=1| raise SystemExit.new(code) }
-    # Stub $stderr
+    allow_any_instance_of(Object).to receive(:exit) { |_, code = 1| raise SystemExit.new(code) }
+    # Capture stderr output
     @stderr = StringIO.new
     @orig_stderr = $stderr
     $stderr = @stderr
+    # Enable warnings for this test to capture warn output
+    @orig_verbose = $VERBOSE
+    $VERBOSE = true
   end
+
 
   after do
     $stderr = @orig_stderr
+    $VERBOSE = @orig_verbose
   end
 
   describe '.validate_required_options!' do
     context 'when host is missing' do
       it 'prints error and exits' do
         options.delete(:host)
-        expect {
-          begin
-            described_class.validate_required_options!(options)
-          rescue SystemExit
-          end
-        }.to change { @stderr.string }.to(match(/IMAP host is required/))
+        expect do
+          described_class.validate_required_options!(options)
+        rescue SystemExit
+        end.to change { @stderr.string }.to(match(/IMAP host is required/))
       end
     end
 
     context 'when username is missing' do
       it 'prints error and exits' do
         options.delete(:username)
-        expect {
-          begin
-            described_class.validate_required_options!(options)
-          rescue SystemExit
-          end
-        }.to change { @stderr.string }.to(match(/IMAP username is required/))
+        expect do
+          described_class.validate_required_options!(options)
+        rescue SystemExit
+        end.to change { @stderr.string }.to(match(/IMAP username is required/))
       end
     end
 
@@ -60,32 +61,26 @@ RSpec.describe CLI::Validator do
 
       it 'prints error and exits if client_id is missing' do
         options.delete(:client_id)
-        expect {
-          begin
-            described_class.validate_required_options!(options)
-          rescue SystemExit
-          end
-        }.to change { @stderr.string }.to(match(/OAuth2 Microsoft requires client_id, client_secret, and tenant_id/))
+        expect do
+          described_class.validate_required_options!(options)
+        rescue SystemExit
+        end.to change { @stderr.string }.to(match(/OAuth2 Microsoft requires client_id, client_secret, and tenant_id/))
       end
 
       it 'prints error and exits if client_secret is missing' do
         options.delete(:client_secret)
-        expect {
-          begin
-            described_class.validate_required_options!(options)
-          rescue SystemExit
-          end
-        }.to change { @stderr.string }.to(match(/OAuth2 Microsoft requires client_id, client_secret, and tenant_id/))
+        expect do
+          described_class.validate_required_options!(options)
+        rescue SystemExit
+        end.to change { @stderr.string }.to(match(/OAuth2 Microsoft requires client_id, client_secret, and tenant_id/))
       end
 
       it 'prints error and exits if tenant_id is missing' do
         options.delete(:tenant_id)
-        expect {
-          begin
-            described_class.validate_required_options!(options)
-          rescue SystemExit
-          end
-        }.to change { @stderr.string }.to(match(/OAuth2 Microsoft requires client_id, client_secret, and tenant_id/))
+        expect do
+          described_class.validate_required_options!(options)
+        rescue SystemExit
+        end.to change { @stderr.string }.to(match(/OAuth2 Microsoft requires client_id, client_secret, and tenant_id/))
       end
     end
 
@@ -96,12 +91,10 @@ RSpec.describe CLI::Validator do
 
       it 'prints error and exits' do
         options.delete(:password)
-        expect {
-          begin
-            described_class.validate_required_options!(options)
-          rescue SystemExit
-          end
-        }.to change { @stderr.string }.to(match(/Password authentication requires password/))
+        expect do
+          described_class.validate_required_options!(options)
+        rescue SystemExit
+        end.to change { @stderr.string }.to(match(/Password authentication requires password/))
       end
     end
 
@@ -111,11 +104,11 @@ RSpec.describe CLI::Validator do
       end
 
       it 'does not print error or exit' do
-        expect {
+        expect do
           described_class.validate_required_options!(options)
-        }.not_to raise_error
-        expect(@stderr.string).to eq("")
+        end.not_to raise_error
+        expect(@stderr.string).to eq('')
       end
     end
   end
-end 
+end

@@ -21,9 +21,7 @@ class Configuration
       @config_loaded || false
     end
 
-    def config_file_path
-      @config_file_path
-    end
+    attr_reader :config_file_path
 
     def reload!
       load_config_file if @config_file_path
@@ -79,8 +77,6 @@ class Configuration
         File.expand_path(options[:data_dir])
       elsif ENV['CLEANBOX_DATA_DIR']
         File.expand_path(ENV['CLEANBOX_DATA_DIR'])
-      else
-        nil
       end
     end
 
@@ -97,26 +93,24 @@ class Configuration
       if ENV['CLEANBOX_CONFIG']
         config_path = ENV['CLEANBOX_CONFIG']
         # If relative path AND data_dir is set, prepend data directory
-        if !config_path.start_with?('/') && @data_dir
-          config_path = File.join(@data_dir, config_path)
-        end
+        config_path = File.join(@data_dir, config_path) if !config_path.start_with?('/') && @data_dir
         # Always expand to absolute path
         return File.expand_path(config_path)
       end
-      
+
       # Priority 2: Check for config file in data directory (from --data-dir or CLEANBOX_DATA_DIR)
       if @data_dir
         data_dir_config = File.join(@data_dir, 'cleanbox.yml')
         return data_dir_config if File.exist?(data_dir_config)
       end
-      
+
       # Priority 3: Check for config file in CLEANBOX_DATA_DIR environment variable
       if ENV['CLEANBOX_DATA_DIR']
         env_data_dir = File.expand_path(ENV['CLEANBOX_DATA_DIR'])
         env_data_dir_config = File.join(env_data_dir, 'cleanbox.yml')
         return env_data_dir_config if File.exist?(env_data_dir_config)
       end
-      
+
       # Priority 4: Fallback to user's home directory
       home_config
     end
@@ -127,17 +121,17 @@ class Configuration
 
     def load_config_file
       return unless @config_file_path && File.exist?(@config_file_path)
-      
+
       config = YAML.load_file(@config_file_path) || {}
       config = config.transform_keys(&:to_sym)
-      
+
       @options = @options.deep_merge(config)
       @config_loaded = true
     end
 
-    def secret(name)
+    def secret(_name)
       # For now, just return nil - we'll handle secrets properly when integrated
       nil
     end
   end
-end 
+end

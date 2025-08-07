@@ -12,28 +12,28 @@ class TestImapService
   def auth_success?
     auth_data = @fixture_data['auth']
     return true if auth_data.nil? || auth_data['success'].nil?
+
     auth_data['success'] != false
   end
 
   def auth_error
     auth_data = @fixture_data['auth']
-    return "Authentication failed" if auth_data.nil?
-    auth_data['error'] || "Authentication failed"
+    return 'Authentication failed' if auth_data.nil?
+
+    auth_data['error'] || 'Authentication failed'
   end
 
-  def authenticate(method, username, password_or_token)
+  def authenticate(_method, _username, _password_or_token)
     auth_data = @fixture_data['auth']
-    
-    if auth_data['success'] == false
-      raise Net::IMAP::NoResponseError.new(mock_imap_error_response(auth_data['error']))
-    end
-    
+
+    raise Net::IMAP::NoResponseError.new(mock_imap_error_response(auth_data['error'])) if auth_data['success'] == false
+
     # Simulate successful authentication
     @authenticated = true
     true
   end
 
-  def list(prefix, pattern)
+  def list(_prefix, _pattern)
     confirm_authenticated!
     folders = @fixture_data['folders'] || []
     folders.map do |folder_data|
@@ -49,20 +49,20 @@ class TestImapService
     confirm_authenticated!
     @current_folder = folder_name
     folder_data = find_folder(folder_name)
-    
+
     unless folder_data
       raise Net::IMAP::NoResponseError.new(mock_imap_error_response("Folder not found: #{folder_name}"))
     end
-    
+
     # Simulate successful folder selection
     true
   end
 
-  def search(criteria)
+  def search(_criteria)
     confirm_authenticated!
     folder_data = find_folder(@current_folder)
     return [] unless folder_data
-    
+
     message_count = folder_data['message_count'] || 0
     (1..message_count).to_a
   end
@@ -90,7 +90,7 @@ class TestImapService
     confirm_authenticated!
     folder_data = find_folder(folder_name)
     return {} unless folder_data
-    
+
     status_data = {}
     items.each do |item|
       case item
@@ -100,17 +100,15 @@ class TestImapService
         status_data[item] = folder_data['unseen'] || 0
       end
     end
-    
+
     status_data
   end
 
   def load_fixture(fixture_name)
     fixture_path = File.join(File.dirname(__FILE__), 'fixtures', 'imap', "#{fixture_name}.yml")
-    
-    unless File.exist?(fixture_path)
-      raise "Fixture not found: #{fixture_path}"
-    end
-    
+
+    raise "Fixture not found: #{fixture_path}" unless File.exist?(fixture_path)
+
     YAML.load_file(fixture_path)
   end
 
@@ -146,8 +144,8 @@ class TestImapService
   end
 
   def confirm_authenticated!
-    unless @authenticated
-      raise Net::IMAP::NoResponseError.new(mock_imap_error_response("Not authenticated"))
-    end
+    return if @authenticated
+
+    raise Net::IMAP::NoResponseError.new(mock_imap_error_response('Not authenticated'))
   end
-end 
+end

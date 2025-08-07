@@ -29,10 +29,11 @@ RSpec.describe CLI::AuthCLI do
           auth_type: 'oauth2_microsoft'
         }.to_yaml
         File.write(config_path, config_content)
-        
+
         # Create an env file with secrets
-        File.write(env_path, "CLEANBOX_CLIENT_ID=test_id\nCLEANBOX_CLIENT_SECRET=test_secret\nCLEANBOX_TENANT_ID=test_tenant")
-        
+        File.write(env_path,
+                   "CLEANBOX_CLIENT_ID=test_id\nCLEANBOX_CLIENT_SECRET=test_secret\nCLEANBOX_TENANT_ID=test_tenant")
+
         # Configure with the config file
         Configuration.configure({ config_file: config_path })
       end
@@ -65,14 +66,14 @@ RSpec.describe CLI::AuthCLI do
           auth_type: 'oauth2_microsoft'
         }.to_yaml
         File.write(config_path, config_content)
-        
+
         # Ensure no .env file exists for this test
         File.delete(env_path) if File.exist?(env_path)
         # Clear any environment variables that might interfere
         ENV.delete('CLEANBOX_CLIENT_ID')
         ENV.delete('CLEANBOX_CLIENT_SECRET')
         ENV.delete('CLEANBOX_TENANT_ID')
-        
+
         # Configure with the config file
         Configuration.configure({ config_file: config_path })
       end
@@ -92,7 +93,7 @@ RSpec.describe CLI::AuthCLI do
           # Missing auth_type
         }.to_yaml
         File.write(config_path, config_content)
-        
+
         # Configure with the config file
         Configuration.configure({ config_file: config_path })
       end
@@ -108,9 +109,10 @@ RSpec.describe CLI::AuthCLI do
     it 'correctly detects available secrets' do
       # Clear any existing environment variables
       ENV.delete('CLEANBOX_PASSWORD')
-      
+
       # Create an env file with secrets
-      File.write(env_path, "CLEANBOX_CLIENT_ID=test_id\nCLEANBOX_CLIENT_SECRET=test_secret\nCLEANBOX_TENANT_ID=test_tenant")
+      File.write(env_path,
+                 "CLEANBOX_CLIENT_ID=test_id\nCLEANBOX_CLIENT_SECRET=test_secret\nCLEANBOX_TENANT_ID=test_tenant")
 
       # Test the secrets manager directly
       expect(CLI::SecretsManager.auth_secrets_available?('oauth2_microsoft')).to be true
@@ -123,7 +125,7 @@ RSpec.describe CLI::AuthCLI do
       ENV.delete('CLEANBOX_CLIENT_SECRET')
       ENV.delete('CLEANBOX_CLIENT_TENANT_ID')
       ENV.delete('CLEANBOX_TENANT_ID')
-      
+
       # Create an env file with only some secrets (missing tenant_id)
       File.write(env_path, "CLEANBOX_CLIENT_ID=test_id\nCLEANBOX_CLIENT_SECRET=test_secret")
 
@@ -160,14 +162,14 @@ RSpec.describe CLI::AuthCLI do
     it 'saves auth settings to config and creates env file' do
       # Use real file operations instead of mocking ConfigManager
       auth_cli.send(:save_auth_config, details, secrets)
-      
+
       # Verify the config was saved correctly
       expect(File.exist?(config_path)).to be true
       config = YAML.load_file(config_path)
       expect(config[:host]).to eq('outlook.office365.com')
       expect(config[:username]).to eq('test@example.com')
       expect(config[:auth_type]).to eq('oauth2_microsoft')
-      
+
       # Verify the env file was created
       expect(File.exist?(env_path)).to be true
       env_content = File.read(env_path)
@@ -190,7 +192,8 @@ RSpec.describe CLI::AuthCLI do
 
     before do
       # Create env file for testing
-      File.write(env_path, "CLEANBOX_CLIENT_ID=test_id\nCLEANBOX_CLIENT_SECRET=test_secret\nCLEANBOX_TENANT_ID=test_tenant")
+      File.write(env_path,
+                 "CLEANBOX_CLIENT_ID=test_id\nCLEANBOX_CLIENT_SECRET=test_secret\nCLEANBOX_TENANT_ID=test_tenant")
     end
 
     it 'removes auth settings from config and deletes env file' do
@@ -200,12 +203,12 @@ RSpec.describe CLI::AuthCLI do
         # Return the current configuration from Configuration
         Configuration.options
       end
-      allow_any_instance_of(CLI::ConfigManager).to receive(:save_config) do |instance, config|
+      allow_any_instance_of(CLI::ConfigManager).to receive(:save_config) do |_instance, config|
         File.write(config_path, config.to_yaml)
       end
 
       auth_cli.send(:reset_auth_config)
-      
+
       config = YAML.load_file(config_path)
       expect(config[:host]).to be_nil
       expect(config[:username]).to be_nil
@@ -213,7 +216,7 @@ RSpec.describe CLI::AuthCLI do
       # The other settings should remain unchanged
       expect(config[:whitelist_folders]).to eq(['Work'])
       expect(config[:list_folders]).to eq(['Newsletters'])
-      
+
       expect(File.exist?(env_path)).to be false
     end
   end
@@ -283,9 +286,9 @@ RSpec.describe CLI::AuthCLI do
       it 'offers to update settings when user chooses 1' do
         allow(auth_cli).to receive(:gets).and_return('1')
         allow(auth_cli).to receive(:get_connection_details).and_return({
-          details: { host: 'test.com' },
-          secrets: { 'CLEANBOX_PASSWORD' => 'test' }
-        })
+                                                                         details: { host: 'test.com' },
+                                                                         secrets: { 'CLEANBOX_PASSWORD' => 'test' }
+                                                                       })
         allow(auth_cli).to receive(:test_connection).and_return(true)
 
         auth_cli.send(:setup_auth)
@@ -327,9 +330,9 @@ RSpec.describe CLI::AuthCLI do
 
       it 'proceeds with setup when connection test succeeds' do
         allow(auth_cli).to receive(:get_connection_details).and_return({
-          details: { host: 'test.com' },
-          secrets: { 'CLEANBOX_PASSWORD' => 'test' }
-        })
+                                                                         details: { host: 'test.com' },
+                                                                         secrets: { 'CLEANBOX_PASSWORD' => 'test' }
+                                                                       })
         allow(auth_cli).to receive(:test_connection).and_return(true)
 
         auth_cli.send(:setup_auth)
@@ -341,9 +344,9 @@ RSpec.describe CLI::AuthCLI do
 
       it 'fails when connection test fails' do
         allow(auth_cli).to receive(:get_connection_details).and_return({
-          details: { host: 'test.com' },
-          secrets: { 'CLEANBOX_PASSWORD' => 'test' }
-        })
+                                                                         details: { host: 'test.com' },
+                                                                         secrets: { 'CLEANBOX_PASSWORD' => 'test' }
+                                                                       })
         allow(auth_cli).to receive(:test_connection).and_return(false)
 
         auth_cli.send(:setup_auth)
@@ -365,13 +368,14 @@ RSpec.describe CLI::AuthCLI do
 
       it 'fails when connection test fails due to missing credentials' do
         allow(auth_cli).to receive(:get_connection_details).and_return({
-          details: { host: 'test.com', auth_type: 'oauth2_microsoft' },
-          secrets: { 'CLEANBOX_CLIENT_ID' => 'test_id' }
-          # Missing client_secret and tenant_id
-        })
+                                                                         details: { host: 'test.com',
+                                                                                    auth_type: 'oauth2_microsoft' },
+                                                                         secrets: { 'CLEANBOX_CLIENT_ID' => 'test_id' }
+                                                                         # Missing client_secret and tenant_id
+                                                                       })
         allow(auth_cli).to receive(:test_connection).and_return(false)
 
-        expect(auth_cli).to receive(:puts).with("❌ Connection test failed. Please check your credentials and try again.")
+        expect(auth_cli).to receive(:puts).with('❌ Connection test failed. Please check your credentials and try again.')
 
         auth_cli.send(:setup_auth)
 
@@ -392,13 +396,13 @@ RSpec.describe CLI::AuthCLI do
       before do
         allow(auth_cli).to receive(:auth_configured?).and_return(true)
         allow_any_instance_of(CLI::ConfigManager).to receive(:load_config).and_return({
-          host: 'test.com',
-          username: 'test@example.com',
-          auth_type: 'password'
-        })
+                                                                                        host: 'test.com',
+                                                                                        username: 'test@example.com',
+                                                                                        auth_type: 'password'
+                                                                                      })
         allow(auth_cli).to receive(:load_secrets).and_return({
-          'CLEANBOX_PASSWORD' => 'test_password'
-        })
+                                                               'CLEANBOX_PASSWORD' => 'test_password'
+                                                             })
       end
 
       it 'succeeds when connection test passes' do
@@ -435,14 +439,14 @@ RSpec.describe CLI::AuthCLI do
         allow(auth_cli).to receive(:auth_configured?).and_return(false)
         allow_any_instance_of(CLI::ConfigManager).to receive(:config_file_exists?).and_return(true)
         allow_any_instance_of(CLI::ConfigManager).to receive(:load_config).and_return({
-          host: 'test.com',
-          username: 'test@example.com',
-          auth_type: 'oauth2_microsoft'
-        })
+                                                                                        host: 'test.com',
+                                                                                        username: 'test@example.com',
+                                                                                        auth_type: 'oauth2_microsoft'
+                                                                                      })
       end
 
       it 'shows error message about missing credentials' do
-        expect(auth_cli).to receive(:puts).with("❌ No authentication configuration found.")
+        expect(auth_cli).to receive(:puts).with('❌ No authentication configuration found.')
         expect(auth_cli).to receive(:puts).with("Run './cleanbox auth setup' to configure authentication.")
 
         auth_cli.send(:test_auth)
@@ -467,15 +471,15 @@ RSpec.describe CLI::AuthCLI do
           auth_type: 'oauth2_microsoft'
         }.to_yaml
         File.write(config_path, config_content)
-        
+
         # Configure with the config file
         Configuration.configure({ config_file: config_path })
-        
+
         allow(CLI::SecretsManager).to receive(:auth_secrets_status).and_return({
-          configured: true,
-          source: 'environment',
-          missing: []
-        })
+                                                                                 configured: true,
+                                                                                 source: 'environment',
+                                                                                 missing: []
+                                                                               })
       end
 
       it 'shows configuration details' do
@@ -508,18 +512,19 @@ RSpec.describe CLI::AuthCLI do
           auth_type: 'oauth2_microsoft'
         }.to_yaml
         File.write(config_path, config_content)
-        
+
         # Configure with the config file
         Configuration.configure({ config_file: config_path })
       end
 
       it 'shows missing credentials message' do
         allow(CLI::SecretsManager).to receive(:auth_secrets_status).and_return({
-          configured: false,
-          source: 'none',
-          missing: ['client_id', 'client_secret', 'tenant_id']
-        })
-        
+                                                                                 configured: false,
+                                                                                 source: 'none',
+                                                                                 missing: %w[client_id client_secret
+                                                                                             tenant_id]
+                                                                               })
+
         auth_cli.send(:show_auth)
 
         expect(CLI::SecretsManager).to have_received(:auth_secrets_status)
@@ -535,7 +540,7 @@ RSpec.describe CLI::AuthCLI do
           auth_type: 'oauth2_microsoft'
         }.to_yaml
         File.write(config_path, config_content)
-        
+
         # Configure with the config file
         Configuration.configure({ config_file: config_path })
       end
@@ -543,17 +548,18 @@ RSpec.describe CLI::AuthCLI do
       context 'when no credentials are available (source: none)' do
         before do
           allow(CLI::SecretsManager).to receive(:auth_secrets_status).and_return({
-            configured: false,
-            source: 'none',
-            missing: ['client_id', 'client_secret', 'tenant_id']
-          })
+                                                                                   configured: false,
+                                                                                   source: 'none',
+                                                                                   missing: %w[client_id client_secret
+                                                                                               tenant_id]
+                                                                                 })
         end
 
         it 'shows missing credentials with setup instructions' do
-          expect(auth_cli).to receive(:puts).with("❌ Credentials: Missing")
-          expect(auth_cli).to receive(:puts).with("Missing: client_id, client_secret, tenant_id")
-          expect(auth_cli).to receive(:puts).with("Source: none")
-          expect(auth_cli).to receive(:puts).with("To fix this:")
+          expect(auth_cli).to receive(:puts).with('❌ Credentials: Missing')
+          expect(auth_cli).to receive(:puts).with('Missing: client_id, client_secret, tenant_id')
+          expect(auth_cli).to receive(:puts).with('Source: none')
+          expect(auth_cli).to receive(:puts).with('To fix this:')
           expect(auth_cli).to receive(:puts).with("  Run './cleanbox auth setup' to configure credentials")
 
           auth_cli.send(:show_auth)
@@ -563,19 +569,19 @@ RSpec.describe CLI::AuthCLI do
       context 'when credentials are in .env file but missing (source: env_file)' do
         before do
           allow(CLI::SecretsManager).to receive(:auth_secrets_status).and_return({
-            configured: false,
-            source: 'env_file',
-            missing: ['client_secret']
-          })
+                                                                                   configured: false,
+                                                                                   source: 'env_file',
+                                                                                   missing: ['client_secret']
+                                                                                 })
         end
 
         it 'shows missing credentials with .env file instructions' do
-          expect(auth_cli).to receive(:puts).with("❌ Credentials: Missing")
-          expect(auth_cli).to receive(:puts).with("Missing: client_secret")
-          expect(auth_cli).to receive(:puts).with("Source: env_file")
-          expect(auth_cli).to receive(:puts).with("To fix this:")
+          expect(auth_cli).to receive(:puts).with('❌ Credentials: Missing')
+          expect(auth_cli).to receive(:puts).with('Missing: client_secret')
+          expect(auth_cli).to receive(:puts).with('Source: env_file')
+          expect(auth_cli).to receive(:puts).with('To fix this:')
           expect(auth_cli).to receive(:puts).with("  Check your .env file at #{CLI::SecretsManager::ENV_FILE_PATH}")
-          expect(auth_cli).to receive(:puts).with("  Ensure it contains the required variables")
+          expect(auth_cli).to receive(:puts).with('  Ensure it contains the required variables')
 
           auth_cli.send(:show_auth)
         end
@@ -584,19 +590,19 @@ RSpec.describe CLI::AuthCLI do
       context 'when credentials are in environment but missing (source: environment)' do
         before do
           allow(CLI::SecretsManager).to receive(:auth_secrets_status).and_return({
-            configured: false,
-            source: 'environment',
-            missing: ['tenant_id']
-          })
+                                                                                   configured: false,
+                                                                                   source: 'environment',
+                                                                                   missing: ['tenant_id']
+                                                                                 })
         end
 
         it 'shows missing credentials with environment variable instructions' do
-          expect(auth_cli).to receive(:puts).with("❌ Credentials: Missing")
-          expect(auth_cli).to receive(:puts).with("Missing: tenant_id")
-          expect(auth_cli).to receive(:puts).with("Source: environment")
-          expect(auth_cli).to receive(:puts).with("To fix this:")
-          expect(auth_cli).to receive(:puts).with("  Check your environment variables")
-          expect(auth_cli).to receive(:puts).with("  Ensure CLEANBOX_* variables are set correctly")
+          expect(auth_cli).to receive(:puts).with('❌ Credentials: Missing')
+          expect(auth_cli).to receive(:puts).with('Missing: tenant_id')
+          expect(auth_cli).to receive(:puts).with('Source: environment')
+          expect(auth_cli).to receive(:puts).with('To fix this:')
+          expect(auth_cli).to receive(:puts).with('  Check your environment variables')
+          expect(auth_cli).to receive(:puts).with('  Ensure CLEANBOX_* variables are set correctly')
 
           auth_cli.send(:show_auth)
         end
@@ -613,17 +619,17 @@ RSpec.describe CLI::AuthCLI do
 
         before do
           allow(CLI::SecretsManager).to receive(:auth_secrets_status).and_return({
-            configured: false,
-            source: 'none',
-            missing: ['password']
-          })
+                                                                                   configured: false,
+                                                                                   source: 'none',
+                                                                                   missing: ['password']
+                                                                                 })
         end
 
         it 'shows missing password with setup instructions' do
-          expect(auth_cli).to receive(:puts).with("❌ Credentials: Missing")
-          expect(auth_cli).to receive(:puts).with("Missing: password")
-          expect(auth_cli).to receive(:puts).with("Source: none")
-          expect(auth_cli).to receive(:puts).with("To fix this:")
+          expect(auth_cli).to receive(:puts).with('❌ Credentials: Missing')
+          expect(auth_cli).to receive(:puts).with('Missing: password')
+          expect(auth_cli).to receive(:puts).with('Source: none')
+          expect(auth_cli).to receive(:puts).with('To fix this:')
           expect(auth_cli).to receive(:puts).with("  Run './cleanbox auth setup' to configure credentials")
 
           auth_cli.send(:show_auth)
@@ -924,7 +930,7 @@ RSpec.describe CLI::AuthCLI do
 
         expect(user_token).to have_received(:exchange_code_for_tokens).with('test_auth_code')
         expect(user_token).to have_received(:save_tokens_to_file).with('/tmp/test_token.json')
-        # Note: We can't easily test the ConfigManager save_config call with the current setup
+        # NOTE: We can't easily test the ConfigManager save_config call with the current setup
         # The important part is that the method completes successfully
       end
 
@@ -977,21 +983,19 @@ RSpec.describe CLI::AuthCLI do
         expect(auth_cli).to have_received(:puts).with('Please try again or contact support if the problem persists.')
       end
     end
-
-
   end
 
   describe '#default_token_file' do
     it 'sanitizes username and returns correct path' do
       result = auth_cli.send(:default_token_file, 'test@example.com')
-      
+
       expect(result).to eq(File.join(Dir.home, '.cleanbox', 'tokens', 'test_example_com.json'))
     end
 
     it 'handles special characters in username' do
       result = auth_cli.send(:default_token_file, 'test+user@example.com')
-      
+
       expect(result).to eq(File.join(Dir.home, '.cleanbox', 'tokens', 'test_user_example_com.json'))
     end
   end
-end 
+end

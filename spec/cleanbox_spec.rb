@@ -8,7 +8,7 @@ RSpec.describe Cleanbox do
     {
       host: 'test.example.com',
       username: 'test@example.com',
-      whitelist_folders: ['Family', 'Work'],
+      whitelist_folders: %w[Family Work],
       list_folders: ['Newsletters'],
       whitelisted_domains: ['trusted.com'],
       list_domains: ['newsletter.com'],
@@ -24,25 +24,25 @@ RSpec.describe Cleanbox do
   before do
     # Mock the logger to prevent output during tests
     allow(cleanbox).to receive(:logger).and_return(double('logger', info: nil, debug: nil, warn: nil, error: nil))
-    
+
     # Mock IMAP connection behavior
     allow(mock_imap).to receive(:select)
     allow(mock_imap).to receive(:search).and_return([])
     allow(mock_imap).to receive(:fetch).and_return([])
     allow(mock_imap).to receive(:expunge)
     allow(mock_imap).to receive(:list).and_return([
-      double('folder', name: 'INBOX', attr: []),
-      double('folder', name: 'Family', attr: []),
-      double('folder', name: 'Work', attr: []),
-      double('folder', name: 'Newsletters', attr: []),
-      double('folder', name: 'Sent', attr: [:Sent]),
-      double('folder', name: 'Junk', attr: [:Junk])
-    ])
+                                                    double('folder', name: 'INBOX', attr: []),
+                                                    double('folder', name: 'Family', attr: []),
+                                                    double('folder', name: 'Work', attr: []),
+                                                    double('folder', name: 'Newsletters', attr: []),
+                                                    double('folder', name: 'Sent', attr: [:Sent]),
+                                                    double('folder', name: 'Junk', attr: [:Junk])
+                                                  ])
     allow(mock_imap).to receive(:status).and_return({
-      'MESSAGES' => 10,
-      'UIDNEXT' => 11,
-      'UIDVALIDITY' => 12345
-    })
+                                                      'MESSAGES' => 10,
+                                                      'UIDNEXT' => 11,
+                                                      'UIDVALIDITY' => 12_345
+                                                    })
   end
 
   describe '#initialize' do
@@ -68,14 +68,14 @@ RSpec.describe Cleanbox do
       allow(cleanbox).to receive(:message_processing_context).and_return({})
       allow(MessageProcessor).to receive(:new).and_return(mock_processor)
       allow(MessageActionRunner).to receive(:new).and_return(mock_runner)
-      allow(mock_processor).to receive(:decide_for_new_message).and_return({action: :keep})
+      allow(mock_processor).to receive(:decide_for_new_message).and_return({ action: :keep })
       allow(mock_runner).to receive(:execute)
       allow(mock_runner).to receive(:changed_folders).and_return([])
     end
 
     it 'processes new messages and clears deleted messages' do
       expect(cleanbox).to receive(:clear_deleted_messages!)
-      
+
       cleanbox.clean!
     end
   end
@@ -90,28 +90,28 @@ RSpec.describe Cleanbox do
 
     it 'builds whitelist from whitelist folders and sent emails' do
       expect(cleanbox.logger).to receive(:info).with('Building White List....')
-      
+
       cleanbox.send(:build_whitelist!)
-      
+
       expect(cleanbox.whitelisted_emails).to include('family@example.com', 'work@trusted.com')
     end
 
     it 'creates CleanboxFolderChecker instances for each whitelist folder' do
       cleanbox.send(:build_whitelist!)
-      
+
       expect(CleanboxFolderChecker).to have_received(:new).with(
-        mock_imap, 
+        mock_imap,
         hash_including(folder: 'Family', logger: cleanbox.logger)
       )
       expect(CleanboxFolderChecker).to have_received(:new).with(
-        mock_imap, 
+        mock_imap,
         hash_including(folder: 'Work', logger: cleanbox.logger)
       )
     end
 
     it 'creates CleanboxFolderChecker for sent folder with correct options' do
       cleanbox.send(:build_whitelist!)
-      
+
       expect(CleanboxFolderChecker).to have_received(:new).with(
         mock_imap,
         hash_including(
@@ -134,22 +134,22 @@ RSpec.describe Cleanbox do
 
     it 'builds list domains from folders and options' do
       expect(cleanbox.logger).to receive(:info).with('Building list subscriptions....')
-      
+
       cleanbox.send(:build_list_domains!)
-      
+
       expect(cleanbox.list_domains).to include('newsletter.com', 'updates.com', 'newsletter.com')
     end
 
     it 'updates list_domain_map with folder mappings' do
       cleanbox.send(:build_list_domains!)
-      
+
       expect(cleanbox.list_domain_map['newsletter.com']).to eq('Newsletters')
       expect(cleanbox.list_domain_map['updates.com']).to eq('Newsletters')
     end
 
     it 'creates CleanboxFolderChecker for each list folder' do
       cleanbox.send(:build_list_domains!)
-      
+
       expect(CleanboxFolderChecker).to have_received(:new).with(
         mock_imap,
         hash_including(
@@ -161,8 +161,6 @@ RSpec.describe Cleanbox do
     end
   end
 
-
-
   describe '#new_messages' do
     let(:mock_envelope) { double('envelope', attr: { 'BODY[HEADER]' => 'test header' }) }
 
@@ -173,16 +171,16 @@ RSpec.describe Cleanbox do
 
     it 'fetches and creates CleanboxMessage instances' do
       expect(mock_imap).to receive(:fetch).with([1, 2], 'BODY.PEEK[HEADER]')
-      
+
       messages = cleanbox.send(:new_messages)
-      
+
       expect(messages.size).to eq(1)
       expect(messages.first).to be_a(CleanboxMessage)
     end
 
     it 'returns empty array when no new message ids' do
       allow(cleanbox).to receive(:new_message_ids).and_return([])
-      
+
       expect(cleanbox.send(:new_messages)).to eq([])
     end
   end
@@ -191,16 +189,16 @@ RSpec.describe Cleanbox do
     it 'searches for unseen, non-deleted messages in INBOX' do
       expect(mock_imap).to receive(:select).with('INBOX')
       expect(mock_imap).to receive(:search).with(%w[UNSEEN NOT DELETED])
-      
+
       cleanbox.send(:new_message_ids)
     end
 
     it 'caches the result' do
       allow(mock_imap).to receive(:search).and_return([1, 2, 3])
-      
+
       first_call = cleanbox.send(:new_message_ids)
       second_call = cleanbox.send(:new_message_ids)
-      
+
       expect(first_call).to eq(second_call)
       expect(mock_imap).to have_received(:search).once
     end
@@ -216,14 +214,14 @@ RSpec.describe Cleanbox do
       allow(cleanbox).to receive(:message_processing_context).and_return({})
       allow(MessageProcessor).to receive(:new).and_return(mock_processor)
       allow(MessageActionRunner).to receive(:new).and_return(mock_runner)
-      allow(mock_processor).to receive(:decide_for_filing).and_return({action: :keep})
+      allow(mock_processor).to receive(:decide_for_filing).and_return({ action: :keep })
       allow(mock_runner).to receive(:execute)
       allow(mock_runner).to receive(:changed_folders).and_return([])
     end
 
     it 'processes all messages with filing logic' do
       expect(cleanbox).to receive(:clear_deleted_messages!)
-      
+
       cleanbox.file_messages!
     end
   end
@@ -239,14 +237,14 @@ RSpec.describe Cleanbox do
       allow(cleanbox).to receive(:unjunk_folders).and_return(['CleanFolder'])
       allow(MessageProcessor).to receive(:new).and_return(mock_processor)
       allow(MessageActionRunner).to receive(:new).and_return(mock_runner)
-      allow(mock_processor).to receive(:decide_for_filing).and_return({action: :keep})
+      allow(mock_processor).to receive(:decide_for_filing).and_return({ action: :keep })
       allow(mock_runner).to receive(:execute)
       allow(mock_runner).to receive(:changed_folders).and_return([])
     end
 
     it 'processes junk messages with filing logic' do
       expect(cleanbox).to receive(:clear_deleted_messages!)
-      
+
       cleanbox.unjunk!
     end
   end
@@ -286,7 +284,7 @@ RSpec.describe Cleanbox do
 
       it 'does not expunge messages' do
         expect(mock_imap).not_to receive(:expunge)
-        
+
         cleanbox.send(:clear_deleted_messages!)
       end
     end
@@ -298,14 +296,14 @@ RSpec.describe Cleanbox do
 
       it 'expunges messages from current folder' do
         expect(mock_imap).to receive(:expunge)
-        
+
         cleanbox.send(:clear_deleted_messages!)
       end
 
       it 'selects specified folder before expunging' do
         expect(mock_imap).to receive(:select).with('TestFolder')
         expect(mock_imap).to receive(:expunge)
-        
+
         cleanbox.send(:clear_deleted_messages!, 'TestFolder')
       end
     end
@@ -317,16 +315,16 @@ RSpec.describe Cleanbox do
     before do
       allow(CleanboxFolderChecker).to receive(:new).and_return(mock_folder_checker)
       allow(mock_folder_checker).to receive(:email_addresses).and_return(['sender@example.com'])
-      allow(cleanbox).to receive(:folders_to_file).and_return(['Family', 'Work'])
+      allow(cleanbox).to receive(:folders_to_file).and_return(%w[Family Work])
     end
 
     it 'builds sender map from folders to file' do
       expect(cleanbox.logger).to receive(:info).with('Building sender maps....')
       expect(cleanbox.logger).to receive(:debug).with('  adding addresses from Family')
       expect(cleanbox.logger).to receive(:debug).with('  adding addresses from Work')
-      
+
       cleanbox.send(:build_sender_map!)
-      
+
       expect(cleanbox.sender_map['sender@example.com']).to eq('Family')
     end
   end
@@ -342,9 +340,9 @@ RSpec.describe Cleanbox do
 
     it 'builds sender map from unjunk folders' do
       expect(cleanbox.logger).to receive(:info).with('Building sender maps for folder CleanFolder')
-      
+
       cleanbox.send(:build_clean_sender_map!)
-      
+
       expect(cleanbox.sender_map['clean@example.com']).to eq('CleanFolder')
     end
   end
@@ -359,9 +357,9 @@ RSpec.describe Cleanbox do
 
     it 'fetches messages in slices and creates CleanboxMessage instances' do
       expect(mock_imap).to receive(:fetch).with([1, 2, 3], 'BODY.PEEK[HEADER]')
-      
+
       messages = cleanbox.send(:all_messages)
-      
+
       expect(messages.size).to eq(1)
       expect(messages.first).to be_a(CleanboxMessage)
     end
@@ -369,13 +367,13 @@ RSpec.describe Cleanbox do
 
   describe '#all_message_ids' do
     before do
-      allow(cleanbox).to receive(:date_search).and_return(['SINCE', '01-Jan-2023'])
+      allow(cleanbox).to receive(:date_search).and_return(%w[SINCE 01-Jan-2023])
     end
 
     it 'searches for non-deleted messages with date filter' do
       expect(mock_imap).to receive(:select).with('INBOX')
       expect(mock_imap).to receive(:search).with(%w[NOT DELETED SINCE 01-Jan-2023 SEEN])
-      
+
       cleanbox.send(:all_message_ids)
     end
 
@@ -386,7 +384,7 @@ RSpec.describe Cleanbox do
 
       it 'adds SEEN to search terms' do
         expect(mock_imap).to receive(:search).with(%w[NOT DELETED SINCE 01-Jan-2023 SEEN])
-        
+
         cleanbox.send(:all_message_ids)
       end
     end
@@ -402,9 +400,9 @@ RSpec.describe Cleanbox do
 
     it 'fetches junk messages and creates CleanboxMessage instances' do
       expect(mock_imap).to receive(:fetch).with([1, 2], 'BODY.PEEK[HEADER]')
-      
+
       messages = cleanbox.send(:junk_messages)
-      
+
       expect(messages.size).to eq(1)
       expect(messages.first).to be_a(CleanboxMessage)
     end
@@ -413,13 +411,13 @@ RSpec.describe Cleanbox do
   describe '#junk_message_ids' do
     before do
       allow(cleanbox).to receive(:imap_junk_folder).and_return('Junk')
-      allow(cleanbox).to receive(:date_search).and_return(['SINCE', '01-Jan-2023'])
+      allow(cleanbox).to receive(:date_search).and_return(%w[SINCE 01-Jan-2023])
     end
 
     it 'searches for non-deleted messages in junk folder' do
       expect(mock_imap).to receive(:select).with('Junk')
       expect(mock_imap).to receive(:search).with(%w[NOT DELETED SINCE 01-Jan-2023])
-      
+
       cleanbox.send(:junk_message_ids)
     end
   end
@@ -431,9 +429,9 @@ RSpec.describe Cleanbox do
 
     it 'returns nil when no junk folder found' do
       allow(mock_imap).to receive(:list).and_return([
-        double('folder', name: 'INBOX', attr: [])
-      ])
-      
+                                                      double('folder', name: 'INBOX', attr: [])
+                                                    ])
+
       expect(cleanbox.send(:imap_junk_folder)).to be_nil
     end
   end
@@ -445,9 +443,9 @@ RSpec.describe Cleanbox do
 
     it 'returns nil when no sent folder found' do
       allow(mock_imap).to receive(:list).and_return([
-        double('folder', name: 'INBOX', attr: [])
-      ])
-      
+                                                      double('folder', name: 'INBOX', attr: [])
+                                                    ])
+
       expect(cleanbox.send(:imap_sent_folder)).to be_nil
     end
   end
@@ -538,4 +536,4 @@ RSpec.describe Cleanbox do
       end
     end
   end
-end 
+end

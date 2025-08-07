@@ -11,18 +11,18 @@ RSpec.describe CleanboxFolderChecker do
   before do
     # Mock the cache directory to use a temporary location for tests that need it
     allow(described_class).to receive(:cache_dir).and_return(temp_cache_dir)
-    
+
     # Mock IMAP connection behavior
     allow(mock_imap).to receive(:select)
     allow(mock_imap).to receive(:list).and_return([
-      double('folder', name: 'TestFolder'),
-      double('folder', name: 'OtherFolder')
-    ])
+                                                    double('folder', name: 'TestFolder'),
+                                                    double('folder', name: 'OtherFolder')
+                                                  ])
     allow(mock_imap).to receive(:status).and_return({
-      'MESSAGES' => 100,
-      'UIDNEXT' => 101,
-      'UIDVALIDITY' => 12345
-    })
+                                                      'MESSAGES' => 100,
+                                                      'UIDNEXT' => 101,
+                                                      'UIDVALIDITY' => 12_345
+                                                    })
   end
 
   after do
@@ -39,8 +39,8 @@ RSpec.describe CleanboxFolderChecker do
 
     it 'does not select folder if it does not exist' do
       allow(mock_imap).to receive(:list).and_return([
-        double('folder', name: 'OtherFolder')
-      ])
+                                                      double('folder', name: 'OtherFolder')
+                                                    ])
       expect(mock_imap).not_to receive(:select)
       described_class.new(mock_imap, options)
     end
@@ -50,8 +50,8 @@ RSpec.describe CleanboxFolderChecker do
     context 'when folder does not exist' do
       before do
         allow(mock_imap).to receive(:list).and_return([
-          double('folder', name: 'OtherFolder')
-        ])
+                                                        double('folder', name: 'OtherFolder')
+                                                      ])
       end
 
       it 'returns empty array' do
@@ -63,12 +63,12 @@ RSpec.describe CleanboxFolderChecker do
       let(:mock_envelopes) do
         [
           double('envelope', attr: { 'ENVELOPE' => double('envelope_data', from: [
-            double('address', mailbox: 'sender1', host: 'example.com'),
-            double('address', mailbox: 'sender2', host: 'test.com')
-          ])}),
+                                                            double('address', mailbox: 'sender1', host: 'example.com'),
+                                                            double('address', mailbox: 'sender2', host: 'test.com')
+                                                          ]) }),
           double('envelope', attr: { 'ENVELOPE' => double('envelope_data', from: [
-            double('address', mailbox: 'sender3', host: 'example.com')
-          ])})
+                                                            double('address', mailbox: 'sender3', host: 'example.com')
+                                                          ]) })
         ]
       end
 
@@ -79,10 +79,10 @@ RSpec.describe CleanboxFolderChecker do
 
       it 'returns unique email addresses' do
         expect(checker.email_addresses).to eq([
-          'sender1@example.com',
-          'sender2@test.com',
-          'sender3@example.com'
-        ])
+                                                'sender1@example.com',
+                                                'sender2@test.com',
+                                                'sender3@example.com'
+                                              ])
       end
 
       context 'with caching enabled' do
@@ -94,26 +94,26 @@ RSpec.describe CleanboxFolderChecker do
           cached_emails = ['cached1@example.com', 'cached2@test.com']
           cache_data = {
             'emails' => cached_emails,
-            'stats' => { messages: 100, uidnext: 101, uidvalidity: 12345 }
+            'stats' => { messages: 100, uidnext: 101, uidvalidity: 12_345 }
           }
-          
+
           allow(described_class).to receive(:load_folder_cache).and_return(cache_data)
           allow(described_class).to receive(:cache_valid?).and_return(true)
-          
+
           expect(checker.email_addresses).to eq(cached_emails)
         end
 
         it 'fetches and caches when cache is invalid' do
           allow(described_class).to receive(:load_folder_cache).and_return(nil)
           allow(described_class).to receive(:save_folder_cache)
-          
+
           result = checker.email_addresses
-          
+
           expect(result).to eq([
-            'sender1@example.com',
-            'sender2@test.com',
-            'sender3@example.com'
-          ])
+                                 'sender1@example.com',
+                                 'sender2@test.com',
+                                 'sender3@example.com'
+                               ])
           expect(described_class).to have_received(:save_folder_cache)
         end
 
@@ -121,20 +121,20 @@ RSpec.describe CleanboxFolderChecker do
           cached_emails = ['cached1@example.com']
           cache_data = {
             'emails' => cached_emails,
-            'stats' => { messages: 50, uidnext: 51, uidvalidity: 12345 } # Different stats
+            'stats' => { messages: 50, uidnext: 51, uidvalidity: 12_345 } # Different stats
           }
-          
+
           allow(described_class).to receive(:load_folder_cache).and_return(cache_data)
           allow(described_class).to receive(:cache_valid?).and_return(false)
           allow(described_class).to receive(:save_folder_cache)
-          
+
           result = checker.email_addresses
-          
+
           expect(result).to eq([
-            'sender1@example.com',
-            'sender2@test.com',
-            'sender3@example.com'
-          ])
+                                 'sender1@example.com',
+                                 'sender2@test.com',
+                                 'sender3@example.com'
+                               ])
           expect(described_class).to have_received(:save_folder_cache)
         end
       end
@@ -147,7 +147,7 @@ RSpec.describe CleanboxFolderChecker do
         it 'always fetches fresh data' do
           expect(described_class).not_to receive(:load_folder_cache)
           expect(described_class).not_to receive(:save_folder_cache)
-          
+
           checker.email_addresses
         end
       end
@@ -157,10 +157,10 @@ RSpec.describe CleanboxFolderChecker do
   describe '#domains' do
     before do
       allow(checker).to receive(:email_addresses).and_return([
-        'sender1@example.com',
-        'sender2@test.com',
-        'sender3@example.com'
-      ])
+                                                               'sender1@example.com',
+                                                               'sender2@test.com',
+                                                               'sender3@example.com'
+                                                             ])
     end
 
     it 'returns unique domains from email addresses' do
@@ -174,12 +174,10 @@ RSpec.describe CleanboxFolderChecker do
   end
 
   describe 'cache management' do
-
-
     describe '.data_dir' do
       context 'when data_dir is set' do
         let(:config_options) { { data_dir: '/custom/data/dir' } }
-        
+
         it 'returns the set data directory' do
           expect(described_class.data_dir).to eq('/custom/data/dir')
         end
@@ -196,7 +194,7 @@ RSpec.describe CleanboxFolderChecker do
     describe '.cache_dir' do
       context 'when data_dir is set' do
         let(:config_options) { { data_dir: '/custom/data/dir' } }
-        
+
         it 'returns cache directory based on data directory' do
           # Don't use the mocked cache_dir for this test
           allow(described_class).to receive(:cache_dir).and_call_original
@@ -231,19 +229,19 @@ RSpec.describe CleanboxFolderChecker do
       it 'loads cache data when file exists' do
         cache_data = { 'emails' => ['test@example.com'], 'stats' => { messages: 10 } }
         cache_file = described_class.cache_file_for_folder('TestFolder')
-        
+
         FileUtils.mkdir_p(File.dirname(cache_file))
         File.write(cache_file, cache_data.to_yaml)
-        
+
         expect(described_class.load_folder_cache('TestFolder')).to eq(cache_data)
       end
 
       it 'returns nil on YAML parse error' do
         cache_file = described_class.cache_file_for_folder('TestFolder')
-        
+
         FileUtils.mkdir_p(File.dirname(cache_file))
-        File.write(cache_file, "invalid: yaml: content: with: colons: everywhere:")
-        
+        File.write(cache_file, 'invalid: yaml: content: with: colons: everywhere:')
+
         expect(described_class.load_folder_cache('TestFolder')).to be_nil
       end
     end
@@ -251,12 +249,12 @@ RSpec.describe CleanboxFolderChecker do
     describe '.save_folder_cache' do
       it 'creates cache directory and saves data' do
         cache_data = { 'emails' => ['test@example.com'], 'stats' => { messages: 10 } }
-        
+
         described_class.save_folder_cache('TestFolder', cache_data)
-        
+
         cache_file = described_class.cache_file_for_folder('TestFolder')
         expect(File.exist?(cache_file)).to be true
-        
+
         loaded_data = YAML.load_file(cache_file)
         expect(loaded_data).to eq(cache_data)
       end
@@ -264,37 +262,37 @@ RSpec.describe CleanboxFolderChecker do
 
     describe '.cache_valid?' do
       it 'returns false when cache does not exist' do
-        current_stats = { messages: 10, uidnext: 11, uidvalidity: 12345 }
+        current_stats = { messages: 10, uidnext: 11, uidvalidity: 12_345 }
         expect(described_class.cache_valid?('NonExistentFolder', current_stats)).to be false
       end
 
       it 'returns false when cache has no stats' do
         cache_data = { 'emails' => ['test@example.com'] }
         allow(described_class).to receive(:load_folder_cache).and_return(cache_data)
-        
-        current_stats = { messages: 10, uidnext: 11, uidvalidity: 12345 }
+
+        current_stats = { messages: 10, uidnext: 11, uidvalidity: 12_345 }
         expect(described_class.cache_valid?('TestFolder', current_stats)).to be false
       end
 
       it 'returns true when stats match' do
         cache_data = {
           'emails' => ['test@example.com'],
-          'stats' => { messages: 10, uidnext: 11, uidvalidity: 12345 }
+          'stats' => { messages: 10, uidnext: 11, uidvalidity: 12_345 }
         }
         allow(described_class).to receive(:load_folder_cache).and_return(cache_data)
-        
-        current_stats = { messages: 10, uidnext: 11, uidvalidity: 12345 }
+
+        current_stats = { messages: 10, uidnext: 11, uidvalidity: 12_345 }
         expect(described_class.cache_valid?('TestFolder', current_stats)).to be true
       end
 
       it 'returns false when stats do not match' do
         cache_data = {
           'emails' => ['test@example.com'],
-          'stats' => { messages: 10, uidnext: 11, uidvalidity: 12345 }
+          'stats' => { messages: 10, uidnext: 11, uidvalidity: 12_345 }
         }
         allow(described_class).to receive(:load_folder_cache).and_return(cache_data)
-        
-        current_stats = { messages: 15, uidnext: 11, uidvalidity: 12345 } # Different message count
+
+        current_stats = { messages: 15, uidnext: 11, uidvalidity: 12_345 } # Different message count
         expect(described_class.cache_valid?('TestFolder', current_stats)).to be false
       end
     end
@@ -303,26 +301,26 @@ RSpec.describe CleanboxFolderChecker do
       it 'updates cache stats without changing emails' do
         original_cache = {
           'emails' => ['test@example.com'],
-          'stats' => { messages: 10, uidnext: 11, uidvalidity: 12345 },
+          'stats' => { messages: 10, uidnext: 11, uidvalidity: 12_345 },
           'cached_at' => '2023-01-01T00:00:00Z'
         }
-        
+
         allow(described_class).to receive(:load_folder_cache).and_return(original_cache)
         allow(described_class).to receive(:save_folder_cache)
         allow(mock_imap).to receive(:status).and_return({
-          'MESSAGES' => 15,
-          'UIDNEXT' => 16,
-          'UIDVALIDITY' => 12345
-        })
-        
+                                                          'MESSAGES' => 15,
+                                                          'UIDNEXT' => 16,
+                                                          'UIDVALIDITY' => 12_345
+                                                        })
+
         described_class.update_cache_stats('TestFolder', mock_imap)
-        
+
         expected_updated_cache = {
           'emails' => ['test@example.com'],
-          'stats' => { messages: 15, uidnext: 16, uidvalidity: 12345 },
+          'stats' => { messages: 15, uidnext: 16, uidvalidity: 12_345 },
           'cached_at' => anything
         }
-        
+
         expect(described_class).to have_received(:save_folder_cache).with('TestFolder', expected_updated_cache)
       end
     end
@@ -333,7 +331,7 @@ RSpec.describe CleanboxFolderChecker do
       let(:options) { { folder: 'TestFolder', valid_from: '2023-01-01' } }
 
       it 'uses valid_from date for search' do
-        expect(checker.send(:date_search)).to eq(['SINCE', '01-Jan-2023'])
+        expect(checker.send(:date_search)).to eq(%w[SINCE 01-Jan-2023])
       end
     end
 
@@ -399,4 +397,4 @@ RSpec.describe CleanboxFolderChecker do
       end
     end
   end
-end 
+end

@@ -11,7 +11,7 @@ RSpec.describe CLI::CleanboxCLI do
       host: 'test.example.com',
       username: 'test@example.com',
       auth_type: 'password',
-      whitelist_folders: ['Family', 'Work'],
+      whitelist_folders: %w[Family Work],
       list_folders: ['Newsletters'],
       # Use a non-existent config file to avoid loading real config
       config_file: '/non/existent/test_config.yml',
@@ -22,7 +22,7 @@ RSpec.describe CLI::CleanboxCLI do
   before do
     # Mock secrets manager to return nil for all secrets
     allow(CLI::SecretsManager).to receive(:value_from_env_or_secrets).and_return(nil)
-    
+
     # Mock CLI parser to prevent actual argument parsing for most tests
     allow_any_instance_of(CLI::CLIParser).to receive(:parse!).and_return({})
   end
@@ -98,7 +98,7 @@ RSpec.describe CLI::CleanboxCLI do
 
     context 'when config command is provided' do
       before do
-        ARGV.replace(['config', 'show'])
+        ARGV.replace(%w[config show])
         allow(cli).to receive(:exit)
         allow(cli).to receive(:parse_command_line_options)
         allow(cli).to receive(:validate_options)
@@ -133,8 +133,6 @@ RSpec.describe CLI::CleanboxCLI do
       end
     end
   end
-
-
 
   describe '#determine_action' do
     it 'returns unjunk! when unjunk option is set' do
@@ -175,7 +173,7 @@ RSpec.describe CLI::CleanboxCLI do
     end
 
     it 'handles config command with subcommand' do
-      ARGV.replace(['config', 'show'])
+      ARGV.replace(%w[config show])
       cli.send(:handle_config_command)
       expect(cli.config_manager).to have_received(:handle_command).with(['show'], show_all: false)
     end
@@ -187,7 +185,7 @@ RSpec.describe CLI::CleanboxCLI do
     end
 
     it 'does nothing when first argument is not config' do
-      ARGV.replace(['other', 'command'])
+      ARGV.replace(%w[other command])
       cli.send(:handle_config_command)
       expect(cli.config_manager).not_to have_received(:handle_command)
     end
@@ -206,7 +204,7 @@ RSpec.describe CLI::CleanboxCLI do
     end
 
     it 'does nothing when setup command is not present' do
-      ARGV.replace(['other', 'command'])
+      ARGV.replace(%w[other command])
       cli.send(:handle_setup_command)
       expect(CLI::SetupWizard).not_to have_received(:new)
     end
@@ -233,14 +231,13 @@ RSpec.describe CLI::CleanboxCLI do
     end
 
     it 'does not show help when arguments are present' do
-      ARGV.replace(['some', 'args'])
+      ARGV.replace(%w[some args])
       cli.send(:handle_no_args_help)
       expect(cli).not_to have_received(:show_help)
     end
   end
 
   describe '#update_config_manager_if_needed' do
-
     it 'updates config manager when config_file is set' do
       cli.options[:config_file] = '/custom/config.yml'
       expect(CLI::ConfigManager).to receive(:new).with('/custom/config.yml')
@@ -312,8 +309,6 @@ RSpec.describe CLI::CleanboxCLI do
       allow(ARGV).to receive(:last).and_return('list')
     end
 
-
-
     it 'creates Cleanbox instance with IMAP connection and options' do
       expect(Cleanbox).to receive(:new).with(mock_imap, cli.options)
       cli.send(:execute_action)
@@ -342,8 +337,6 @@ RSpec.describe CLI::CleanboxCLI do
       expect(cli).to receive(:create_imap_connection)
       cli.send(:handle_analyze_command)
     end
-
-
 
     it 'creates AnalyzerCLI with IMAP connection and options' do
       expect(CLI::AnalyzerCLI).to receive(:new).with(mock_imap, cli.options)
@@ -386,4 +379,4 @@ RSpec.describe CLI::CleanboxCLI do
       end
     end
   end
-end 
+end

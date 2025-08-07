@@ -1,0 +1,30 @@
+# RuboCop configuration for Cleanbox
+# This configuration is designed to be practical for a real-world Ruby project
+# while still maintaining good code quality standards.
+
+AllCops:
+  NewCops: enable
+  TargetRubyVersion: 2.7
+  SuggestExtensions: false
+
+# Metrics - Relaxed limits for real-world code
+Metrics:
+  ClassLength:
+    Max: 200  # Default is 100 - classes can be longer in real projects
+  MethodLength:
+    Max: 25   # Default is 10 - methods can be longer for complex logic
+  BlockLength:
+    Max: 60   # Default is 25 - blocks can be longer, especially in specs
+  AbcSize:
+    Max: 35   # Default is 17 - allows for more complex methods
+  CyclomaticComplexity:
+    Max: 12   # Default is 7 - allows for more complex control flow
+  PerceivedComplexity:
+    Max: 12   # Default is 8 - allows for more complex logic
+  ParameterLists:
+    Max: 6    # Default is 5 - allows for more parameters when needed
+
+# Layout - Standard formatting rules
+Layout:
+  LineLength:
+    Max: 120  # Default is 80 - modern screens can handle longer lines

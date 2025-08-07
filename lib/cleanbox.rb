@@ -7,8 +7,7 @@ require_relative 'message_action_runner'
 # main class
 # rubocop:disable Metrics/ClassLength
 class Cleanbox < CleanboxConnection
-  attr_accessor :blacklisted_emails, :whitelisted_emails, :list_domains
-  attr_accessor :list_domain_map, :sender_map
+  attr_accessor :blacklisted_emails, :whitelisted_emails, :list_domains, :list_domain_map, :sender_map
 
   def initialize(imap_connection, options)
     super
@@ -31,10 +30,8 @@ class Cleanbox < CleanboxConnection
     end
   end
 
-
-
   def show_folders!
-    cleanbox_folders.each { |folder| puts folder.to_s }
+    cleanbox_folders.each { |folder| puts folder }
   end
 
   def list_folder
@@ -169,7 +166,8 @@ class Cleanbox < CleanboxConnection
   def process_messages(messages, decision_method, context_name = nil)
     context = message_processing_context
     processor = MessageProcessor.new(context)
-    runner = MessageActionRunner.new(imap: imap_connection, junk_folder: junk_folder, pretending: pretending?, logger: logger)
+    runner = MessageActionRunner.new(imap: imap_connection, junk_folder: junk_folder, pretending: pretending?,
+                                     logger: logger)
 
     # Log context-specific message count
     logger.info "Processing #{messages.length} messages for #{context_name}"
@@ -183,7 +181,7 @@ class Cleanbox < CleanboxConnection
     if runner.changed_folders.any?
       logger.info "Updated #{runner.changed_folders.length} folders: #{runner.changed_folders.to_a.join(', ')}"
     else
-      logger.info "No messages were moved"
+      logger.info 'No messages were moved'
     end
 
     runner.changed_folders.each do |folder|

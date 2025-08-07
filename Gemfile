@@ -6,19 +6,19 @@ git_source(:github) { |repo_name| "https://github.com/#{repo_name}" }
 
 # gem "rails"
 
+gem 'dotenv'
 gem 'gmail_xoauth'
 gem 'mail'
 gem 'pry'
 gem 'pry-byebug'
-gem 'dotenv'
 # gem 'selenium-webdriver'
 
 # Testing gems
 group :test, :development do
+  gem 'climate_control'
   gem 'rspec'
   gem 'rspec-mocks'
-  gem 'webmock'
-  gem 'vcr'
   gem 'simplecov', require: false
-  gem 'climate_control'
+  gem 'vcr'
+  gem 'webmock'
 end

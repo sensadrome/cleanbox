@@ -129,7 +129,8 @@ RSpec.describe CLI::SentAnalysisCLI do
           { 'recipient' => 'test@example.com', 'message_id' => 1, 'date' => '2023-01-01' }
         ],
         'folder_senders' => [
-          { 'folder' => 'Test', 'categorization' => 'whitelist', 'sender' => 'sender@example.com', 'message_id' => 2, 'date' => '2023-01-01' }
+          { 'folder' => 'Test', 'categorization' => 'whitelist', 'sender' => 'sender@example.com', 'message_id' => 2,
+            'date' => '2023-01-01' }
         ]
       }
     end
@@ -142,7 +143,7 @@ RSpec.describe CLI::SentAnalysisCLI do
     it 'saves CSV files to the data directory' do
       csv_double = double('csv')
       allow(csv_double).to receive(:<<)
-      
+
       expect(CSV).to receive(:open).with(File.join('/tmp/test_data', 'sent_recipients.csv'), 'w').and_yield(csv_double)
       expect(CSV).to receive(:open).with(File.join('/tmp/test_data', 'folder_senders.csv'), 'w').and_yield(csv_double)
       expect(CSV).to receive(:open).with(File.join('/tmp/test_data', 'sent_vs_folders.csv'), 'w').and_yield(csv_double)
@@ -153,8 +154,8 @@ RSpec.describe CLI::SentAnalysisCLI do
   describe '#analyze_data' do
     let(:json_path) { File.join('/tmp/test_data', 'sent_analysis_data.json') }
     let(:test_data) do
-      { 
-        'sent_recipients' => [], 
+      {
+        'sent_recipients' => [],
         'sent_analysis' => {},
         'folder_analysis' => { 'folders' => [] }
       }
@@ -257,8 +258,10 @@ RSpec.describe CLI::SentAnalysisCLI do
     let(:message_ids) { [1, 2, 3] }
     let(:envelopes) do
       [
-        double('envelope1', seqno: 1, attr: { 'ENVELOPE' => double('envelope1_data', to: [double('recipient1', mailbox: 'test', host: 'example.com')], date: Time.now) }),
-        double('envelope2', seqno: 2, attr: { 'ENVELOPE' => double('envelope2_data', to: [double('recipient2', mailbox: 'user', host: 'test.com')], date: Time.now) })
+        double('envelope1', seqno: 1,
+                            attr: { 'ENVELOPE' => double('envelope1_data', to: [double('recipient1', mailbox: 'test', host: 'example.com')], date: Time.now) }),
+        double('envelope2', seqno: 2,
+                            attr: { 'ENVELOPE' => double('envelope2_data', to: [double('recipient2', mailbox: 'user', host: 'test.com')], date: Time.now) })
       ]
     end
 
@@ -273,7 +276,7 @@ RSpec.describe CLI::SentAnalysisCLI do
 
     it 'collects sent recipients with progress' do
       result = cli.send(:collect_sent_recipients_with_progress)
-      
+
       expect(result).to be_an(Array)
       expect(result.length).to eq(2)
       expect(result.first).to include('recipient' => 'test@example.com')
@@ -302,8 +305,10 @@ RSpec.describe CLI::SentAnalysisCLI do
     let(:message_ids) { [1, 2] }
     let(:envelopes) do
       [
-        double('envelope1', seqno: 1, attr: { 'ENVELOPE' => double('envelope1_data', from: [double('sender1', mailbox: 'sender', host: 'example.com')], date: Time.now) }),
-        double('envelope2', seqno: 2, attr: { 'ENVELOPE' => double('envelope2_data', from: [double('sender2', mailbox: 'user', host: 'test.com')], date: Time.now) })
+        double('envelope1', seqno: 1,
+                            attr: { 'ENVELOPE' => double('envelope1_data', from: [double('sender1', mailbox: 'sender', host: 'example.com')], date: Time.now) }),
+        double('envelope2', seqno: 2,
+                            attr: { 'ENVELOPE' => double('envelope2_data', from: [double('sender2', mailbox: 'user', host: 'test.com')], date: Time.now) })
       ]
     end
 
@@ -317,7 +322,7 @@ RSpec.describe CLI::SentAnalysisCLI do
 
     it 'collects folder senders with progress' do
       result = cli.send(:collect_folder_senders_with_progress, folders)
-      
+
       expect(result).to be_an(Array)
       expect(result.length).to eq(4) # 2 folders × 2 messages each
       expect(result.first).to include('folder' => 'Test Folder', 'categorization' => 'whitelist')
@@ -359,7 +364,7 @@ RSpec.describe CLI::SentAnalysisCLI do
     it 'compares sent recipients with folder senders' do
       expect(cli).to receive(:puts).with(/📊 SENT vs FOLDER COMPARISON/)
       expect(cli).to receive(:puts).with(/Folders ranked by overlap/)
-      
+
       cli.send(:compare_sent_with_folders)
     end
   end
@@ -431,10 +436,12 @@ RSpec.describe CLI::SentAnalysisCLI do
     end
 
     it 'includes proper spacing and formatting' do
-      expect { cli.send(:show_help) }.to output(/Sent Analysis CLI - Analyze sent emails vs folder contents\n\nCommands:/).to_stdout
+      expect do
+        cli.send(:show_help)
+      end.to output(/Sent Analysis CLI - Analyze sent emails vs folder contents\n\nCommands:/).to_stdout
       expect { cli.send(:show_help) }.to output(/Commands:\n  collect/).to_stdout
       expect { cli.send(:show_help) }.to output(/Usage:\n  cleanbox sent-analysis collect/).to_stdout
-      
+
       # Check that commands are properly indented
       expect { cli.send(:show_help) }.to output(/  collect/).to_stdout
       expect { cli.send(:show_help) }.to output(/  analyze/).to_stdout
@@ -442,4 +449,4 @@ RSpec.describe CLI::SentAnalysisCLI do
       expect { cli.send(:show_help) }.to output(/  help/).to_stdout
     end
   end
-end 
+end

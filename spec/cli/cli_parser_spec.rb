@@ -177,8 +177,8 @@ RSpec.describe CLI::CLIParser do
         expect(result[:host]).to eq('mail.com')
         expect(result[:username]).to eq('me')
         expect(result[:password]).to eq('pw')
-        expect(result[:file_from_folders]).to eq(['A', 'B'])
+        expect(result[:file_from_folders]).to eq(%w[A B])
       end
     end
   end
-end 
+end

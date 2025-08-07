@@ -60,7 +60,7 @@ module CLI
         display_saving_message
         handle_secrets_file(secrets)
 
-        config = prepare_configuration(connection_details)
+        config = configuration_for_mode
         update_configuration_for_mode(config, final_config, connection_details)
         save_and_display_results(config)
       end
@@ -123,7 +123,7 @@ module CLI
         CLI::SecretsManager.create_env_file(secrets) unless @update_mode
       end
 
-      def prepare_configuration(_connection_details)
+      def configuration_for_mode
         # Load existing config or create new
         @update_mode ? Configuration.options : {}
       end

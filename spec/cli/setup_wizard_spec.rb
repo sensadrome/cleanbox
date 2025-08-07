@@ -60,7 +60,7 @@ RSpec.describe CLI::SetupWizard do
         before do
           allow(wizard).to receive(:gets).and_return("1\n")
 
-          # Mock the prompt methods that get_connection_details calls
+          # Mock the prompt methods that retrieve_connection_details calls
           allow(wizard).to receive(:prompt).and_return('test_value')
           allow(wizard).to receive(:prompt_with_default).and_return('outlook.office365.com')
           allow(wizard).to receive(:prompt_choice).and_return('oauth2_microsoft')
@@ -136,7 +136,7 @@ RSpec.describe CLI::SetupWizard do
       context 'when user chooses full setup mode (2)' do
         before do
           allow(wizard).to receive(:gets).and_return("2\n")
-          allow(wizard).to receive(:get_connection_details).and_return({
+          allow(wizard).to receive(:retrieve_connection_details).and_return({
                                                                          details: { host: 'test.com',
                                                                                     username: 'test@example.com' },
                                                                          secrets: { 'CLEANBOX_PASSWORD' => 'password123' }
@@ -197,7 +197,7 @@ RSpec.describe CLI::SetupWizard do
         allow(wizard).to receive(:auth_configured?).and_return(false)
         # Mock the user to choose to skip authentication setup
         allow(wizard).to receive(:gets).and_return("2\n")
-        allow(wizard).to receive(:get_connection_details).and_return({
+        allow(wizard).to receive(:retrieve_connection_details).and_return({
                                                                        details: { host: 'test.com',
                                                                                   username: 'test@example.com' },
                                                                        secrets: { 'CLEANBOX_PASSWORD' => 'password123' }
@@ -226,7 +226,7 @@ RSpec.describe CLI::SetupWizard do
         # Mock the authentication setup to skip it
         allow_any_instance_of(CLI::AuthCLI).to receive(:setup_auth)
 
-        expect(wizard).to receive(:get_connection_details).ordered
+        expect(wizard).to receive(:retrieve_connection_details).ordered
         expect(wizard).to receive(:connect_and_analyze).ordered
         expect(wizard).to receive(:generate_recommendations).ordered
         expect(wizard).to receive(:interactive_configuration).ordered
@@ -248,7 +248,7 @@ RSpec.describe CLI::SetupWizard do
           allow(wizard).to receive(:auth_configured?).and_return(false)
           # Mock the user to choose to skip authentication setup
           allow(wizard).to receive(:gets).and_return("2\n")
-          allow(wizard).to receive(:get_connection_details).and_return({
+          allow(wizard).to receive(:retrieve_connection_details).and_return({
                                                                          details: { host: 'test.com',
                                                                                     username: 'test@example.com' },
                                                                          secrets: { 'CLEANBOX_PASSWORD' => 'password123' }
@@ -328,7 +328,7 @@ RSpec.describe CLI::SetupWizard do
           allow(wizard).to receive(:gets).and_return("1\n")
           # Mock the AuthCLI methods to prevent actual execution
           allow_any_instance_of(CLI::AuthCLI).to receive(:setup_auth)
-          allow(wizard).to receive(:get_connection_details).and_return({
+          allow(wizard).to receive(:retrieve_connection_details).and_return({
                                                                          details: { host: 'test.com',
                                                                                     username: 'test@example.com' },
                                                                          secrets: { 'CLEANBOX_PASSWORD' => 'password123' }
@@ -360,7 +360,7 @@ RSpec.describe CLI::SetupWizard do
       context 'when user chooses to skip authentication setup (2)' do
         before do
           allow(wizard).to receive(:gets).and_return("2\n")
-          allow(wizard).to receive(:get_connection_details).and_return({
+          allow(wizard).to receive(:retrieve_connection_details).and_return({
                                                                          details: { host: 'test.com',
                                                                                     username: 'test@example.com' },
                                                                          secrets: { 'CLEANBOX_PASSWORD' => 'password123' }
@@ -404,7 +404,7 @@ RSpec.describe CLI::SetupWizard do
       before do
         allow(File).to receive(:exist?).and_return(false)
         allow(wizard).to receive(:auth_configured?).and_return(true)
-        allow(wizard).to receive(:get_connection_details).and_return({
+        allow(wizard).to receive(:retrieve_connection_details).and_return({
                                                                        details: { host: 'test.com',
                                                                                   username: 'test@example.com' },
                                                                        secrets: { 'CLEANBOX_PASSWORD' => 'password123' }

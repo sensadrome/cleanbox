@@ -10,6 +10,8 @@ RSpec.describe CLI::SecretsManager do
   before do
     # Stub the ENV_FILE_PATH to use our temporary file
     stub_const('CLI::SecretsManager::ENV_FILE_PATH', env_file_path)
+    # Reset the env file loaded flag for each test
+    CLI::SecretsManager.reset_env_file_loaded
 
     # Clear ENV for test isolation
     @original_env = ENV.to_hash

@@ -9,6 +9,8 @@ module CLI
     ENV_FILE_PATH = File.expand_path('.env')
 
     class << self
+      @env_file_loaded = false
+
       def config
         Configuration.options
       end
@@ -24,10 +26,17 @@ module CLI
       end
 
       def load_env_file
+        return if @env_file_loaded
         return unless File.exist?(ENV_FILE_PATH)
 
         # Use the dotenv gem to load the .env file
         Dotenv.load(ENV_FILE_PATH)
+
+        @env_file_loaded = true
+      end
+
+      def reset_env_file_loaded
+        @env_file_loaded = false
       end
 
       def create_env_file(secrets)

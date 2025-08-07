@@ -13,6 +13,8 @@ RSpec.describe CLI::AuthCLI do
   before do
     # Set up the environment for testing
     stub_const('CLI::SecretsManager::ENV_FILE_PATH', env_path)
+    # Reset the env file loaded flag for each test
+    CLI::SecretsManager.reset_env_file_loaded
   end
 
   after do
@@ -272,7 +274,7 @@ RSpec.describe CLI::AuthCLI do
       allow(auth_cli).to receive(:puts)
       allow(auth_cli).to receive(:print)
       allow(auth_cli).to receive(:gets).and_return('test_input')
-      allow(auth_cli).to receive(:get_connection_details)
+      allow(auth_cli).to receive(:connection_details)
       allow(auth_cli).to receive(:test_connection)
       allow(auth_cli).to receive(:save_auth_config)
       allow(auth_cli).to receive(:test_auth)
@@ -285,7 +287,7 @@ RSpec.describe CLI::AuthCLI do
 
       it 'offers to update settings when user chooses 1' do
         allow(auth_cli).to receive(:gets).and_return('1')
-        allow(auth_cli).to receive(:get_connection_details).and_return({
+        allow(auth_cli).to receive(:connection_details).and_return({
                                                                          details: { host: 'test.com' },
                                                                          secrets: { 'CLEANBOX_PASSWORD' => 'test' }
                                                                        })
@@ -293,7 +295,7 @@ RSpec.describe CLI::AuthCLI do
 
         auth_cli.send(:setup_auth)
 
-        expect(auth_cli).to have_received(:get_connection_details)
+        expect(auth_cli).to have_received(:connection_details)
         expect(auth_cli).to have_received(:test_connection)
         expect(auth_cli).to have_received(:save_auth_config)
       end
@@ -311,7 +313,7 @@ RSpec.describe CLI::AuthCLI do
 
         auth_cli.send(:setup_auth)
 
-        expect(auth_cli).not_to have_received(:get_connection_details)
+        expect(auth_cli).not_to have_received(:connection_details)
       end
 
       it 'cancels when user provides invalid input' do
@@ -319,7 +321,7 @@ RSpec.describe CLI::AuthCLI do
 
         auth_cli.send(:setup_auth)
 
-        expect(auth_cli).not_to have_received(:get_connection_details)
+        expect(auth_cli).not_to have_received(:connection_details)
       end
     end
 
@@ -329,7 +331,7 @@ RSpec.describe CLI::AuthCLI do
       end
 
       it 'proceeds with setup when connection test succeeds' do
-        allow(auth_cli).to receive(:get_connection_details).and_return({
+        allow(auth_cli).to receive(:connection_details).and_return({
                                                                          details: { host: 'test.com' },
                                                                          secrets: { 'CLEANBOX_PASSWORD' => 'test' }
                                                                        })
@@ -337,13 +339,13 @@ RSpec.describe CLI::AuthCLI do
 
         auth_cli.send(:setup_auth)
 
-        expect(auth_cli).to have_received(:get_connection_details)
+        expect(auth_cli).to have_received(:connection_details)
         expect(auth_cli).to have_received(:test_connection)
         expect(auth_cli).to have_received(:save_auth_config)
       end
 
       it 'fails when connection test fails' do
-        allow(auth_cli).to receive(:get_connection_details).and_return({
+        allow(auth_cli).to receive(:connection_details).and_return({
                                                                          details: { host: 'test.com' },
                                                                          secrets: { 'CLEANBOX_PASSWORD' => 'test' }
                                                                        })
@@ -351,23 +353,23 @@ RSpec.describe CLI::AuthCLI do
 
         auth_cli.send(:setup_auth)
 
-        expect(auth_cli).to have_received(:get_connection_details)
+        expect(auth_cli).to have_received(:connection_details)
         expect(auth_cli).to have_received(:test_connection)
         expect(auth_cli).not_to have_received(:save_auth_config)
       end
 
-      it 'fails when get_connection_details returns nil' do
-        allow(auth_cli).to receive(:get_connection_details).and_return(nil)
+      it 'fails when connection_details returns nil' do
+        allow(auth_cli).to receive(:connection_details).and_return(nil)
 
         auth_cli.send(:setup_auth)
 
-        expect(auth_cli).to have_received(:get_connection_details)
+        expect(auth_cli).to have_received(:connection_details)
         expect(auth_cli).not_to have_received(:test_connection)
         expect(auth_cli).not_to have_received(:save_auth_config)
       end
 
       it 'fails when connection test fails due to missing credentials' do
-        allow(auth_cli).to receive(:get_connection_details).and_return({
+        allow(auth_cli).to receive(:connection_details).and_return({
                                                                          details: { host: 'test.com',
                                                                                     auth_type: 'oauth2_microsoft' },
                                                                          secrets: { 'CLEANBOX_CLIENT_ID' => 'test_id' }
@@ -379,7 +381,7 @@ RSpec.describe CLI::AuthCLI do
 
         auth_cli.send(:setup_auth)
 
-        expect(auth_cli).to have_received(:get_connection_details)
+        expect(auth_cli).to have_received(:connection_details)
         expect(auth_cli).to have_received(:test_connection)
         expect(auth_cli).not_to have_received(:save_auth_config)
       end
@@ -695,7 +697,7 @@ RSpec.describe CLI::AuthCLI do
     end
   end
 
-  describe '#get_connection_details' do
+  describe '#connection_details' do
     before do
       allow(auth_cli).to receive(:prompt_with_default).and_return('test.com')
       allow(auth_cli).to receive(:prompt).and_return('test@example.com')
@@ -706,7 +708,7 @@ RSpec.describe CLI::AuthCLI do
       allow(auth_cli).to receive(:prompt_choice).and_return('oauth2_microsoft')
       allow(auth_cli).to receive(:prompt).and_return('test@example.com', 'client_id', 'client_secret', 'tenant_id')
 
-      result = auth_cli.send(:get_connection_details)
+      result = auth_cli.send(:connection_details)
 
       expect(result[:details][:host]).to eq('test.com')
       expect(result[:details][:username]).to eq('test@example.com')
@@ -720,7 +722,7 @@ RSpec.describe CLI::AuthCLI do
       allow(auth_cli).to receive(:prompt_choice).and_return('password')
       allow(auth_cli).to receive(:prompt).and_return('test@example.com', 'password123')
 
-      result = auth_cli.send(:get_connection_details)
+      result = auth_cli.send(:connection_details)
 
       expect(result[:details][:auth_type]).to eq('password')
       expect(result[:secrets]['CLEANBOX_PASSWORD']).to eq('password123')

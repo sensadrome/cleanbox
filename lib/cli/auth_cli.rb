@@ -76,7 +76,7 @@ module CLI
       end
 
       # Get connection details
-      connection_data = get_connection_details
+      connection_data = connection_details
       return unless connection_data
 
       # Test connection or setup OAuth2
@@ -226,7 +226,7 @@ module CLI
       puts ''
     end
 
-    def get_connection_details
+    def connection_details
       details = {}
       secrets = {}
 

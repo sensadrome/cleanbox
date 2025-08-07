@@ -164,31 +164,43 @@ class Cleanbox < CleanboxConnection
   end
 
   def process_messages(messages, decision_method, context_name = nil)
-    context = message_processing_context
-    processor = MessageProcessor.new(context)
-    runner = MessageActionRunner.new(imap: imap_connection, junk_folder: junk_folder, pretending: pretending?,
-                                     logger: logger)
-
     # Log context-specific message count
     logger.info "Processing #{messages.length} messages for #{context_name}"
 
     messages.each do |message|
-      decision = processor.send(decision_method, message)
-      runner.execute(decision, message)
+      decision = message_processor.send(decision_method, message)
+      message_action_runner.execute(decision, message)
     end
 
-    # Log summary of actions taken
-    if runner.changed_folders.any?
-      logger.info "Updated #{runner.changed_folders.length} folders: #{runner.changed_folders.to_a.join(', ')}"
-    else
-      logger.info 'No messages were moved'
-    end
+    log_processing_summary
 
-    runner.changed_folders.each do |folder|
+    message_action_runner.changed_folders.each do |folder|
       CleanboxFolderChecker.update_cache_stats(folder, imap_connection)
     end
 
     clear_deleted_messages!
+  end
+
+  def message_processor
+    @message_processor ||= MessageProcessor.new(message_processing_context)
+  end
+
+  def message_action_runner
+    @message_action_runner ||= MessageActionRunner.new(
+      imap: imap_connection,
+      junk_folder: junk_folder,
+      pretending: pretending?,
+      logger: logger
+    )
+  end
+
+  def log_processing_summary
+    if message_action_runner.changed_folders.any?
+      folders = message_action_runner.changed_folders.to_a.join(', ')
+      logger.info "Updated #{message_action_runner.changed_folders.length} folders: #{folders}"
+    else
+      logger.info 'No messages were moved'
+    end
   end
 
   def message_processing_context

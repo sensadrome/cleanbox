@@ -1,0 +1,130 @@
+en:
+  setup_wizard:
+    welcome: "🎉 Welcome to Cleanbox Setup Wizard!\nThis will analyze your email organization and help configure Cleanbox."
+    
+    existing_config:
+      prompt: |
+        ⚠️  Configuration file already exists!
+
+        What would you like to do?
+          1. Update folder analysis (keep existing credentials and settings)
+          2. Complete setup (overwrite everything)
+          3. Cancel
+      choice_prompt: "Choice (1-3): "
+      update_analysis: "✅ Will update folder analysis while preserving existing settings."
+      complete_setup: "⚠️  Will overwrite all settings."
+      setup_cancelled: "Setup cancelled."
+      invalid_choice: "Invalid choice. Setup cancelled."
+    
+    authentication:
+      not_configured: |
+        🔐 Authentication not configured!
+
+        Before we can analyze your email, we need to set up authentication.
+        What would you like to do?
+          1. Set up authentication now (recommended)
+          2. Skip authentication setup (you can run './cleanbox auth setup' later)
+          3. Cancel
+      setup_choice: "✅ Will set up authentication first."
+      skip_choice: |
+        ⚠️  Skipping authentication setup.
+        You can run './cleanbox auth setup' later to configure authentication.
+    
+    connection:
+      setup: "📧 Email Connection Setup"
+      using_existing_settings: "Using existing connection settings..."
+      host_from_config: "IMAP Host: %{host} (from existing config)"
+      username_from_config: "Username: %{username} (from existing config)"
+      auth_from_config: "Authentication: %{auth_type} (from existing config)"
+      using_env_credentials: "Using existing credentials from .env file"
+      oauth2_info: |
+        For user-based OAuth2, you'll be redirected to Microsoft to authorize Cleanbox.
+        No additional credentials needed - using Microsoft's default application.
+      testing_connection: "Testing connection..."
+      connecting_to: "🔍 Connecting to %{host}..."
+      connection_success: "✅ Connected successfully!"
+      connection_failed: |
+        ❌ Connection failed: %{message}
+        Please check your credentials and try again.
+    
+    analysis:
+      starting: |
+        📁 Analyzing your email folders...
+
+        I'll examine each folder to understand how you organize your emails.
+        This helps Cleanbox learn what to do with new incoming emails:
+
+        • WHITELIST folders: Emails from these senders stay in your inbox
+          (like Family, Work, Friends - emails you want to see immediately)
+
+        • LIST folders: Emails from these senders get moved to folders
+          (like Newsletters, Shopping, Social media - emails you can read later)
+
+        • System folders: Calendar, Drafts, etc. are automatically skipped
+
+        For each folder, I'll show you my analysis and ask for confirmation.
+      analyzing_sent_emails: "📧 Analyzing your sent emails..."
+      analyzing_domains: "🔍 Analyzing domain patterns..."
+      analysis_complete: "✅ Analysis complete!"
+      analyzing_folder: "📁 Analyzing folder \"%{name}\" (%{message_count} messages)"
+      folder_categorization: "  → Detected as %{category} folder (%{reason})"
+      accept_categorization_prompt: "  Accept this categorization? (Y/n/l/w/s) [%{choice}]: "
+      manual_categorization_prompt: "  How should this folder be categorized? (l=List, w=Whitelist, s=Skip): "
+      invalid_choice_default: "  Invalid choice, using default: %{category}"
+    
+    recommendations:
+      generating: "🤖 Generating recommendations..."
+      configuration: "📋 Configuration Recommendations"
+      frequent_correspondents: "📧 Frequent Correspondents (from Sent Items):"
+      correspondent_entry: "  👤 %{email} (%{count} emails sent)"
+      whitelist_folders: "✅ Whitelist Folders (keep in inbox):"
+      folder_entry: "  📂 %{folder_name} (%{message_count} messages)"
+      add_whitelist_prompt: "Add additional whitelist folders (comma-separated, or press Enter to skip):"
+      list_folders: "📬 List Folders (move to folders):"
+      add_list_prompt: "Add additional list folders (comma-separated, or press Enter to skip):"
+      domain_mappings: "🔗 Domain Mappings"
+    
+    domain_mappings:
+      explanation: |
+        Sometimes emails come from addresses that don't match your existing folders.
+        For example, you might have a 'GitHub' folder, but get emails from:
+          • issue.12345.project@github.com
+          • noreply@githubusercontent.com
+
+        Domain mappings tell Cleanbox: 'When you see emails from these domains,
+        put them in this folder, even if the sender address looks different.'
+      suggested_mappings: "Suggested mappings:"
+      mapping_entry: "  🌐 %{domain} → %{folder}"
+      customize_prompt: "Customize domain mappings (format: domain=folder,domain=folder or press Enter to skip):"
+    
+    configuration:
+      saving: "💾 Saving configuration..."
+      updated_analysis: "✅ Updated folder analysis while preserving existing settings"
+      created_configuration: "✅ Created new configuration"
+      config_saved_to: "Configuration saved to %{path}"
+      security_note: |
+        🔐 Security Note:
+           - Sensitive credentials are stored in .env file
+           - .env file is already in .gitignore
+           - Keep your .env file secure and don't share it
+      validating: "🔍 Validating configuration..."
+      summary: "📋 Configuration Summary:"
+      whitelist_folders_summary: "  Whitelist folders: %{folders}"
+      list_folders_summary: "  List folders: %{folders}"
+      domain_mappings_summary: "  Domain mappings: %{count} mappings"
+      preview_prompt: "Would you like to preview what Cleanbox would do? (y/N):"
+      running_preview: "🔍 Running preview..."
+    
+    errors:
+      invalid_input: "❌ Invalid input. Please try again."
+      invalid_choice: "❌ Invalid choice. Please enter 1-%{max}."
+    
+    prompts:
+      choice_header: "%{message}:"
+      choice_option: "  %{index}. %{label}"
+    
+    completion:
+      setup_complete: |
+        🎉 Setup complete! You can now run:
+          ./cleanbox clean --pretend  # Preview what will happen
+          ./cleanbox clean            # Start cleaning your inbox 

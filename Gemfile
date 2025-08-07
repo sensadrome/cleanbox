@@ -8,6 +8,7 @@ git_source(:github) { |repo_name| "https://github.com/#{repo_name}" }
 
 gem 'dotenv'
 gem 'gmail_xoauth'
+gem 'i18n'
 gem 'mail'
 gem 'pry'
 gem 'pry-byebug'

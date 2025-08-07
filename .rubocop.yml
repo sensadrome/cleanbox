@@ -8,23 +8,30 @@ AllCops:
   SuggestExtensions: false
 
 # Metrics - Relaxed limits for real-world code
-Metrics:
-  ClassLength:
-    Max: 200  # Default is 100 - classes can be longer in real projects
-  MethodLength:
-    Max: 25   # Default is 10 - methods can be longer for complex logic
-  BlockLength:
-    Max: 60   # Default is 25 - blocks can be longer, especially in specs
-  AbcSize:
-    Max: 35   # Default is 17 - allows for more complex methods
-  CyclomaticComplexity:
-    Max: 12   # Default is 7 - allows for more complex control flow
-  PerceivedComplexity:
-    Max: 12   # Default is 8 - allows for more complex logic
-  ParameterLists:
-    Max: 6    # Default is 5 - allows for more parameters when needed
+Metrics/ClassLength:
+  Max: 200  # Default is 100 - classes can be longer in real projects
+
+Metrics/ModuleLength:
+  Max: 150  # Default is 100 - modules can be longer for complex functionality
+
+Metrics/BlockLength:
+  Max: 60   # Default is 25 - blocks can be longer, especially in specs
+
+Metrics/MethodLength:
+  Max: 20   # Default is 10 - methods can be longer for complex logic
+
+# Metrics/AbcSize:
+#   Max: 35   # Default is 17 - allows for more complex methods
+
+# Metrics/CyclomaticComplexity:
+#   Max: 12   # Default is 7 - allows for more complex control flow
+
+# Metrics/PerceivedComplexity:
+#   Max: 12   # Default is 8 - allows for more complex logic
+
+# Metrics/ParameterLists:
+#   Max: 6    # Default is 5 - allows for more parameters when needed
 
 # Layout - Standard formatting rules
-Layout:
-  LineLength:
-    Max: 120  # Default is 80 - modern screens can handle longer lines
+Layout/LineLength:
+  Max: 120  # Default is 80 - modern screens can handle longer lines

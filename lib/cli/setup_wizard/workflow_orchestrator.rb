@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'i18n'
+require 'pry'
 
 module CLI
   module SetupWizardModules
@@ -17,34 +18,73 @@ module CLI
         return unless authentication_setup?
 
         # Step 3: Get connection details
-        connection_data = retrieve_connection_details
-        return unless connection_data
+        return unless connection_details_valid?
 
-        connection_details = connection_data[:details]
-        secrets = connection_data[:secrets]
-
-        # Step 4: Connect and analyze
+        # Step 4: Connect
         begin
-          connect_and_analyze(connection_details, secrets)
+          display_testing_message
+          establish_imap_connection
         rescue StandardError => e
           puts I18n.t('setup_wizard.connection.connection_failed', message: e.message)
           return
         end
 
-        # Step 5: Generate recommendations
+        # Step 5: Analyze
+        run_analysis
+
+        # Step 6: Generate recommendations
         recommendations = generate_recommendations
 
-        # Step 6: Interactive configuration
+        # Step 7: Interactive configuration
         final_config = interactive_configuration(recommendations)
 
-        # Step 7: Save configuration
-        save_configuration(final_config, connection_details, secrets)
+        # Step 8: Save configuration
+        save_configuration(final_config)
 
-        # Step 8: Validate and preview
+        # Step 9: Validate and preview
         validate_and_preview(final_config)
 
         puts ''
         puts I18n.t('setup_wizard.completion.setup_complete')
+      end
+
+      def connection_details_valid?
+        retrieve_connection_details
+        connection_details_provided? && authentication_details_provided?
+      end
+
+      def connection_details_provided?
+        return false unless @details.present?
+        return false unless @details[:host].present?
+
+        @details[:username].present?
+      end
+
+      def authentication_details_provided?
+        return false unless @details[:auth_type].present?
+
+        case @details[:auth_type]
+        when 'oauth2_microsoft'
+          microsoft_oauth2_details_provided?
+        when 'oauth2_microsoft_user'
+          # validate_microsoft_user_oauth2!(options)
+          true
+        when 'password'
+          password_present?
+        end
+      end
+
+      def microsoft_oauth2_details_provided?
+        return true if @update_mode
+
+        return false unless @secrets['CLEANBOX_CLIENT_ID'].present?
+        return false unless @secrets['CLEANBOX_CLIENT_SECRET'].present?
+
+        @secrets['CLEANBOX_TENANT_ID'].present?
+      end
+
+      def password_present?
+        @update_mode || @secrets['CLEANBOX_PASSWORD'].present?
       end
     end
   end

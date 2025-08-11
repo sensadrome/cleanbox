@@ -37,11 +37,7 @@ module CLI
 
         case setup_auth_response
         when '1'
-          puts I18n.t('setup_wizard.authentication.setup_choice')
-          puts ''
-          auth_cli = CLI::AuthCLI.new
-          auth_cli.send(:setup_auth)
-          puts ''
+          run_authentication_setup
         when '2'
           puts I18n.t('setup_wizard.authentication.skip_choice')
           puts ''
@@ -56,12 +52,12 @@ module CLI
         true
       end
 
-      def save_configuration(final_config, connection_details, secrets)
+      def save_configuration(final_config)
         display_saving_message
-        handle_secrets_file(secrets)
+        handle_secrets_file
 
         config = configuration_for_mode
-        update_configuration_for_mode(config, final_config, connection_details)
+        update_configuration_for_mode(config, final_config)
         save_and_display_results(config)
       end
 
@@ -75,6 +71,13 @@ module CLI
 
       private
 
+      def update_file_response
+        puts I18n.t('setup_wizard.existing_config.prompt')
+        puts ''
+        puts I18n.t('setup_wizard.existing_config.choice_prompt')
+        gets.chomp.strip
+      end
+
       def auth_configured?
         return false unless Configuration.config_loaded?
 
@@ -84,18 +87,21 @@ module CLI
         CLI::SecretsManager.auth_secrets_available?(config[:auth_type], data_dir: Configuration.data_dir)
       end
 
-      def update_file_response
-        puts I18n.t('setup_wizard.existing_config.prompt')
-        puts ''
-        puts I18n.t('setup_wizard.existing_config.choice_prompt')
-        gets.chomp.strip
-      end
-
       def setup_auth_response
         puts I18n.t('setup_wizard.authentication.not_configured')
         puts ''
         puts I18n.t('setup_wizard.existing_config.choice_prompt')
         gets.chomp.strip
+      end
+
+      def run_authentication_setup
+        puts I18n.t('setup_wizard.authentication.setup_choice')
+        puts ''
+        auth_cli = CLI::AuthCLI.new
+        auth_cli.send(:setup_auth)
+        puts ''
+        Configuration.reload!
+        @details = Configuration.options.slice(:host, :username, :auth_type)
       end
 
       # Set sensible defaults for other configuration options
@@ -118,9 +124,9 @@ module CLI
         puts I18n.t('setup_wizard.configuration.saving')
       end
 
-      def handle_secrets_file(secrets)
+      def handle_secrets_file
         # Create .env file for sensitive credentials (only if not in update mode)
-        CLI::SecretsManager.create_env_file(secrets) unless @update_mode
+        CLI::SecretsManager.create_env_file(@secrets) unless @update_mode
       end
 
       def configuration_for_mode
@@ -128,7 +134,7 @@ module CLI
         @update_mode ? Configuration.options : {}
       end
 
-      def update_configuration_for_mode(config, final_config, connection_details)
+      def update_configuration_for_mode(config, final_config)
         if @update_mode
           # In update mode, only update folder-related settings
           config.merge!({
@@ -139,8 +145,8 @@ module CLI
           puts I18n.t('setup_wizard.configuration.updated_analysis')
         else
           # In full setup mode, update everything
-          config.merge!(connection_details)
           config.merge!(default_config)
+          config.merge!(@details)
           config.merge!({
                           whitelist_folders: final_config[:whitelist_folders],
                           list_folders: final_config[:list_folders],

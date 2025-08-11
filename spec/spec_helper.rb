@@ -5,6 +5,7 @@ require 'securerandom'
 require 'logger'
 require 'yaml'
 require 'tempfile'
+require 'pry'
 
 # Main application entry point
 require_relative '../lib/connection'

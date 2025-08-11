@@ -27,6 +27,21 @@ RSpec.describe 'SetupWizard Integration' do
 
     # Mock AuthCLI methods to prevent actual execution
     allow_any_instance_of(CLI::AuthCLI).to receive(:setup_auth)
+
+    # Mock AuthenticationGatherer to return pre-configured data for integration tests
+    mock_gatherer = instance_double(CLI::AuthenticationGatherer)
+    allow(mock_gatherer).to receive(:gather_authentication_details!)
+    allow(mock_gatherer).to receive(:connection_details).and_return({
+      host: 'outlook.office365.com',
+      username: 'test@example.com',
+      auth_type: 'oauth2_microsoft'
+    })
+    allow(mock_gatherer).to receive(:secrets).and_return({
+      'CLEANBOX_CLIENT_ID' => 'valid_client_id',
+      'CLEANBOX_CLIENT_SECRET' => 'valid_client_secret',
+      'CLEANBOX_TENANT_ID' => 'valid_tenant_id'
+    })
+    allow(CLI::AuthenticationGatherer).to receive(:new).and_return(mock_gatherer)
   end
 
   after do

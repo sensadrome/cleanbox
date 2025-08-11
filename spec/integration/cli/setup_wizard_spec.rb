@@ -49,14 +49,10 @@ RSpec.describe 'SetupWizard Integration' do
 
       # Mock gets on the specific wizard instance
       allow(wizard).to receive(:gets).and_return(
-        '2',                      # Complete setup (overwrite everything) - handle existing config
         '2',                      # Skip authentication setup
         'outlook.office365.com',  # IMAP Host
         'test@example.com',       # Email Address
-        '1',                      # OAuth2 authentication
-        'invalid_client_id',      # Client ID
-        'invalid_client_secret',  # Client Secret
-        'invalid_tenant_id'       # Tenant ID
+        '1'                       # OAuth2 User based authentication
       )
 
       wizard.run

@@ -141,7 +141,7 @@ RSpec.describe CLI::SetupWizard do
                                                                                     username: 'test@example.com' },
                                                                          secrets: { 'CLEANBOX_PASSWORD' => 'password123' }
                                                                        })
-          allow(wizard).to receive(:connect_and_analyze)
+          allow(wizard).to receive(:run_analysis)
           allow(wizard).to receive(:generate_recommendations).and_return({
                                                                            whitelist_folders: ['Work'],
                                                                            list_folders: ['Newsletters'],
@@ -197,12 +197,12 @@ RSpec.describe CLI::SetupWizard do
         allow(wizard).to receive(:auth_configured?).and_return(false)
         # Mock the user to choose to skip authentication setup
         allow(wizard).to receive(:gets).and_return("2\n")
-        allow(wizard).to receive(:retrieve_connection_details).and_return({
-                                                                       details: { host: 'test.com',
-                                                                                  username: 'test@example.com' },
-                                                                       secrets: { 'CLEANBOX_PASSWORD' => 'password123' }
-                                                                     })
-        allow(wizard).to receive(:connect_and_analyze)
+        allow(wizard).to receive(:retrieve_connection_details) do
+          wizard.instance_variable_set(:@details, { host: 'test.com', username: 'test@example.com', auth_type: 'password' })
+          wizard.instance_variable_set(:@secrets, { 'CLEANBOX_PASSWORD' => 'password123' })
+          nil
+        end
+        allow(wizard).to receive(:run_analysis)
         allow(wizard).to receive(:generate_recommendations).and_return({
                                                                          whitelist_folders: ['Work'],
                                                                          list_folders: ['Newsletters'],
@@ -227,7 +227,7 @@ RSpec.describe CLI::SetupWizard do
         allow_any_instance_of(CLI::AuthCLI).to receive(:setup_auth)
 
         expect(wizard).to receive(:retrieve_connection_details).ordered
-        expect(wizard).to receive(:connect_and_analyze).ordered
+        expect(wizard).to receive(:run_analysis).ordered
         expect(wizard).to receive(:generate_recommendations).ordered
         expect(wizard).to receive(:interactive_configuration).ordered
         expect(wizard).to receive(:save_configuration).ordered
@@ -248,12 +248,12 @@ RSpec.describe CLI::SetupWizard do
           allow(wizard).to receive(:auth_configured?).and_return(false)
           # Mock the user to choose to skip authentication setup
           allow(wizard).to receive(:gets).and_return("2\n")
-          allow(wizard).to receive(:retrieve_connection_details).and_return({
-                                                                         details: { host: 'test.com',
-                                                                                    username: 'test@example.com' },
-                                                                         secrets: { 'CLEANBOX_PASSWORD' => 'password123' }
-                                                                       })
-          allow(wizard).to receive(:connect_and_analyze).and_raise(RuntimeError, 'Connection failed')
+          allow(wizard).to receive(:retrieve_connection_details) do
+            wizard.instance_variable_set(:@details, { host: 'test.com', username: 'test@example.com', auth_type: 'password' })
+            wizard.instance_variable_set(:@secrets, { 'CLEANBOX_PASSWORD' => 'password123' })
+            nil
+          end
+          allow(wizard).to receive(:establish_imap_connection).and_raise(RuntimeError, 'Connection failed')
         end
 
         it 'handles connection errors gracefully' do
@@ -333,7 +333,7 @@ RSpec.describe CLI::SetupWizard do
                                                                                     username: 'test@example.com' },
                                                                          secrets: { 'CLEANBOX_PASSWORD' => 'password123' }
                                                                        })
-          allow(wizard).to receive(:connect_and_analyze)
+          allow(wizard).to receive(:run_analysis)
           allow(wizard).to receive(:generate_recommendations).and_return({
                                                                            whitelist_folders: ['Work'],
                                                                            list_folders: ['Newsletters'],
@@ -365,7 +365,7 @@ RSpec.describe CLI::SetupWizard do
                                                                                     username: 'test@example.com' },
                                                                          secrets: { 'CLEANBOX_PASSWORD' => 'password123' }
                                                                        })
-          allow(wizard).to receive(:connect_and_analyze)
+          allow(wizard).to receive(:run_analysis)
           allow(wizard).to receive(:generate_recommendations).and_return({
                                                                            whitelist_folders: ['Work'],
                                                                            list_folders: ['Newsletters'],
@@ -409,7 +409,7 @@ RSpec.describe CLI::SetupWizard do
                                                                                   username: 'test@example.com' },
                                                                        secrets: { 'CLEANBOX_PASSWORD' => 'password123' }
                                                                      })
-        allow(wizard).to receive(:connect_and_analyze)
+        allow(wizard).to receive(:run_analysis)
         allow(wizard).to receive(:generate_recommendations).and_return({
                                                                          whitelist_folders: ['Work'],
                                                                          list_folders: ['Newsletters'],

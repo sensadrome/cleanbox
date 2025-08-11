@@ -1,4 +1,12 @@
 en:
+  cli:
+    errors:
+      invalid_input: "❌ Invalid input. Please try again."
+      invalid_choice: "❌ Invalid choice. Please enter 1-%{max}."
+    prompts:
+      choice_header: "%{message}:"
+      choice_option: "  %{index}. %{label}"
+  
   setup_wizard:
     welcome: "🎉 Welcome to Cleanbox Setup Wizard!\nThis will analyze your email organization and help configure Cleanbox."
     
@@ -115,13 +123,7 @@ en:
       preview_prompt: "Would you like to preview what Cleanbox would do? (y/N):"
       running_preview: "🔍 Running preview..."
     
-    errors:
-      invalid_input: "❌ Invalid input. Please try again."
-      invalid_choice: "❌ Invalid choice. Please enter 1-%{max}."
-    
-    prompts:
-      choice_header: "%{message}:"
-      choice_option: "  %{index}. %{label}"
+
     
     completion:
       setup_complete: |

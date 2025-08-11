@@ -8,6 +8,8 @@ require_relative '../auth/authentication_manager'
 
 module CLI
   class AuthCLI
+    include InteractivePrompts
+    
     def initialize
       @logger = Logger.new($stdout)
     end
@@ -358,53 +360,7 @@ module CLI
       CLI::SecretsManager.value_from_env_or_secrets(name)
     end
 
-    # Helper methods for user input
-    def prompt(message, default: nil, secret: false)
-      loop do
-        if default
-          print "#{message} [#{default}]: "
-        else
-          print "#{message}: "
-        end
 
-        input = if secret
-                  system('stty -echo')
-                  result = gets.chomp
-                  system('stty echo')
-                  puts
-                  result
-                else
-                  gets.chomp
-                end
-
-        input = default if input.empty? && default
-
-        return input unless block_given?
-        return input if yield(input)
-
-        puts '❌ Invalid input. Please try again.'
-      end
-    end
-
-    def prompt_with_default(message, default)
-      prompt(message, default: default) { |input| !input.empty? }
-    end
-
-    def prompt_choice(message, choices)
-      puts "#{message}:"
-      choices.each_with_index do |choice, index|
-        puts "  #{index + 1}. #{choice[:label]}"
-      end
-
-      loop do
-        print "Choice (1-#{choices.length}): "
-        choice = gets.chomp.to_i
-
-        return choices[choice - 1][:key] if choice.between?(1, choices.length)
-
-        puts "❌ Invalid choice. Please enter 1-#{choices.length}."
-      end
-    end
 
     def setup_user_oauth2(details)
       require_relative '../microsoft_365_user_token'

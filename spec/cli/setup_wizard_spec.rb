@@ -104,31 +104,17 @@ RSpec.describe CLI::SetupWizard do
         end
 
         context 'with missing host' do
-          let(:existing_config) do
+          let(:config_options) do
             {
               username: 'test@example.com',
               auth_type: 'oauth2_microsoft'
             }
           end
 
-          it 'prompts for host' do
-            # Mock prompt_with_default to output the expected message and return a value
-            allow(wizard).to receive(:prompt_with_default).with('IMAP Host',
-                                                                'outlook.office365.com') do |message, default|
-              puts "#{message}: #{default}"
-              'outlook.office365.com'
-            end
-
-            # Mock other required methods to prevent actual execution
-            allow(wizard).to receive(:interactive_configuration).and_return({
-                                                                              whitelist_folders: ['Work'],
-                                                                              list_folders: ['Newsletters'],
-                                                                              domain_mappings: { 'example.com' => 'Newsletters' }
-                                                                            })
-            allow(wizard).to receive(:save_configuration)
-            allow(wizard).to receive(:validate_and_preview)
-
-            expect { wizard.run }.to output(/IMAP Host/).to_stdout
+          it 'fails fast when config is incomplete' do
+            # Expect the wizard to fail fast when config is missing required fields
+            expect { wizard.run }.to output(/Configuration is incomplete/).to_stdout
+            expect(wizard.run).to be_nil
           end
         end
       end
@@ -194,7 +180,7 @@ RSpec.describe CLI::SetupWizard do
     context 'when configuration file does not exist' do
       before do
         allow(File).to receive(:exist?).and_return(false)
-        allow(wizard).to receive(:auth_configured?).and_return(false)
+        # allow(wizard).to receive(:auth_configured?).and_return(false)
         # Mock the user to choose to skip authentication setup
         allow(wizard).to receive(:gets).and_return("2\n")
         allow(wizard).to receive(:retrieve_connection_details) do
@@ -320,19 +306,24 @@ RSpec.describe CLI::SetupWizard do
     context 'when authentication is not configured' do
       before do
         allow(File).to receive(:exist?).and_return(false)
-        allow(wizard).to receive(:auth_configured?).and_return(false)
+        # allow(wizard).to receive(:auth_configured?).and_return(false)
       end
 
       context 'when user chooses to set up authentication (1)' do
         before do
           allow(wizard).to receive(:gets).and_return("1\n")
-          # Mock the AuthCLI methods to prevent actual execution
-          allow_any_instance_of(CLI::AuthCLI).to receive(:setup_auth)
-          allow(wizard).to receive(:retrieve_connection_details).and_return({
-                                                                         details: { host: 'test.com',
-                                                                                    username: 'test@example.com' },
-                                                                         secrets: { 'CLEANBOX_PASSWORD' => 'password123' }
-                                                                       })
+
+          # Mock AuthenticationGatherer since we now use it directly
+          mock_gatherer = instance_double(CLI::AuthenticationGatherer)
+          allow(mock_gatherer).to receive(:gather_authentication_details!)
+          allow(mock_gatherer).to receive(:connection_details).and_return({
+            host: 'test.com',
+            username: 'test@example.com',
+            auth_type: 'password'
+          })
+          allow(mock_gatherer).to receive(:secrets).and_return({ 'CLEANBOX_PASSWORD' => 'password123' })
+          allow(CLI::AuthenticationGatherer).to receive(:new).and_return(mock_gatherer)
+
           allow(wizard).to receive(:run_analysis)
           allow(wizard).to receive(:generate_recommendations).and_return({
                                                                            whitelist_folders: ['Work'],

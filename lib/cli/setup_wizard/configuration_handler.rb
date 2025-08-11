@@ -2,6 +2,7 @@
 
 require 'i18n'
 require_relative '../../configuration'
+require_relative '../authentication_gatherer'
 
 module CLI
   module SetupWizardModules
@@ -97,11 +98,16 @@ module CLI
       def run_authentication_setup
         puts I18n.t('setup_wizard.authentication.setup_choice')
         puts ''
-        auth_cli = CLI::AuthCLI.new
-        auth_cli.send(:setup_auth)
+        
+        # Use AuthenticationGatherer directly instead of going through AuthCLI
+        gatherer = CLI::AuthenticationGatherer.new
+        gatherer.gather_authentication_details!
+        
+        # Set both @details and @secrets from the gatherer
+        @details = gatherer.connection_details
+        @secrets = gatherer.secrets
+        
         puts ''
-        Configuration.reload!
-        @details = Configuration.options.slice(:host, :username, :auth_type)
       end
 
       # Set sensible defaults for other configuration options

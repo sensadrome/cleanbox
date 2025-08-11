@@ -5,6 +5,7 @@ require_relative '../configuration'
 require_relative 'config_manager'
 require_relative 'secrets_manager'
 require_relative '../auth/authentication_manager'
+require_relative 'authentication_gatherer'
 
 module CLI
   class AuthCLI
@@ -229,45 +230,9 @@ module CLI
     end
 
     def connection_details
-      details = {}
-      secrets = {}
-
-      # Host
-      default_host = 'outlook.office365.com'
-      details[:host] = prompt_with_default('IMAP Host', default_host) do |host|
-        host.match?(/\.(com|org|net|edu)$/) || host.include?('.')
-      end
-
-      # Username
-      details[:username] = prompt('Email Address') do |email|
-        email.include?('@')
-      end
-
-      # Authentication type
-      auth_type = prompt_choice('Authentication Method', [
-                                  { key: 'oauth2_microsoft_user', label: 'OAuth2 (Microsoft 365 - User-based)' },
-                                  { key: 'oauth2_microsoft', label: 'OAuth2 (Microsoft 365 - Application-level)' },
-                                  { key: 'password', label: 'Password (IMAP)' }
-                                ])
-      details[:auth_type] = auth_type
-
-      # Credentials
-      case details[:auth_type]
-      when 'oauth2_microsoft_user'
-        # User-based OAuth2 - no secrets needed, will use default client_id
-        puts ''
-        puts 'ℹ️  Using default OAuth2 client for user-based authentication.'
-        puts '   Users will be prompted to consent to permissions.'
-        puts ''
-      when 'oauth2_microsoft'
-        secrets['CLEANBOX_CLIENT_ID'] = prompt('OAuth2 Client ID') { |id| !id.empty? }
-        secrets['CLEANBOX_CLIENT_SECRET'] = prompt('OAuth2 Client Secret', secret: true) { |id| !id.empty? }
-        secrets['CLEANBOX_TENANT_ID'] = prompt('OAuth2 Tenant ID') { |id| !id.empty? }
-      else
-        secrets['CLEANBOX_PASSWORD'] = prompt('IMAP Password', secret: true) { |pwd| !pwd.empty? }
-      end
-
-      { details: details, secrets: secrets }
+      @gatherer ||= AuthenticationGatherer.new
+      @gatherer.gather_authentication_details!
+      { details: @gatherer.connection_details, secrets: @gatherer.secrets }
     end
 
     def test_connection(config, secrets)

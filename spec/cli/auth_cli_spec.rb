@@ -3,6 +3,7 @@
 require 'spec_helper'
 require 'tempfile'
 require 'fileutils'
+require_relative '../../lib/cli/authentication_gatherer'
 
 RSpec.describe CLI::AuthCLI do
   let(:temp_dir) { Dir.mktmpdir }
@@ -288,9 +289,9 @@ RSpec.describe CLI::AuthCLI do
       it 'offers to update settings when user chooses 1' do
         allow(auth_cli).to receive(:gets).and_return('1')
         allow(auth_cli).to receive(:connection_details).and_return({
-                                                                         details: { host: 'test.com' },
-                                                                         secrets: { 'CLEANBOX_PASSWORD' => 'test' }
-                                                                       })
+                                                                     details: { host: 'test.com' },
+                                                                     secrets: { 'CLEANBOX_PASSWORD' => 'test' }
+                                                                   })
         allow(auth_cli).to receive(:test_connection).and_return(true)
 
         auth_cli.send(:setup_auth)
@@ -332,9 +333,9 @@ RSpec.describe CLI::AuthCLI do
 
       it 'proceeds with setup when connection test succeeds' do
         allow(auth_cli).to receive(:connection_details).and_return({
-                                                                         details: { host: 'test.com' },
-                                                                         secrets: { 'CLEANBOX_PASSWORD' => 'test' }
-                                                                       })
+                                                                     details: { host: 'test.com' },
+                                                                     secrets: { 'CLEANBOX_PASSWORD' => 'test' }
+                                                                   })
         allow(auth_cli).to receive(:test_connection).and_return(true)
 
         auth_cli.send(:setup_auth)
@@ -346,9 +347,9 @@ RSpec.describe CLI::AuthCLI do
 
       it 'fails when connection test fails' do
         allow(auth_cli).to receive(:connection_details).and_return({
-                                                                         details: { host: 'test.com' },
-                                                                         secrets: { 'CLEANBOX_PASSWORD' => 'test' }
-                                                                       })
+                                                                     details: { host: 'test.com' },
+                                                                     secrets: { 'CLEANBOX_PASSWORD' => 'test' }
+                                                                   })
         allow(auth_cli).to receive(:test_connection).and_return(false)
 
         auth_cli.send(:setup_auth)
@@ -370,11 +371,11 @@ RSpec.describe CLI::AuthCLI do
 
       it 'fails when connection test fails due to missing credentials' do
         allow(auth_cli).to receive(:connection_details).and_return({
-                                                                         details: { host: 'test.com',
-                                                                                    auth_type: 'oauth2_microsoft' },
-                                                                         secrets: { 'CLEANBOX_CLIENT_ID' => 'test_id' }
-                                                                         # Missing client_secret and tenant_id
-                                                                       })
+                                                                     details: { host: 'test.com',
+                                                                                auth_type: 'oauth2_microsoft' },
+                                                                     secrets: { 'CLEANBOX_CLIENT_ID' => 'test_id' }
+                                                                     # Missing client_secret and tenant_id
+                                                                   })
         allow(auth_cli).to receive(:test_connection).and_return(false)
 
         expect(auth_cli).to receive(:puts).with('❌ Connection test failed. Please check your credentials and try again.')
@@ -698,15 +699,24 @@ RSpec.describe CLI::AuthCLI do
   end
 
   describe '#connection_details' do
+    let(:mock_gatherer) { instance_double(CLI::AuthenticationGatherer) }
+
     before do
-      allow(auth_cli).to receive(:prompt_with_default).and_return('test.com')
-      allow(auth_cli).to receive(:prompt).and_return('test@example.com')
-      allow(auth_cli).to receive(:prompt_choice).and_return('oauth2_microsoft')
+      allow(CLI::AuthenticationGatherer).to receive(:new).and_return(mock_gatherer)
     end
 
     it 'returns connection details for oauth2_microsoft' do
-      allow(auth_cli).to receive(:prompt_choice).and_return('oauth2_microsoft')
-      allow(auth_cli).to receive(:prompt).and_return('test@example.com', 'client_id', 'client_secret', 'tenant_id')
+      allow(mock_gatherer).to receive(:gather_authentication_details!)
+      allow(mock_gatherer).to receive(:connection_details).and_return({
+                                                                        host: 'test.com',
+                                                                        username: 'test@example.com',
+                                                                        auth_type: 'oauth2_microsoft'
+                                                                      })
+      allow(mock_gatherer).to receive(:secrets).and_return({
+                                                             'CLEANBOX_CLIENT_ID' => 'client_id',
+                                                             'CLEANBOX_CLIENT_SECRET' => 'client_secret',
+                                                             'CLEANBOX_TENANT_ID' => 'tenant_id'
+                                                           })
 
       result = auth_cli.send(:connection_details)
 
@@ -719,8 +729,15 @@ RSpec.describe CLI::AuthCLI do
     end
 
     it 'returns connection details for password authentication' do
-      allow(auth_cli).to receive(:prompt_choice).and_return('password')
-      allow(auth_cli).to receive(:prompt).and_return('test@example.com', 'password123')
+      allow(mock_gatherer).to receive(:gather_authentication_details!)
+      allow(mock_gatherer).to receive(:connection_details).and_return({
+                                                                        host: 'test.com',
+                                                                        username: 'test@example.com',
+                                                                        auth_type: 'password'
+                                                                      })
+      allow(mock_gatherer).to receive(:secrets).and_return({
+                                                             'CLEANBOX_PASSWORD' => 'password123'
+                                                           })
 
       result = auth_cli.send(:connection_details)
 

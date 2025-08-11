@@ -5,7 +5,6 @@ require 'securerandom'
 require 'logger'
 require 'yaml'
 require 'tempfile'
-require 'pry'
 
 # Main application entry point
 require_relative '../lib/connection'
@@ -59,6 +58,22 @@ require 'message_action_runner'
 require 'connection'
 require 'cleanbox'
 require 'folder_checker'
+
+class Configuration
+  class << self
+    def reload!
+      load_config_file if @config_file_path
+    end
+
+    def reset!
+      @options = nil
+      @config_file_path = nil
+      @data_dir = nil
+      @config_loaded = false
+      @original_command_line_options = nil
+    end
+  end
+end
 
 # Helper method for creating mock IMAP error responses
 def mock_imap_error_response(text)

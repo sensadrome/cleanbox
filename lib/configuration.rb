@@ -22,21 +22,6 @@ class Configuration
       @config_loaded || false
     end
 
-    def reload!
-      load_config_file if @config_file_path
-    end
-
-    def reset!
-      @options = nil
-      @config_file_path = nil
-      @data_dir = nil
-      @config_loaded = false
-    end
-
-    def reconfigure!
-      configure(@original_command_line_options || {})
-    end
-
     private
 
     def default_options

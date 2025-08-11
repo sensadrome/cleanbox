@@ -131,7 +131,6 @@ RSpec.describe 'Configuration Integration' do
         ENV.delete('CLEANBOX_DATA_DIR')
         ENV.delete('CLEANBOX_CONFIG')
         Configuration.reset!
-        Configuration.reconfigure!
 
         # Temporarily allow the real home_config for this test
         allow(Configuration).to receive(:home_config).and_call_original
@@ -142,22 +141,6 @@ RSpec.describe 'Configuration Integration' do
         Configuration.configure({})
 
         expect(Configuration.config_file_path).to eq(home_config)
-      end
-    end
-
-    describe 'environment variable cleanup' do
-      it 'does not persist environment variables between tests' do
-        ENV['CLEANBOX_DATA_DIR'] = temp_dir
-        Configuration.configure({})
-        expect(Configuration.data_dir).to eq(File.expand_path(temp_dir))
-
-        # Clear environment and reconfigure
-        ENV.delete('CLEANBOX_DATA_DIR')
-        Configuration.reset!
-        Configuration.reconfigure!
-
-        # Should not have the previous data_dir
-        expect(Configuration.data_dir).not_to eq(File.expand_path(temp_dir))
       end
     end
   end
@@ -184,12 +167,6 @@ RSpec.describe 'Configuration Integration' do
       expect(Configuration.data_dir).to be_nil
       expect(Configuration.config_file_path).to be_nil
       expect(Configuration.options).to be_nil
-
-      # Should be able to reconfigure
-      Configuration.reconfigure!
-      expect(Configuration.data_dir).to eq(File.expand_path(temp_dir))
-      expect(Configuration.config_file_path).to be_present
-      expect(Configuration.options).to be_present
 
       ENV.delete('CLEANBOX_DATA_DIR')
     end

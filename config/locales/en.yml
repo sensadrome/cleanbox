@@ -6,6 +6,21 @@ en:
     prompts:
       choice_header: "%{message}:"
       choice_option: "  %{index}. %{label}"
+    authentication_gatherer:
+      oauth2_user_info: "ℹ️  Using default OAuth2 client for user-based authentication."
+      oauth2_user_info_details: "   Users will be prompted to consent to permissions."
+      prompts:
+        imap_host: "IMAP Host"
+        email_address: "Email Address"
+        authentication_method: "Authentication Method"
+        oauth2_client_id: "OAuth2 Client ID"
+        oauth2_client_secret: "OAuth2 Client Secret"
+        oauth2_tenant_id: "OAuth2 Tenant ID"
+        imap_password: "IMAP Password"
+      choices:
+        oauth2_user_based: "OAuth2 (Microsoft 365 - User-based)"
+        oauth2_application: "OAuth2 (Microsoft 365 - Application-level)"
+        password: "Password (IMAP)"
   
   setup_wizard:
     welcome: "🎉 Welcome to Cleanbox Setup Wizard!\nThis will analyze your email organization and help configure Cleanbox."

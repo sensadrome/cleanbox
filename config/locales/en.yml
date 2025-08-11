@@ -60,6 +60,7 @@ en:
       username_from_config: "Username: %{username} (from existing config)"
       auth_from_config: "Authentication: %{auth_type} (from existing config)"
       using_env_credentials: "Using existing credentials from .env file"
+      config_incomplete: "❌ Configuration is incomplete: missing %{missing_fields}"
       oauth2_info: |
         For user-based OAuth2, you'll be redirected to Microsoft to authorize Cleanbox.
         No additional credentials needed - using Microsoft's default application.

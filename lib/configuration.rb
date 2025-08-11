@@ -51,10 +51,6 @@ class Configuration
         list_domain_map: {},
         sent_folder: 'Sent Items',
         file_unread: false,
-        client_id: secret(:client_id),
-        client_secret: secret(:client_secret),
-        tenant_id: secret(:tenant_id),
-        password: secret(:password),
         unjunk: false,
         unjunk_folders: [],
         file_from_folders: [],
@@ -114,9 +110,11 @@ class Configuration
       home_config
     end
 
+    # :nocov:
     def home_config
       File.expand_path('~/.cleanbox.yml')
     end
+    # :nocov:
 
     def load_config_file
       return unless @config_file_path && File.exist?(@config_file_path)
@@ -126,11 +124,6 @@ class Configuration
 
       @options = @options.deep_merge(config)
       @config_loaded = true
-    end
-
-    def secret(_name)
-      # For now, just return nil - we'll handle secrets properly when integrated
-      nil
     end
   end
 end

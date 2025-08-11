@@ -7,9 +7,10 @@ require_relative 'core_ext'
 class Configuration
   class << self
     attr_accessor :options, :data_dir
+    attr_reader :config_file_path
 
     def configure(command_line_options = {})
-      @original_command_line_options = command_line_options
+      @original_command_line_options ||= command_line_options
       @options = default_options
       @data_dir = resolve_data_dir_from_options(command_line_options)
       @config_file_path = resolve_config_file_path(command_line_options)
@@ -20,8 +21,6 @@ class Configuration
     def config_loaded?
       @config_loaded || false
     end
-
-    attr_reader :config_file_path
 
     def reload!
       load_config_file if @config_file_path

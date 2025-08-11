@@ -23,6 +23,8 @@ class TestImapService
     auth_data['error'] || 'Authentication failed'
   end
 
+  # disabled because this is the name of the imap method
+  # rubocop:disable Naming/PredicateMethod
   def authenticate(_method, _username, _password_or_token)
     auth_data = @fixture_data['auth']
 
@@ -55,6 +57,7 @@ class TestImapService
     # Simulate successful folder selection
     true
   end
+  # rubocop:enable Naming/PredicateMethod
 
   def search(_criteria)
     confirm_authenticated!
@@ -123,22 +126,25 @@ class TestImapService
   private
 
   def build_envelope(message_data)
-    from = OpenStruct.new(
-      mailbox: message_data['sender'].split('@').first,
-      host: message_data['sender'].split('@').last,
-      name: nil
-    )
-    to = OpenStruct.new(
-      mailbox: message_data['recipient']&.split('@')&.first || 'recipient',
-      host: message_data['recipient']&.split('@')&.last || 'example.com',
-      name: nil
-    )
-    OpenStruct.new(
-      from: [from],
-      to: [to],
-      subject: message_data['subject'] || 'Test Subject',
-      date: message_data['date'] || Time.now
-    )
+    from = build_address(message_data, 'sender')
+    to = build_address(message_data, 'recipient')
+
+    Struct.new(:from, :to, :subject, :date, keyword_init: true)
+          .new(
+            from: [from],
+            to: [to],
+            subject: message_data['subject'] || 'Test Subject',
+            date: message_data['date'] || Time.now
+          )
+  end
+
+  def build_address(message_data, part)
+    Struct.new(:mailbox, :host, :name, keyword_init: true)
+          .new(
+            mailbox: message_data[part]&.split('@')&.first || part,
+            host: message_data[part]&.split('@')&.last || 'example.com',
+            name: nil
+          )
   end
 
   def confirm_authenticated!

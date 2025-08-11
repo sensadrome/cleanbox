@@ -3,6 +3,7 @@
 require 'logger'
 
 module Analysis
+  # Analyse patterns within email folders
   class EmailAnalyzer
     attr_reader :analysis_results, :imap_connection, :folder_categorizer_class
     attr_accessor :logger
@@ -12,6 +13,7 @@ module Analysis
       @logger = logger || Logger.new($stdout)
       @folder_categorizer_class = folder_categorizer_class
       @analysis_results = {}
+      @analysis_results[:sent_items] = {}
     end
 
     def analyze_folders(progress_callback = nil)

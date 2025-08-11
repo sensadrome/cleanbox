@@ -1,12 +1,16 @@
 # frozen_string_literal: true
 
 module CLI
+  # Validate connection options
   class Validator
     class << self
-      def validate_required_options!(options)
+      def validate_required_options!(options, secrets)
         validate_host!(options)
         validate_username!(options)
-        validate_auth_requirements!(options)
+        secrets.each { |key, value| ENV[key] = value }
+        auth_requirements_valid?(options).tap do
+          secrets.each_key { |key| ENV.delete(key) }
+        end
       end
 
       private
@@ -25,14 +29,13 @@ module CLI
         exit 1
       end
 
-      def validate_auth_requirements!(options)
-        auth_type = Auth::AuthenticationManager.determine_auth_type(options[:host], options[:auth_type])
-
-        case auth_type
+      def auth_requirements_valid?(options)
+        case options[:auth_type]
         when 'oauth2_microsoft'
           validate_microsoft_oauth2!(options)
         when 'oauth2_microsoft_user'
-          validate_microsoft_user_oauth2!(options)
+          # validate_microsoft_user_oauth2!(options)
+          true
         when 'password'
           validate_password_auth!(options)
         end

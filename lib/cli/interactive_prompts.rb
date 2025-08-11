@@ -18,8 +18,12 @@ module CLI
       end
     end
 
-    def prompt_with_default(message, default)
-      prompt(message, default: default) { |input| !input.empty? }
+    def prompt_with_default(message, default, &block)
+      if block_given?
+        prompt(message, default: default, &block)
+      else
+        prompt(message, default: default) { |input| !input.empty? }
+      end
     end
 
     def prompt_choice(message, choices)

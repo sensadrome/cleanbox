@@ -61,7 +61,6 @@ RSpec.describe CLI::CleanboxCLI do
         allow(cli).to receive(:parse_command_line_options)
         # Mock validate_options to prevent validation errors
         # allow(cli).to receive(:validate_options)
-        allow(CLI::Validator).to receive(:validate_required_options!)
       end
 
       it 'shows help' do

@@ -117,6 +117,71 @@ RSpec.describe CLI::SetupWizard do
             expect(wizard.run).to be_nil
           end
         end
+
+        context 'with valid existing config' do
+          let(:config_options) do
+            {
+              host: 'outlook.office365.com',
+              username: 'test@example.com',
+              auth_type: 'oauth2_microsoft'
+            }
+          end
+
+          before do
+            # Mock successful IMAP connection and analysis
+            allow(mock_imap).to receive(:list).and_return([
+              double('folder', name: 'INBOX'),
+              double('folder', name: 'Sent'),
+              double('folder', name: 'Drafts')
+            ])
+            allow(mock_imap).to receive(:select).and_return(double('response', data: []))
+            allow(mock_imap).to receive(:search).and_return(['1', '2', '3'])
+            allow(mock_imap).to receive(:fetch).and_return([
+              double('message', attr: { 'from' => 'sender@example.com', 'subject' => 'Test 1' }),
+              double('message', attr: { 'from' => 'sender@example.com', 'subject' => 'Test 2' }),
+              double('message', attr: { 'from' => 'sender@example.com', 'subject' => 'Test 3' })
+            ])
+
+            # Mock successful analysis and configuration
+            allow(wizard).to receive(:run_analysis).and_return({
+              total_messages: 3,
+              folder_counts: { 'INBOX' => 3 },
+              domain_counts: { 'example.com' => 3 }
+            })
+            allow(wizard).to receive(:generate_recommendations).and_return({
+              whitelist_folders: ['Work'],
+              list_folders: ['Newsletters'],
+              domain_mappings: { 'example.com' => 'Newsletters' }
+            })
+            allow(wizard).to receive(:interactive_configuration).and_return({
+              whitelist_folders: ['Work'],
+              list_folders: ['Newsletters'],
+              domain_mappings: { 'example.com' => 'Newsletters' }
+            })
+            allow(wizard).to receive(:save_configuration)
+            allow(wizard).to receive(:validate_and_preview)
+          end
+
+          it 'successfully proceeds with folder analysis using existing credentials' do
+            expect { wizard.run }.to output(/Using existing connection settings/).to_stdout
+            expect { wizard.run }.to output(/Setup complete/).to_stdout
+          end
+
+          it 'runs analysis on existing folders' do
+            expect(wizard).to receive(:run_analysis)
+            wizard.run
+          end
+
+          it 'generates recommendations based on analysis' do
+            expect(wizard).to receive(:generate_recommendations)
+            wizard.run
+          end
+
+          it 'saves the final configuration' do
+            expect(wizard).to receive(:save_configuration)
+            wizard.run
+          end
+        end
       end
 
       context 'when user chooses full setup mode (2)' do

@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require 'i18n'
-require 'pry'
 
 module CLI
   module SetupWizardModules
@@ -49,8 +48,13 @@ module CLI
       end
 
       def connection_details_valid?
-        retrieve_connection_details
-        connection_details_provided? && authentication_details_provided?
+        begin
+          retrieve_connection_details
+          connection_details_provided? && authentication_details_provided?
+        rescue ArgumentError => e
+          # Configuration is incomplete, return false to stop the wizard
+          false
+        end
       end
 
       def connection_details_provided?

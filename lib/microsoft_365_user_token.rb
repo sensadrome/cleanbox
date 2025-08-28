@@ -8,7 +8,8 @@ require 'time'
 
 class Microsoft365UserToken
   DEFAULT_CLIENT_ID = 'b3fc8598-3357-4f5d-ac0a-969016f6bb24'
-  DEFAULT_REDIRECT_URI = 'https://login.microsoftonline.com/common/oauth2/nativeclient'
+  # DEFAULT_REDIRECT_URI = 'https://login.microsoftonline.com/common/oauth2/nativeclient'
+  DEFAULT_REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob'
   DEFAULT_SCOPE = 'https://outlook.office365.com/IMAP.AccessAsUser.All offline_access openid'
   TOKEN_ENDPOINT = 'https://login.microsoftonline.com/common/oauth2/v2.0/token'
 

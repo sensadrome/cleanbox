@@ -14,11 +14,9 @@ class CleanboxFolderChecker < CleanboxConnection
     return [] unless folder_exists?
 
     # Try to use cache first
-    cached_emails = get_cached_email_addresses
-    return cached_emails if cached_emails
-
-    # Cache miss - fetch and cache
-    fetch_and_cache_email_addresses
+    cached_email_addresses ||
+      # Cache miss - fetch and cache
+      fetch_and_cache_email_addresses
   end
 
   def domains
@@ -47,13 +45,13 @@ class CleanboxFolderChecker < CleanboxConnection
     options[:logger] || Logger.new($stdout)
   end
 
-  def get_cached_email_addresses
+  def cached_email_addresses
     return nil unless cache_enabled?
 
     cache = self.class.load_folder_cache(folder)
     return nil unless cache
 
-    current_stats = get_folder_stats
+    current_stats = folder_stats
     return nil unless self.class.cache_valid?(folder, current_stats)
 
     logger.debug "Using cached email addresses for folder #{folder}"
@@ -67,7 +65,7 @@ class CleanboxFolderChecker < CleanboxConnection
 
     # Cache the results
     if cache_enabled?
-      current_stats = get_folder_stats
+      current_stats = folder_stats
       cache_data = {
         'emails' => emails,
         'stats' => current_stats,
@@ -80,7 +78,7 @@ class CleanboxFolderChecker < CleanboxConnection
     emails
   end
 
-  def get_folder_stats
+  def folder_stats
     return { messages: 0, uidnext: 0, uidvalidity: 0 } unless folder_exists?
 
     # Get IMAP folder status - much faster than processing messages

@@ -6,7 +6,7 @@ require 'tempfile'
 RSpec.describe Microsoft365UserToken do
   let(:logger) { double('Logger') }
   let(:token) { described_class.new(logger: logger) }
-
+  let(:default_redirect_uri) { 'urn:ietf:wg:oauth:2.0:oob' }
   before do
     allow(logger).to receive(:debug)
     allow(logger).to receive(:error)
@@ -16,7 +16,7 @@ RSpec.describe Microsoft365UserToken do
     it 'uses default values when no parameters provided' do
       token = described_class.new
       expect(token.client_id).to eq('b3fc8598-3357-4f5d-ac0a-969016f6bb24')
-      expect(token.redirect_uri).to eq('https://login.microsoftonline.com/common/oauth2/nativeclient')
+      expect(token.redirect_uri).to eq(default_redirect_uri)
       expect(token.scope).to eq('https://outlook.office365.com/IMAP.AccessAsUser.All offline_access openid')
     end
 
@@ -41,7 +41,7 @@ RSpec.describe Microsoft365UserToken do
       expect(url).to include('https://login.microsoftonline.com/common/oauth2/v2.0/authorize')
       expect(url).to include('client_id=b3fc8598-3357-4f5d-ac0a-969016f6bb24')
       expect(url).to include('response_type=code')
-      expect(url).to include('redirect_uri=https%3A%2F%2Flogin.microsoftonline.com%2Fcommon%2Foauth2%2Fnativeclient')
+      expect(url).to include('redirect_uri=urn%3Aietf%3Awg%3Aoauth%3A2.0%3Aoob')
       expect(url).to include('scope=https%3A%2F%2Foutlook.office365.com%2FIMAP.AccessAsUser.All+offline_access+openid')
       expect(url).to include('state=')
     end
@@ -99,7 +99,7 @@ RSpec.describe Microsoft365UserToken do
 
     it 'sends correct parameters in token exchange request' do
       expect(mock_request).to receive(:body=).with(
-        'client_id=b3fc8598-3357-4f5d-ac0a-969016f6bb24&code=test_auth_code&redirect_uri=https%3A%2F%2Flogin.microsoftonline.com%2Fcommon%2Foauth2%2Fnativeclient&grant_type=authorization_code'
+        'client_id=b3fc8598-3357-4f5d-ac0a-969016f6bb24&code=test_auth_code&redirect_uri=urn%3Aietf%3Awg%3Aoauth%3A2.0%3Aoob&grant_type=authorization_code'
       )
 
       token.exchange_code_for_tokens('test_auth_code')

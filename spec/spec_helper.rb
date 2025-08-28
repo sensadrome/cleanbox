@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'tmpdir'
 require 'securerandom'
 require 'logger'
@@ -32,7 +34,7 @@ end
 # See https://rubydoc.info/gems/rspec-core/RSpec/Core/Configuration
 
 # Add the lib directory to the load path
-$LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
+$LOAD_PATH.unshift File.expand_path('../lib', __dir__)
 
 # Require core extensions
 require 'core_ext'
@@ -48,7 +50,6 @@ require 'configuration'
 require 'cli/cleanbox_cli'
 require 'cli/config_manager'
 require 'cli/secrets_manager'
-require 'cli/validator'
 require 'cli/cli_parser'
 require 'auth/authentication_manager'
 require 'message'
@@ -57,6 +58,22 @@ require 'message_action_runner'
 require 'connection'
 require 'cleanbox'
 require 'folder_checker'
+
+class Configuration
+  class << self
+    def reload!
+      load_config_file if @config_file_path
+    end
+
+    def reset!
+      @options = nil
+      @config_file_path = nil
+      @data_dir = nil
+      @config_loaded = false
+      @original_command_line_options = nil
+    end
+  end
+end
 
 # Helper method for creating mock IMAP error responses
 def mock_imap_error_response(text)
@@ -67,7 +84,7 @@ def test_home_config_dir
   @@test_home_config_dir ||= Dir.mktmpdir('cleanbox_test_home')
 end
 
-def test_home_config_path 
+def test_home_config_path
   @@test_home_config_path ||= File.join(test_home_config_dir, '.cleanbox.yml')
 end
 
@@ -85,7 +102,7 @@ RSpec.configure do |config|
         self.level = Logger::FATAL
       end
     end
-    
+
     # Suppress Ruby warnings from gems
     $VERBOSE = nil
   end
@@ -133,7 +150,7 @@ RSpec.configure do |config|
   # Allows RSpec to persist some state between runs in order to support
   # the `--only-failures` and `--next-failure` CLI options. We recommend
   # you configure your source control system to ignore this file.
-  config.example_status_persistence_file_path = "spec/examples.txt"
+  config.example_status_persistence_file_path = 'spec/examples.txt'
 
   # Limits the available syntax to the non-monkey patched syntax that is
   # recommended. For more details, see:
@@ -151,7 +168,7 @@ RSpec.configure do |config|
     # Use the documentation formatter for detailed output,
     # unless a formatter has already been configured
     # (e.g. via a command-line flag).
-    config.default_formatter = "doc"
+    config.default_formatter = 'doc'
   end
 
   # Run specs in random order to surface order dependencies. If you find an
@@ -171,16 +188,18 @@ RSpec.configure do |config|
     c.cassette_library_dir = 'spec/fixtures/vcr_cassettes'
     c.hook_into :webmock
     c.configure_rspec_metadata!
-    
+
     # Filter out sensitive data
-    c.filter_sensitive_data('<CLIENT_ID>') { ENV['CLEANBOX_CLIENT_ID'] }
-    c.filter_sensitive_data('<CLIENT_SECRET>') { ENV['CLEANBOX_CLIENT_SECRET'] }
-    c.filter_sensitive_data('<TENANT_ID>') { ENV['CLEANBOX_TENANT_ID'] }
+    c.filter_sensitive_data('<CLIENT_ID>') { ENV.fetch('CLEANBOX_CLIENT_ID', nil) }
+    c.filter_sensitive_data('<CLIENT_SECRET>') { ENV.fetch('CLEANBOX_CLIENT_SECRET', nil) }
+    c.filter_sensitive_data('<TENANT_ID>') { ENV.fetch('CLEANBOX_TENANT_ID', nil) }
   end
 
   # Clean up any temporary files after tests
   config.after(:suite) do
     FileUtils.rm_rf(Dir[File.join(Dir.pwd, 'tmp', 'test_*')])
+    # Clean up relative directory created by configuration tests
+    FileUtils.rm_rf(File.join(Dir.pwd, 'relative'))
   end
 
   # Set up test home config file
@@ -189,19 +208,17 @@ RSpec.configure do |config|
   end
 
   config.after(:suite) do
-    if Dir.exist?(test_home_config_dir)
-      FileUtils.remove_entry(test_home_config_dir)
-    end
+    FileUtils.rm_rf(test_home_config_dir)
   end
 
   # Configure Configuration for each test
   config.before(:each) do
     # Reset Configuration to a clean state for each test
     Configuration.reset! if Configuration.respond_to?(:reset!)
-    
+
     # Mock home_config to use our test file
     allow(Configuration).to receive(:home_config).and_return(test_home_config_path)
-    
+
     # Configure Configuration with the test options
     Configuration.configure(config_options)
   end
@@ -210,7 +227,7 @@ end
 # Shared context for default configuration options
 RSpec.shared_context 'default config options' do
   let(:config_options) do
-    { 
+    {
       data_dir: nil
     }
   end

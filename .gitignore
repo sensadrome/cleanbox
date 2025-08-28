@@ -31,3 +31,4 @@ sent_vs_folders.csv
 *.csv
 debug_*.rb
 analyze_sent_vs_folders.rb
+.xplane

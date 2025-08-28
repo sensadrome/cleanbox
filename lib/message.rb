@@ -4,10 +4,6 @@ require 'mail'
 
 # Message data container - provides access to message properties
 class CleanboxMessage < SimpleDelegator
-  def initialize(object)
-    super(object)
-  end
-
   def from_address
     message.from.first.downcase
   end

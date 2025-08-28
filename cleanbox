@@ -11,7 +11,7 @@ require 'rubygems'
 require 'bundler'
 
 ENV['RACK_ENV'] ||= 'development'
-config_env = ENV['RACK_ENV']
+config_env = ENV.fetch('RACK_ENV', nil)
 
 bundler_env = ENV['BUNDLER_ENV'] || config_env
 Bundler.require(:default, bundler_env)

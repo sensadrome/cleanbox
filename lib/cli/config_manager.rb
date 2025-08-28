@@ -19,19 +19,17 @@ module CLI
 
     def show
       config_data = config
-      if !File.exist?(@config_path)
-        puts "No configuration file found at #{@config_path}"
-      else
+      if File.exist?(@config_path)
         puts "Configuration from #{@config_path}:"
         recognized_keys = get_recognized_keys
-        filtered_config = config_data.select { |key, _| recognized_keys.include?(key) }
+        filtered_config = config_data.slice(*recognized_keys)
         puts filtered_config.to_yaml
 
         # Deprecated keys: present in config, not recognized
         deprecated_keys = config_data.keys - recognized_keys
         if deprecated_keys.any?
-          puts ""
-          puts "Note: Found deprecated keys in your config:"
+          puts ''
+          puts 'Note: Found deprecated keys in your config:'
           deprecated_keys.each do |key|
             puts "  - #{key}"
           end
@@ -40,12 +38,14 @@ module CLI
         # Recognized keys not present in config
         missing_keys = recognized_keys - config_data.keys
         if missing_keys.any?
-          puts ""
-          puts "Recognized keys you have not set (you may want to add these):"
+          puts ''
+          puts 'Recognized keys you have not set (you may want to add these):'
           missing_keys.each do |key|
             puts "  - #{key}"
           end
         end
+      else
+        puts "No configuration file found at #{@config_path}"
       end
     end
 
@@ -63,31 +63,31 @@ module CLI
     def set(key, value)
       key = key.to_sym
       config = load_config
-      
+
       # Try to parse value as YAML for complex types
       begin
-        parsed_value = YAML.load(value)
+        parsed_value = YAML.safe_load(value)
         config[key] = parsed_value
-      rescue
+      rescue StandardError
         # If YAML parsing fails, treat as string
         config[key] = value
       end
-      
+
       save_config(config)
     end
 
     def add(key, value)
       key = key.to_sym
       config = load_config
-      
+
       # Try to parse value as YAML for complex types
       begin
-        parsed_value = YAML.load(value)
-      rescue
+        parsed_value = YAML.safe_load(value)
+      rescue StandardError
         # If YAML parsing fails, treat as string
         parsed_value = value
       end
-      
+
       # Handle different types
       if config[key].is_a?(Array)
         # Append to array
@@ -110,22 +110,22 @@ module CLI
         puts "Cannot add to #{key} (type: #{config[key].class})"
         exit 1
       end
-      
+
       save_config(config)
     end
 
     def remove(key, value)
       key = key.to_sym
       config = load_config
-      
+
       # Try to parse value as YAML for complex types
       begin
-        parsed_value = YAML.load(value)
-      rescue
+        parsed_value = YAML.safe_load(value)
+      rescue StandardError
         # If YAML parsing fails, treat as string
         parsed_value = value
       end
-      
+
       # Handle different types
       if config[key].is_a?(Array)
         # Remove from array
@@ -158,7 +158,7 @@ module CLI
         puts "Cannot remove from #{key} (type: #{config[key].class})"
         exit 1
       end
-      
+
       save_config(config)
     end
 
@@ -170,46 +170,47 @@ module CLI
         default_config = create_comprehensive_config
         save_config_with_comments(default_config)
         puts "Comprehensive configuration template created at #{@config_path}"
-        puts "Please edit it with your actual settings"
-        puts "See the comments in the file for detailed explanations of each option"
+        puts 'Please edit it with your actual settings'
+        puts 'See the comments in the file for detailed explanations of each option'
       end
     end
 
     def init_domain_rules
-      default_domain_rules_path = File.expand_path('../../../config/domain_rules.yml', __FILE__)
-      
+      default_domain_rules_path = File.expand_path('../../config/domain_rules.yml', __dir__)
+
       # Determine the user domain rules path based on data directory
       user_domain_rules_path = if @data_dir
-        File.join(@data_dir, 'domain_rules.yml')
-      else
-        File.expand_path('~/.cleanbox/domain_rules.yml')
-      end
+                                 File.join(@data_dir, 'domain_rules.yml')
+                               else
+                                 File.expand_path('~/.cleanbox/domain_rules.yml')
+                               end
 
       if File.exist?(user_domain_rules_path)
         puts "Domain rules file already exists at #{user_domain_rules_path}"
-        puts "Edit it to customize your domain mappings"
+        puts 'Edit it to customize your domain mappings'
       else
         unless File.exist?(default_domain_rules_path)
           puts "Error: Default domain rules file not found at #{default_domain_rules_path}"
           exit 1
         end
-        
+
         FileUtils.mkdir_p(File.dirname(user_domain_rules_path))
         FileUtils.cp(default_domain_rules_path, user_domain_rules_path)
         puts "✅ Domain rules file created at #{user_domain_rules_path}"
-        puts ""
-        puts "This file contains patterns for automatically filing related email domains."
-        puts "Edit it to customize your domain mappings, then restart cleanbox."
-        puts ""
-        puts "Examples of what you can customize:"
-        puts "  - Add new domain patterns for your favorite services"
-        puts "  - Modify existing patterns to match your email organization"
-        puts "  - Add company-specific domains for automatic filing"
+        puts ''
+        puts 'This file contains patterns for automatically filing related email domains.'
+        puts 'Edit it to customize your domain mappings, then restart cleanbox.'
+        puts ''
+        puts 'Examples of what you can customize:'
+        puts '  - Add new domain patterns for your favorite services'
+        puts '  - Modify existing patterns to match your email organization'
+        puts '  - Add company-specific domains for automatic filing'
       end
     end
 
     def load_config
       return {} unless File.exist?(@config_path)
+
       config = YAML.load_file(@config_path) || {}
       # Convert string keys to symbols for consistency with options hash
       config.transform_keys(&:to_sym)
@@ -217,14 +218,6 @@ module CLI
 
     def config_file_exists?
       File.exist?(@config_path)
-    end
-
-    def config_path
-      @config_path
-    end
-
-    def data_dir
-      @data_dir
     end
 
     def save_config(config)
@@ -235,23 +228,23 @@ module CLI
 
     def handle_command(args, show_all: false)
       command = args.first
-      
+
       case command
       when 'show'
         show
       when 'get'
         key = args[1]
         if key.nil?
-          puts "Usage: cleanbox config get <key>"
+          puts 'Usage: cleanbox config get <key>'
           exit 1
         end
         get(key)
       when 'set'
         key = args[1]
         value = args[2]
-        
+
         if key.nil? || value.blank?
-          puts "Usage: cleanbox config set <key> <value>"
+          puts 'Usage: cleanbox config set <key> <value>'
           puts "For complex values, edit the config file directly: #{@config_path}"
           exit 1
         end
@@ -259,20 +252,20 @@ module CLI
       when 'add'
         key = args[1]
         value = args[2]
-        
+
         if key.nil? || value.blank?
-          puts "Usage: cleanbox config add <key> <value>"
-          puts "This will append to arrays or merge with hashes"
+          puts 'Usage: cleanbox config add <key> <value>'
+          puts 'This will append to arrays or merge with hashes'
           exit 1
         end
         add(key, value)
       when 'remove'
         key = args[1]
         value = args[2]
-        
+
         if key.nil? || value.blank?
-          puts "Usage: cleanbox config remove <key> <value>"
-          puts "This will remove from arrays or delete keys from hashes"
+          puts 'Usage: cleanbox config remove <key> <value>'
+          puts 'This will remove from arrays or delete keys from hashes'
           exit 1
         end
         remove(key, value)
@@ -282,7 +275,7 @@ module CLI
         init_domain_rules
       else
         puts "Unknown config command: #{command}"
-        puts "Available commands: show, get, set, add, remove, init, init-domain-rules"
+        puts 'Available commands: show, get, set, add, remove, init, init-domain-rules'
         exit 1
       end
     end
@@ -325,42 +318,42 @@ module CLI
         # Connection Settings
         'host' => 'outlook.office365.com',
         'username' => 'your-email@example.com',
-        
+
         # Authentication Settings
-        'auth_type' => 'oauth2_microsoft_user',  # Options: oauth2_microsoft, oauth2_microsoft_user, oauth2_gmail, password
+        'auth_type' => 'oauth2_microsoft_user', # Options: oauth2_microsoft, oauth2_microsoft_user, oauth2_gmail, password
         'client_id' => nil,                 # OAuth2 client ID (set via environment variable CLEANBOX_CLIENT_ID or secrets)
         'client_secret' => nil,             # OAuth2 client secret (set via environment variable CLEANBOX_CLIENT_SECRET or secrets)
         'tenant_id' => nil,                 # Microsoft tenant ID (set via environment variable CLEANBOX_TENANT_ID or secrets)
         'password' => nil,                  # IMAP password (set via environment variable CLEANBOX_PASSWORD or secrets)
-        
+
         # Processing Options
-        'whitelist_folders' => ['Family', 'Work', 'Clients'],  # Important folders - new emails from these senders stay in Inbox
+        'whitelist_folders' => %w[Family Work Clients], # Important folders - new emails from these senders stay in Inbox
         'whitelisted_domains' => ['example.com'], # Domains to keep (not delete)
         'list_domains' => ['lists.example.com'],  # Domains to move to list folders
-        'list_folders' => ['Newsletters', 'Notifications'], # List folders - new emails from these senders get moved to the list folder
+        'list_folders' => %w[Newsletters Notifications], # List folders - new emails from these senders get moved to the list folder
         'list_domain_map' => {              # Map domains to specific list folders (e.g., facebook.com → Social)
           'facebook.com' => 'Social',
           'github.com' => 'Development'
         },
         'sent_folder' => 'Sent Items',      # Name of sent items folder
         'file_unread' => false,             # Whether to file unread messages in file mode
-        
+
         # Unjunk Options
         'unjunk' => false,                  # Enable unjunk functionality
         'unjunk_folders' => [],             # Folders to use for unjunking
-        
+
         # Filing Options
-        'file_from_folders' => [],          # Folders to use as reference when filing Inbox messages (file mode)
-        
+        'file_from_folders' => [], # Folders to use as reference when filing Inbox messages (file mode)
+
         # Processing Filters
         'valid_from' => nil,                # Use addresses found since this date (default: 1 year ago)
         'sent_since_months' => 24,          # Process sent emails from last X months
         'valid_since_months' => 12,         # Process other folders from last X months
         'list_since_months' => 12,          # Process list folders from last X months
-        
+
         # Data Directory
-        'data_dir' => nil,                  # Directory for cache, logs, and analysis files (defaults to current directory)
-        
+        'data_dir' => nil, # Directory for cache, logs, and analysis files (defaults to current directory)
+
         # Debug/Testing Options
 
         'verbose' => false,                 # Run verbosely
@@ -371,7 +364,7 @@ module CLI
 
     def save_config_with_comments(config)
       FileUtils.mkdir_p(File.dirname(@config_path))
-      
+
       # Create YAML with comments
       yaml_content = generate_yaml_with_comments(config)
       File.write(@config_path, yaml_content)
@@ -387,53 +380,53 @@ module CLI
         'tenant_id' => '# Microsoft tenant ID (set via environment variable CLEANBOX_TENANT_ID or secrets)',
         'password' => '# IMAP password (set via environment variable CLEANBOX_PASSWORD or secrets)',
         'whitelist_folders' => multi_line_comment([
-          '# Important folders - Cleanbox learns from these folders to whitelist sender addresses,',
-          '# and new emails from these senders stay in Inbox',
-          '#',
-          '# Examples:',
-          '# - Family: Keep family emails in Inbox',
-          '# - Work: Keep work emails in Inbox', 
-          '# - Clients: Keep client emails in Inbox'
-        ]),
+                                                    '# Important folders - Cleanbox learns from these folders to whitelist sender addresses,',
+                                                    '# and new emails from these senders stay in Inbox',
+                                                    '#',
+                                                    '# Examples:',
+                                                    '# - Family: Keep family emails in Inbox',
+                                                    '# - Work: Keep work emails in Inbox',
+                                                    '# - Clients: Keep client emails in Inbox'
+                                                  ]),
         'whitelisted_domains' => '# Domains to keep in inbox (not moved or deleted)',
         'list_domains' => '# Domains to move to list folders (newsletters, notifications, etc.)',
         'list_folders' => multi_line_comment([
-          '# List folders - Cleanbox learns from these folders to whitelist sender addresses,',
-          '# but new emails from these senders get moved to the list folder',
-          '#',
-          '# Examples:',
-          '# - Newsletters: Move newsletter emails here',
-          '# - Notifications: Move notification emails here',
-          '# - Marketing: Move marketing emails here'
-        ]),
+                                               '# List folders - Cleanbox learns from these folders to whitelist sender addresses,',
+                                               '# but new emails from these senders get moved to the list folder',
+                                               '#',
+                                               '# Examples:',
+                                               '# - Newsletters: Move newsletter emails here',
+                                               '# - Notifications: Move notification emails here',
+                                               '# - Marketing: Move marketing emails here'
+                                             ]),
         'list_domain_map' => multi_line_comment([
-          '# Map domains to specific list folders - Use for services where sender addresses',
-          '# change but domain stays the same',
-          '#',
-          '# Examples:',
-          '# - facebook.com: Social (Facebook notifications)',
-          '# - github.com: Development (GitHub notifications)',
-          '# - linkedin.com: Professional (LinkedIn updates)',
-          '# - twitter.com: Social (Twitter notifications)'
-        ]),
+                                                  '# Map domains to specific list folders - Use for services where sender addresses',
+                                                  '# change but domain stays the same',
+                                                  '#',
+                                                  '# Examples:',
+                                                  '# - facebook.com: Social (Facebook notifications)',
+                                                  '# - github.com: Development (GitHub notifications)',
+                                                  '# - linkedin.com: Professional (LinkedIn updates)',
+                                                  '# - twitter.com: Social (Twitter notifications)'
+                                                ]),
         'sent_folder' => '# Name of your sent items folder (varies by email provider)',
         'file_unread' => '# Whether to file unread messages in file mode (default: false = only file read messages)',
         'unjunk' => '# Enable unjunk functionality to restore emails from junk/spam',
         'unjunk_folders' => multi_line_comment([
-          '# Folders to use as reference for unjunking',
-          '#',
-          '# Examples:',
-          '# - ["Inbox"]: Use Inbox as reference for what should not be junk',
-          '# - ["Family", "Work"]: Use Family and Work folders as reference'
-        ]),
+                                                 '# Folders to use as reference for unjunking',
+                                                 '#',
+                                                 '# Examples:',
+                                                 '# - ["Inbox"]: Use Inbox as reference for what should not be junk',
+                                                 '# - ["Family", "Work"]: Use Family and Work folders as reference'
+                                               ]),
         'file_from_folders' => multi_line_comment([
-          '# Folders to use as reference when filing Inbox messages (file mode)',
-          '# Defaults to whitelist_folders if not specified. Can also be set via -F/--file-from',
-          '#',
-          '# Example:',
-          '# whitelist_folders: [Family, Friends, Work]',
-          '# file_from_folders: [Family, Friends]  # Only file from Family/Friends, not Work'
-        ]),
+                                                    '# Folders to use as reference when filing Inbox messages (file mode)',
+                                                    '# Defaults to whitelist_folders if not specified. Can also be set via -F/--file-from',
+                                                    '#',
+                                                    '# Example:',
+                                                    '# whitelist_folders: [Family, Friends, Work]',
+                                                    '# file_from_folders: [Family, Friends]  # Only file from Family/Friends, not Work'
+                                                  ]),
         'valid_from' => '# Use addresses found since this date for domain mapping',
         'sent_since_months' => '# Process sent emails from last X months',
         'valid_since_months' => '# Process other folders from last X months',
@@ -443,60 +436,56 @@ module CLI
         'level' => '# Log level: debug, info, warn, or error',
         'log_file' => '# Path to log file (leave nil for console output)'
       }
-      
+
       yaml_lines = []
-      yaml_lines << "# Cleanbox Configuration File"
-      yaml_lines << "# ========================="
-      yaml_lines << "#"
-      yaml_lines << "# This file contains all available configuration options for Cleanbox."
-      yaml_lines << "# Edit the values below to match your email setup and preferences."
-      yaml_lines << "#"
-      yaml_lines << "# For OAuth2 authentication, you can set sensitive values via:"
-      yaml_lines << "# - Environment variables (CLEANBOX_CLIENT_ID, etc.)"
-      yaml_lines << "# - Secrets management (if configured)"
-      yaml_lines << "#"
-      yaml_lines << ""
-      
+      yaml_lines << '# Cleanbox Configuration File'
+      yaml_lines << '# ========================='
+      yaml_lines << '#'
+      yaml_lines << '# This file contains all available configuration options for Cleanbox.'
+      yaml_lines << '# Edit the values below to match your email setup and preferences.'
+      yaml_lines << '#'
+      yaml_lines << '# For OAuth2 authentication, you can set sensitive values via:'
+      yaml_lines << '# - Environment variables (CLEANBOX_CLIENT_ID, etc.)'
+      yaml_lines << '# - Secrets management (if configured)'
+      yaml_lines << '#'
+      yaml_lines << ''
+
       config.each do |key, value|
         # Add comment if available
-        if comments[key]
-          yaml_lines << comments[key]
-        end
-        
+        yaml_lines << comments[key] if comments[key]
+
         # Handle different categories of options
         if should_comment_default?(key, value)
           # Comment out "set it and forget it" options with their defaults
           yaml_lines << "# #{key}: #{value}"
         elsif should_show_empty?(key)
           # Show empty for "optional but useful" options
-          if value.is_a?(Array) && value.empty?
-            yaml_lines << "#{key}: []"
-          elsif value.is_a?(Hash) && value.empty?
-            yaml_lines << "#{key}: {}"
-          else
-            yaml_lines << "#{key}:"
-          end
-        else
+          yaml_lines << if value.is_a?(Array) && value.empty?
+                          "#{key}: []"
+                        elsif value.is_a?(Hash) && value.empty?
+                          "#{key}: {}"
+                        else
+                          "#{key}:"
+                        end
+        elsif value.nil?
           # Show examples for "you need to customize this" options
-          if value.nil?
-            yaml_lines << "#{key}:"
-          elsif value.is_a?(String) && value.empty?
-            yaml_lines << "#{key}: ''"
-          elsif value.is_a?(Array) && value.empty?
-            yaml_lines << "#{key}: []"
-          elsif value.is_a?(Hash) && value.empty?
-            yaml_lines << "#{key}: {}"
-          else
-            # Use YAML.dump to get proper formatting, then clean up
-            yaml_str = YAML.dump({key => value})
-            # Remove the key prefix and leading/trailing whitespace
-            yaml_str = yaml_str.gsub(/^---\n/, '').strip
-            yaml_lines << yaml_str
-          end
+          yaml_lines << "#{key}:"
+        elsif value.is_a?(String) && value.empty?
+          yaml_lines << "#{key}: ''"
+        elsif value.is_a?(Array) && value.empty?
+          yaml_lines << "#{key}: []"
+        elsif value.is_a?(Hash) && value.empty?
+          yaml_lines << "#{key}: {}"
+        else
+          # Use YAML.dump to get proper formatting, then clean up
+          yaml_str = YAML.dump({ key => value })
+          # Remove the key prefix and leading/trailing whitespace
+          yaml_str = yaml_str.gsub(/^---\n/, '').strip
+          yaml_lines << yaml_str
         end
-        yaml_lines << ""
+        yaml_lines << ''
       end
-      
+
       yaml_lines.join("\n")
     end
 
@@ -504,7 +493,7 @@ module CLI
       lines.join("\n")
     end
 
-    def should_comment_default?(key, value)
+    def should_comment_default?(key, _value)
       # Comment out defaults for "set it and forget it" options
       %w[file_unread verbose level sent_since_months valid_since_months list_since_months].include?(key)
     end
@@ -519,4 +508,4 @@ module CLI
       %w[client_id client_secret tenant_id password file_from_folders unjunk_folders valid_from log_file].include?(key)
     end
   end
-end 
+end

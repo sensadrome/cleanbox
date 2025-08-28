@@ -18,26 +18,41 @@ RSpec.describe 'SetupWizard Integration' do
     allow(CLI::ConfigManager).to receive(:new).and_return(
       CLI::ConfigManager.new(config_path)
     )
-    
+
     # Set the .env file path for SecretsManager
-    stub_const("CLI::SecretsManager::ENV_FILE_PATH", env_path)
-    
+    stub_const('CLI::SecretsManager::ENV_FILE_PATH', env_path)
+
     # Mock user input for the test scenario
     mock_user_input
-    
+
     # Mock AuthCLI methods to prevent actual execution
     allow_any_instance_of(CLI::AuthCLI).to receive(:setup_auth)
+
+    # Mock AuthenticationGatherer to return pre-configured data for integration tests
+    mock_gatherer = instance_double(CLI::AuthenticationGatherer)
+    allow(mock_gatherer).to receive(:gather_authentication_details!)
+    allow(mock_gatherer).to receive(:connection_details).and_return({
+      host: 'outlook.office365.com',
+      username: 'test@example.com',
+      auth_type: 'oauth2_microsoft'
+    })
+    allow(mock_gatherer).to receive(:secrets).and_return({
+      'CLEANBOX_CLIENT_ID' => 'valid_client_id',
+      'CLEANBOX_CLIENT_SECRET' => 'valid_client_secret',
+      'CLEANBOX_TENANT_ID' => 'valid_tenant_id'
+    })
+    allow(CLI::AuthenticationGatherer).to receive(:new).and_return(mock_gatherer)
   end
 
   after do
-    FileUtils.rm_rf(temp_dir) if Dir.exist?(temp_dir)
+    FileUtils.rm_rf(temp_dir)
   end
 
   describe 'connection failure' do
     it 'handles authentication failure gracefully' do
       # Mock IMAP to use our test fixture
       mock_imap_with_fixture('connection_failure')
-      
+
       # Mock user input for connection failure scenario
       # Capture output
       output = StringIO.new
@@ -46,19 +61,15 @@ RSpec.describe 'SetupWizard Integration' do
 
       # Run the setup wizard
       wizard = CLI::SetupWizard.new(verbose: false)
-      
+
       # Mock gets on the specific wizard instance
       allow(wizard).to receive(:gets).and_return(
-        '2',                      # Complete setup (overwrite everything) - handle existing config
         '2',                      # Skip authentication setup
         'outlook.office365.com',  # IMAP Host
         'test@example.com',       # Email Address
-        '1',                      # OAuth2 authentication
-        'invalid_client_id',      # Client ID
-        'invalid_client_secret',  # Client Secret
-        'invalid_tenant_id'       # Tenant ID
+        '1'                       # OAuth2 User based authentication
       )
-      
+
       wizard.run
 
       # Verify error message is shown
@@ -72,7 +83,7 @@ RSpec.describe 'SetupWizard Integration' do
     it 'completes setup successfully with folder analysis' do
       # Mock IMAP to use our test fixture
       mock_imap_with_fixture('happy_path')
-      
+
       # Capture output
       output = StringIO.new
       allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
@@ -80,7 +91,7 @@ RSpec.describe 'SetupWizard Integration' do
 
       # Run the setup wizard
       wizard = CLI::SetupWizard.new(verbose: false)
-      
+
       # Mock gets on the specific wizard instance for happy path
       allow(wizard).to receive(:gets).and_return(
         '2',                      # Complete setup (overwrite everything) - handle existing config
@@ -101,7 +112,7 @@ RSpec.describe 'SetupWizard Integration' do
         '',                       # No custom domain mappings
         'n'                       # Don't preview (N)
       )
-      
+
       wizard.run
 
       # Verify successful completion
@@ -110,13 +121,13 @@ RSpec.describe 'SetupWizard Integration' do
       expect(output.string).to include('📁 Analyzing your email folders')
       expect(output.string).to include('✅ Analysis complete!')
       expect(output.string).to include('💾 Saving configuration')
-      
+
       # Verify folder analysis output
       expect(output.string).to include('Analyzing folder "Inbox" (50 messages)')
       expect(output.string).to include('Analyzing folder "Newsletters" (120 messages)')
       expect(output.string).to include('Analyzing folder "Family" (30 messages)')
       expect(output.string).to include('Analyzing folder "Work" (80 messages)')
-      
+
       # Verify configuration was saved
       expect(File.exist?(config_path)).to be true
       expect(File.exist?(env_path)).to be true
@@ -127,7 +138,7 @@ RSpec.describe 'SetupWizard Integration' do
     it 'handles user input for folder categorization and domain mappings' do
       # Mock IMAP to use our test fixture
       mock_imap_with_fixture('interactive_categorization')
-      
+
       # Capture output
       output = StringIO.new
       allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
@@ -135,7 +146,7 @@ RSpec.describe 'SetupWizard Integration' do
 
       # Run the setup wizard
       wizard = CLI::SetupWizard.new(verbose: false)
-      
+
       # Mock gets on the specific wizard instance for interactive categorization
       allow(wizard).to receive(:gets).and_return(
         '2',                      # Complete setup (overwrite everything) - handle existing config
@@ -157,7 +168,7 @@ RSpec.describe 'SetupWizard Integration' do
         '',                       # Accept default domain mappings (Enter)
         'n'                       # Don't preview (N)
       )
-      
+
       wizard.run
 
       # Verify successful completion
@@ -166,18 +177,18 @@ RSpec.describe 'SetupWizard Integration' do
       expect(output.string).to include('📁 Analyzing your email folders')
       expect(output.string).to include('✅ Analysis complete!')
       expect(output.string).to include('💾 Saving configuration')
-      
+
       # Verify folder analysis output
       expect(output.string).to include('Analyzing folder "Inbox" (50 messages)')
       expect(output.string).to include('Analyzing folder "GitHub" (45 messages)')
       expect(output.string).to include('Analyzing folder "Amazon" (80 messages)')
       expect(output.string).to include('Analyzing folder "Facebook" (30 messages)')
       expect(output.string).to include('Analyzing folder "Work" (120 messages)')
-      
+
       # Verify domain mappings were shown
       expect(output.string).to include('🔗 Domain Mappings')
       expect(output.string).to include('Suggested mappings:')
-      
+
       # Verify configuration was saved
       expect(File.exist?(config_path)).to be true
       expect(File.exist?(env_path)).to be true
@@ -186,7 +197,7 @@ RSpec.describe 'SetupWizard Integration' do
     it 'handles user overriding folder categorizations' do
       # Mock IMAP to use our test fixture
       mock_imap_with_fixture('interactive_categorization')
-      
+
       # Capture output
       output = StringIO.new
       allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
@@ -194,7 +205,7 @@ RSpec.describe 'SetupWizard Integration' do
 
       # Run the setup wizard
       wizard = CLI::SetupWizard.new(verbose: false)
-      
+
       # Mock gets on the specific wizard instance with overrides
       allow(wizard).to receive(:gets).and_return(
         '2',                      # Complete setup (overwrite everything) - handle existing config
@@ -216,7 +227,7 @@ RSpec.describe 'SetupWizard Integration' do
         '',                       # Accept default domain mappings (Enter)
         'n'                       # Don't preview (N)
       )
-      
+
       wizard.run
 
       # Verify successful completion
@@ -225,14 +236,14 @@ RSpec.describe 'SetupWizard Integration' do
       expect(output.string).to include('📁 Analyzing your email folders')
       expect(output.string).to include('✅ Analysis complete!')
       expect(output.string).to include('💾 Saving configuration')
-      
+
       # Verify folder analysis output
       expect(output.string).to include('Analyzing folder "Inbox" (50 messages)')
       expect(output.string).to include('Analyzing folder "GitHub" (45 messages)')
       expect(output.string).to include('Analyzing folder "Amazon" (80 messages)')
       expect(output.string).to include('Analyzing folder "Facebook" (30 messages)')
       expect(output.string).to include('Analyzing folder "Work" (120 messages)')
-      
+
       # Verify configuration was saved
       expect(File.exist?(config_path)).to be true
       expect(File.exist?(env_path)).to be true
@@ -244,20 +255,19 @@ RSpec.describe 'SetupWizard Integration' do
   def mock_imap_with_fixture(fixture_name)
     # Create the test IMAP service
     test_imap = TestImapService.new(fixture_name)
-    
+
     # Mock Net::IMAP.new to return our test service
     allow(Net::IMAP).to receive(:new).and_return(test_imap)
-    
+
     # Mock the authentication manager to use our test service's auth methods
-    allow(Auth::AuthenticationManager).to receive(:authenticate_imap) do |imap, options|
-      if test_imap.auth_success?
-        # Simulate successful authentication by calling authenticate on the test service
-        test_imap.authenticate('oauth2', 'test@example.com', 'token')
-        true
-      else
-        # Simulate authentication failure
-        raise Net::IMAP::NoResponseError.new(test_imap.auth_error)
-      end
+    allow(Auth::AuthenticationManager).to receive(:authenticate_imap) do |_imap, _options|
+      raise Net::IMAP::NoResponseError, test_imap.auth_error unless test_imap.auth_success?
+
+      # Simulate successful authentication by calling authenticate on the test service
+      test_imap.authenticate('oauth2', 'test@example.com', 'token')
+      true
+
+      # Simulate authentication failure
     end
   end
 
@@ -265,4 +275,4 @@ RSpec.describe 'SetupWizard Integration' do
     # This will be overridden in specific tests
     allow(self).to receive(:gets).and_return('')
   end
-end 
+end

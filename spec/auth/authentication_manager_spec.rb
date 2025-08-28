@@ -101,7 +101,7 @@ RSpec.describe Auth::AuthenticationManager do
 
       it 'auto-detects Microsoft OAuth2 when auth_type is not specified' do
         auto_options = options.merge(host: 'outlook.office365.com')
-        
+
         expect(Microsoft365ApplicationToken).to receive(:new).with(
           'test_client_id',
           'test_client_secret',
@@ -144,14 +144,14 @@ RSpec.describe Auth::AuthenticationManager do
 
       it 'raises error when no valid tokens found' do
         allow(mock_user_token).to receive(:load_tokens_from_file).and_return(false)
-        
+
         expect { described_class.authenticate_imap(mock_imap, user_oauth_options) }
           .to raise_error('No valid tokens found. Please run \'cleanbox auth setup\' to authenticate.')
       end
 
       it 'raises error when token is nil' do
         allow(mock_user_token).to receive(:token).and_return(nil)
-        
+
         expect { described_class.authenticate_imap(mock_imap, user_oauth_options) }
           .to raise_error('No valid tokens found. Please run \'cleanbox auth setup\' to authenticate.')
       end
@@ -215,7 +215,7 @@ RSpec.describe Auth::AuthenticationManager do
 
       it 'auto-detects password auth for non-Microsoft/Gmail hosts' do
         auto_options = options.merge(host: 'mail.example.com')
-        
+
         expect(mock_imap).to receive(:authenticate).with(
           'PLAIN',
           'test@example.com',
@@ -230,17 +230,17 @@ RSpec.describe Auth::AuthenticationManager do
       let(:gmail_options) { options.merge(host: 'imap.gmail.com', auth_type: 'oauth2_gmail') }
 
       it 'raises an error as Gmail OAuth2 is not yet implemented' do
-        expect {
+        expect do
           described_class.authenticate_imap(mock_imap, gmail_options)
-        }.to raise_error(RuntimeError, 'Gmail OAuth2 not yet implemented')
+        end.to raise_error(RuntimeError, 'Gmail OAuth2 not yet implemented')
       end
 
       it 'auto-detects Gmail OAuth2 and raises error' do
         auto_options = options.merge(host: 'imap.gmail.com')
-        
-        expect {
+
+        expect do
           described_class.authenticate_imap(mock_imap, auto_options)
-        }.to raise_error(RuntimeError, 'Gmail OAuth2 not yet implemented')
+        end.to raise_error(RuntimeError, 'Gmail OAuth2 not yet implemented')
       end
     end
 
@@ -248,33 +248,33 @@ RSpec.describe Auth::AuthenticationManager do
       let(:unknown_options) { options.merge(auth_type: 'unknown_method') }
 
       it 'raises an error for unknown auth types' do
-        expect {
+        expect do
           described_class.authenticate_imap(mock_imap, unknown_options)
-        }.to raise_error(RuntimeError, 'Unknown authentication type: unknown_method')
+        end.to raise_error(RuntimeError, 'Unknown authentication type: unknown_method')
       end
     end
 
     context 'with missing credentials' do
       it 'raises an error when Microsoft OAuth2 is missing client_id' do
         incomplete_options = options.merge(auth_type: 'oauth2_microsoft', client_id: nil)
-        
+
         # Mock the token class to raise an error for missing client_id
         allow(Microsoft365ApplicationToken).to receive(:new).and_raise(
           ArgumentError, 'client_id is required'
         )
-        
-        expect {
+
+        expect do
           described_class.authenticate_imap(mock_imap, incomplete_options)
-        }.to raise_error(ArgumentError, 'client_id is required')
+        end.to raise_error(ArgumentError, 'client_id is required')
       end
 
       it 'raises an error when password auth is missing password' do
         incomplete_options = options.merge(auth_type: 'password', password: nil)
-        
+
         # The current implementation doesn't validate missing password
         # So we expect it to try to authenticate with nil password
         expect(mock_imap).to receive(:authenticate).with('PLAIN', 'test@example.com', nil)
-        
+
         described_class.authenticate_imap(mock_imap, incomplete_options)
       end
     end
@@ -291,9 +291,9 @@ RSpec.describe Auth::AuthenticationManager do
       end
 
       it 'propagates the error from the token class' do
-        expect {
+        expect do
           described_class.authenticate_imap(mock_imap, oauth_options)
-        }.to raise_error(RuntimeError, 'OAuth token request failed')
+        end.to raise_error(RuntimeError, 'OAuth token request failed')
       end
     end
 
@@ -306,9 +306,9 @@ RSpec.describe Auth::AuthenticationManager do
       end
 
       it 'propagates IMAP authentication errors' do
-        expect {
+        expect do
           described_class.authenticate_imap(mock_imap, password_options)
-        }.to raise_error(RuntimeError, 'Authentication failed')
+        end.to raise_error(RuntimeError, 'Authentication failed')
       end
     end
   end
@@ -363,4 +363,4 @@ RSpec.describe Auth::AuthenticationManager do
       end
     end
   end
-end 
+end

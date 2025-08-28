@@ -9,15 +9,17 @@ class MessageProcessor
   end
 
   def decide_for_new_message(message)
-    return {action: :keep} if whitelisted?(message)
-    return {action: :move, folder: list_folder_for(message)} if valid_list_email?(message)
-    return {action: :junk}
+    return { action: :keep } if whitelisted?(message)
+    return { action: :move, folder: list_folder_for(message) } if valid_list_email?(message)
+
+    { action: :junk }
   end
 
   def decide_for_filing(message)
     folder = destination_folder_for(message)
-    return {action: :move, folder: folder} if folder
-    return {action: :keep}
+    return { action: :move, folder: folder } if folder
+
+    { action: :keep }
   end
 
   def decide_for_unjunking(message)
@@ -42,7 +44,7 @@ class MessageProcessor
 
   def fake_headers?(message)
     fake_header_fields = %w[X-Antiabuse]
-    
+
     fake_header_fields.any? do |fake_field|
       message.message.header_fields.any? { |field| field.name == fake_field }
     end
@@ -67,4 +69,4 @@ class MessageProcessor
     # Check list domain map
     @context[:list_domain_map][message.from_domain]
   end
-end 
+end

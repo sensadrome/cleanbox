@@ -104,7 +104,7 @@ class Hash
   # If a value is a hash and the same key exists in both, it merges them.
   # Otherwise, the value from the other hash overwrites the original.
   def deep_merge(other_hash)
-    merge(other_hash) do |key, oldval, newval|
+    merge(other_hash) do |_key, oldval, newval|
       if oldval.is_a?(Hash) && newval.is_a?(Hash)
         oldval.deep_merge(newval)
       else
@@ -145,7 +145,7 @@ class String
   end
 end
 
-class Numeric #:nodoc:
+class Numeric # :nodoc:
   # No number is blank:
   #
   #   1.blank? # => false
@@ -157,7 +157,7 @@ class Numeric #:nodoc:
   end
 end
 
-class Time #:nodoc:
+class Time # :nodoc:
   # No Time is blank:
   #
   #   Time.now.blank? # => false

@@ -70,6 +70,25 @@ nano ~/.cleanbox.yml
 ./cleanbox
 ```
 
+### 4. Interactive Console (NEW!)
+
+For development, testing, and exploration, use the interactive console:
+
+```bash
+# Console (tries Pry first, falls back to IRB)
+./bin/console
+
+# With custom config file
+./bin/console -c /path/to/config.yml
+
+# Or start irb/pry manually and load the console
+irb
+require_relative 'lib/console'
+CleanboxConsole.help
+```
+
+The console provides a REPL interface for exploring your email structure, testing configurations, and performing one-off operations. See [Console Documentation](docs/console.md) for details.
+
 ## Documentation
 
 📚 **Complete documentation is available in the [docs/](docs/) directory:**
@@ -79,6 +98,7 @@ nano ~/.cleanbox.yml
 - **[⚙️ Configuration](docs/configuration.md)** - Configuration files, domain rules, and data directory management
 - **[📋 Usage](docs/usage.md)** - Commands, examples, and advanced usage patterns
 - **[📊 Sent Analysis](docs/sent-analysis.md)** - Understanding your email communication patterns
+- **[🖥️ Console](docs/console.md)** - Interactive REPL interface for development and testing
 - **[🔧 Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
 - **[👨‍💻 Development](docs/development.md)** - Contributing and development setup
 

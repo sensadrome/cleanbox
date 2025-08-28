@@ -10,7 +10,7 @@ class MessageActionRunner
     @imap = imap
     @junk_folder = junk_folder
     @pretending = pretending
-    @logger = logger || Logger.new(STDOUT)
+    @logger = logger || Logger.new($stdout)
     @changed_folders = Set.new
   end
 
@@ -53,9 +53,9 @@ class MessageActionRunner
     @changed_folders.add(@junk_folder)
   end
 
-  def folder_needs_creation?(folder)
+  def folder_needs_creation?(_folder)
     # This would need to be implemented based on how folder creation works
     # For now, we'll assume the folder exists or IMAP will handle creation
     false
   end
-end 
+end

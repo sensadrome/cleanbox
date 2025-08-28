@@ -1,0 +1,121 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Cleanbox Console Script
+# Run this to start an interactive session with Cleanbox
+# Tries Pry first, falls back to IRB
+
+# Suppress pry-byebug deprecation warning
+$VERBOSE = nil
+
+# Parse command line options
+require 'optparse'
+
+options = {}
+OptionParser.new do |opts|
+  opts.banner = 'Usage: ./bin/console [options]'
+
+  opts.on('-c', '--config CONFIG', 'Path to configuration file') do |config|
+    options[:config_file] = config
+  end
+
+  opts.on('-h', '--help', 'Show this help message') do
+    puts opts
+    exit
+  end
+end.parse!
+
+# Load bundler and gems
+require 'rubygems'
+require 'bundler'
+
+ENV['RACK_ENV'] ||= 'development'
+config_env = ENV.fetch('RACK_ENV', nil)
+
+bundler_env = ENV['BUNDLER_ENV'] || config_env
+Bundler.require(:default, bundler_env)
+
+# Load the required libraries (same as main cleanbox script)
+require 'net/imap'
+require_relative '../lib/core_ext'
+require_relative '../lib/connection'
+require_relative '../lib/cleanbox'
+require_relative '../lib/cleanbox_folder'
+require_relative '../lib/folder_checker'
+require_relative '../lib/message'
+require_relative '../lib/microsoft_365_application_token'
+
+# Load the console module
+require_relative '../lib/console'
+
+# Welcome message
+puts 'Welcome to Cleanbox Console!'
+puts "Type 'help' to see available commands"
+puts "Use 'cb' or 'cleanbox' to access the main instance"
+puts ''
+
+# Try to connect automatically if possible
+begin
+  puts 'Attempting to connect to your email server...'
+  config_file = options[:config_file]
+
+  if config_file
+    puts "Using config file: #{config_file}"
+    cleanbox_instance = CleanboxConsole.connect(config_file: config_file)
+  else
+    puts 'Using default configuration...'
+    cleanbox_instance = CleanboxConsole.quick_connect
+  end
+
+  CleanboxConsole.cleanbox = cleanbox_instance
+  puts '✅ Connected successfully!'
+  puts "Your Cleanbox instance is available as 'cb' or 'cleanbox'"
+rescue StandardError => e
+  puts "⚠️  Could not auto-connect: #{e.message}"
+  puts 'You can connect manually using:'
+  puts "  CleanboxConsole.connect(config_file: 'path/to/config.yml')"
+  puts '  or'
+  puts "  CleanboxConsole.connect(host: 'imap.example.com', username: 'user@example.com', ...)"
+end
+
+puts ''
+puts 'Starting console session...'
+
+# Try Pry first, fall back to IRB
+begin
+  require 'pry'
+
+  # Use default Pry prompt to avoid API compatibility issues
+  puts 'Using Pry console'
+  Pry.start
+rescue LoadError
+  puts 'Pry not available, using IRB'
+
+  # Set up IRB with custom prompt
+  if defined?(IRB)
+    IRB.conf[:PROMPT][:CLEANBOX] = {
+      PROMPT_I: 'cleanbox> ',
+      PROMPT_N: 'cleanbox> ',
+      PROMPT_S: 'cleanbox> ',
+      PROMPT_C: 'cleanbox> ',
+      RETURN: "=> %s\n"
+    }
+    IRB.conf[:PROMPT_MODE] = :CLEANBOX
+    IRB.start
+  else
+    # Fallback to basic REPL if IRB is not available
+    puts 'IRB not available, starting basic REPL...'
+    loop do
+      print 'cleanbox> '
+      input = gets&.chomp
+      break if input.nil? || input.downcase == 'exit' || input.downcase == 'quit'
+
+      begin
+        result = eval(input)
+        puts "=> #{result.inspect}" unless result.nil?
+      rescue StandardError => e
+        puts "Error: #{e.message}"
+      end
+    end
+  end
+end

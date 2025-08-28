@@ -10,7 +10,9 @@ RSpec.describe CLI::SecretsManager do
   before do
     # Stub the ENV_FILE_PATH to use our temporary file
     stub_const('CLI::SecretsManager::ENV_FILE_PATH', env_file_path)
-    
+    # Reset the env file loaded flag for each test
+    CLI::SecretsManager.reset_env_file_loaded
+
     # Clear ENV for test isolation
     @original_env = ENV.to_hash
     ENV.delete('CLEANBOX_PASSWORD')
@@ -60,7 +62,7 @@ RSpec.describe CLI::SecretsManager do
 
     context 'when secrets file exists' do
       before do
-        ENV['SECRETS_PATH'] = secrets_dir + '/'
+        ENV['SECRETS_PATH'] = "#{secrets_dir}/"
         File.write(File.join(secrets_dir, 'password'), "secretfromfile\n")
       end
 
@@ -87,21 +89,21 @@ RSpec.describe CLI::SecretsManager do
     it 'loads variables from .env file into ENV' do
       File.write(env_file_path, "FOO=bar\nBAR=baz\n")
       described_class.load_env_file
-      expect(ENV['FOO']).to eq('bar')
-      expect(ENV['BAR']).to eq('baz')
+      expect(ENV.fetch('FOO', nil)).to eq('bar')
+      expect(ENV.fetch('BAR', nil)).to eq('baz')
     end
 
     it 'ignores comments and blank lines' do
       File.write(env_file_path, "# comment\n\nFOO=bar\n")
       described_class.load_env_file
-      expect(ENV['FOO']).to eq('bar')
+      expect(ENV.fetch('FOO', nil)).to eq('bar')
     end
 
     it 'removes quotes from values' do
       File.write(env_file_path, "FOO='bar'\nBAR=\"baz\"\n")
       described_class.load_env_file
-      expect(ENV['FOO']).to eq('bar')
-      expect(ENV['BAR']).to eq('baz')
+      expect(ENV.fetch('FOO', nil)).to eq('bar')
+      expect(ENV.fetch('BAR', nil)).to eq('baz')
     end
   end
 
@@ -225,7 +227,7 @@ RSpec.describe CLI::SecretsManager do
           token_file = File.join(temp_dir, 'tokens', 'test_example_com.json')
           FileUtils.mkdir_p(File.dirname(token_file))
           File.write(token_file, { access_token: 'invalid', refresh_token: 'invalid' }.to_json)
-          
+
           # Mock Microsoft365UserToken to avoid HTTP requests
           allow(Microsoft365UserToken).to receive(:new).and_return(
             double('Microsoft365UserToken', has_valid_tokens?: false, load_tokens_from_file: true)
@@ -248,7 +250,7 @@ RSpec.describe CLI::SecretsManager do
             refresh_token: 'valid_refresh_token',
             expires_at: (Time.now + 3600).iso8601
           }.to_json)
-          
+
           # Mock Microsoft365UserToken to avoid HTTP requests
           allow(Microsoft365UserToken).to receive(:new).and_return(
             double('Microsoft365UserToken', has_valid_tokens?: true, load_tokens_from_file: true)
@@ -301,7 +303,8 @@ RSpec.describe CLI::SecretsManager do
 
       context 'when secrets are in .env file' do
         before do
-          File.write(env_file_path, "CLEANBOX_CLIENT_ID=test_client_id\nCLEANBOX_CLIENT_SECRET=test_client_secret\nCLEANBOX_TENANT_ID=test_tenant_id\n")
+          File.write(env_file_path,
+                     "CLEANBOX_CLIENT_ID=test_client_id\nCLEANBOX_CLIENT_SECRET=test_client_secret\nCLEANBOX_TENANT_ID=test_tenant_id\n")
         end
 
         it 'returns configured status with env_file source' do
@@ -395,7 +398,7 @@ RSpec.describe CLI::SecretsManager do
           token_file = File.join(temp_dir, 'tokens', 'test_example_com.json')
           FileUtils.mkdir_p(File.dirname(token_file))
           File.write(token_file, { access_token: 'invalid', refresh_token: 'invalid' }.to_json)
-          
+
           # Mock Microsoft365UserToken to avoid HTTP requests
           allow(Microsoft365UserToken).to receive(:new).and_return(
             double('Microsoft365UserToken', has_valid_tokens?: false, load_tokens_from_file: true)
@@ -421,7 +424,7 @@ RSpec.describe CLI::SecretsManager do
             refresh_token: 'valid_refresh_token',
             expires_at: (Time.now + 3600).iso8601
           }.to_json)
-          
+
           # Mock Microsoft365UserToken to avoid HTTP requests
           allow(Microsoft365UserToken).to receive(:new).and_return(
             double('Microsoft365UserToken', has_valid_tokens?: true, load_tokens_from_file: true)
@@ -481,7 +484,8 @@ RSpec.describe CLI::SecretsManager do
       end
 
       it 'returns environment (prioritizes environment variables)' do
-        expect(described_class.detect_secret_source(['CLEANBOX_CLIENT_ID', 'CLEANBOX_CLIENT_SECRET'])).to eq('environment')
+        expect(described_class.detect_secret_source(%w[CLEANBOX_CLIENT_ID
+                                                       CLEANBOX_CLIENT_SECRET])).to eq('environment')
       end
     end
   end
@@ -493,7 +497,7 @@ RSpec.describe CLI::SecretsManager do
       end
 
       it 'returns the value from the file if it exists' do
-        ENV['SECRETS_PATH'] = secrets_dir + '/'
+        ENV['SECRETS_PATH'] = "#{secrets_dir}/"
         File.write(File.join(secrets_dir, 'mysecret'), "shhh\n")
         expect(described_class.send(:password_from_secrets, 'mysecret')).to eq('shhh')
       end
@@ -510,4 +514,4 @@ RSpec.describe CLI::SecretsManager do
       end
     end
   end
-end 
+end

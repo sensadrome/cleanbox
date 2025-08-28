@@ -11,12 +11,12 @@ RSpec.describe CLI::ConfigManager do
 
   before do
     # Clean up any existing test config
-    File.delete(temp_config_path) if File.exist?(temp_config_path)
+    FileUtils.rm_f(temp_config_path)
   end
 
   after do
     # Clean up test config
-    File.delete(temp_config_path) if File.exist?(temp_config_path)
+    FileUtils.rm_f(temp_config_path)
   end
 
   # Use a separate temp file for integration tests to avoid conflicts
@@ -25,10 +25,8 @@ RSpec.describe CLI::ConfigManager do
 
   after do
     # Clean up integration test config
-    File.delete(integration_temp_config_path) if File.exist?(integration_temp_config_path)
+    FileUtils.rm_f(integration_temp_config_path)
   end
-
-
 
   describe '#show' do
     context 'when config file does not exist' do
@@ -48,7 +46,9 @@ RSpec.describe CLI::ConfigManager do
       end
 
       it 'shows appropriate message' do
-        expect { non_existent_config_manager.show }.to output("No configuration file found at /non/existent/config.yml\n").to_stdout
+        expect do
+          non_existent_config_manager.show
+        end.to output("No configuration file found at /non/existent/config.yml\n").to_stdout
       end
     end
 
@@ -57,7 +57,7 @@ RSpec.describe CLI::ConfigManager do
         {
           host: 'outlook.office365.com',
           username: 'test@example.com',
-          whitelist_folders: ['Inbox', 'Sent'],
+          whitelist_folders: %w[Inbox Sent],
           deprecated_key: 'old_value'
         }
       end
@@ -98,7 +98,7 @@ RSpec.describe CLI::ConfigManager do
       end
 
       before do
-        config = { username: 'test@example.com', folders: ['Inbox', 'Sent'] }
+        config = { username: 'test@example.com', folders: %w[Inbox Sent] }
         File.write(temp_config_path, config.to_yaml)
         Configuration.reload!
       end
@@ -124,7 +124,9 @@ RSpec.describe CLI::ConfigManager do
       end
 
       it 'shows not found message' do
-        expect { config_manager.get('nonexistent') }.to output("Key 'nonexistent' not found in configuration\n").to_stdout
+        expect do
+          config_manager.get('nonexistent')
+        end.to output("Key 'nonexistent' not found in configuration\n").to_stdout
       end
     end
   end
@@ -133,7 +135,7 @@ RSpec.describe CLI::ConfigManager do
     context 'with string value' do
       it 'sets simple string value' do
         config_manager.set('username', 'new@example.com')
-        
+
         loaded_config = YAML.load_file(temp_config_path)
         loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
         expect(loaded_config[:username]).to eq('new@example.com')
@@ -148,15 +150,15 @@ RSpec.describe CLI::ConfigManager do
     context 'with YAML value' do
       it 'parses and sets array' do
         config_manager.set('folders', '["Inbox", "Sent"]')
-        
+
         loaded_config = YAML.load_file(temp_config_path)
         loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
-        expect(loaded_config[:folders]).to eq(['Inbox', 'Sent'])
+        expect(loaded_config[:folders]).to eq(%w[Inbox Sent])
       end
 
       it 'parses and sets hash' do
         config_manager.set('settings', '{key1: value1, key2: value2}')
-        
+
         loaded_config = YAML.load_file(temp_config_path)
         loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
         expect(loaded_config[:settings]).to eq({ 'key1' => 'value1', 'key2' => 'value2' })
@@ -164,7 +166,7 @@ RSpec.describe CLI::ConfigManager do
 
       it 'falls back to string when YAML parsing fails' do
         config_manager.set('invalid_yaml', '{invalid: yaml:')
-        
+
         loaded_config = YAML.load_file(temp_config_path)
         loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
         expect(loaded_config[:invalid_yaml]).to eq('{invalid: yaml:')
@@ -179,7 +181,7 @@ RSpec.describe CLI::ConfigManager do
 
       it 'updates existing key' do
         config_manager.set('username', 'new@example.com')
-        
+
         loaded_config = YAML.load_file(temp_config_path)
         loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
         expect(loaded_config[:username]).to eq('new@example.com')
@@ -197,10 +199,10 @@ RSpec.describe CLI::ConfigManager do
 
       it 'appends to existing array' do
         config_manager.add('folders', 'Sent')
-        
+
         loaded_config = YAML.load_file(temp_config_path)
         loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
-        expect(loaded_config[:folders]).to eq(['Inbox', 'Sent'])
+        expect(loaded_config[:folders]).to eq(%w[Inbox Sent])
       end
 
       it 'shows success message' do
@@ -217,10 +219,10 @@ RSpec.describe CLI::ConfigManager do
 
       it 'merges with existing hash' do
         config_manager.add('settings', '{key2: value2}')
-        
+
         loaded_config = YAML.load_file(temp_config_path)
         loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
-        expect(loaded_config[:settings].transform_keys(&:to_s)).to eq({ "key1" => "value1", "key2" => "value2" })
+        expect(loaded_config[:settings].transform_keys(&:to_s)).to eq({ 'key1' => 'value1', 'key2' => 'value2' })
       end
 
       it 'shows success message' do
@@ -232,7 +234,7 @@ RSpec.describe CLI::ConfigManager do
     context 'with new key' do
       it 'creates array for string value' do
         config_manager.add('folders', 'Inbox')
-        
+
         loaded_config = YAML.load_file(temp_config_path)
         loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
         expect(loaded_config[:folders]).to eq(['Inbox'])
@@ -240,7 +242,7 @@ RSpec.describe CLI::ConfigManager do
 
       it 'creates hash for hash value' do
         config_manager.add('settings', '{key1: value1}')
-        
+
         loaded_config = YAML.load_file(temp_config_path)
         loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
         expect(loaded_config[:settings]).to eq({ 'key1' => 'value1' })
@@ -264,16 +266,16 @@ RSpec.describe CLI::ConfigManager do
   describe '#remove' do
     context 'with array values' do
       before do
-        config = { folders: ['Inbox', 'Sent', 'Drafts'] }
+        config = { folders: %w[Inbox Sent Drafts] }
         File.write(temp_config_path, config.to_yaml)
       end
 
       it 'removes from array' do
         config_manager.remove('folders', 'Sent')
-        
+
         loaded_config = YAML.load_file(temp_config_path)
         loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
-        expect(loaded_config[:folders]).to eq(['Inbox', 'Drafts'])
+        expect(loaded_config[:folders]).to eq(%w[Inbox Drafts])
       end
 
       it 'shows success message' do
@@ -295,10 +297,10 @@ RSpec.describe CLI::ConfigManager do
 
       it 'removes keys from hash' do
         config_manager.remove('settings', '{key1: value1, key2: value2}')
-        
+
         loaded_config = YAML.load_file(temp_config_path)
         loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
-        expect(loaded_config[:settings].transform_keys(&:to_s)).to eq({ "key3" => "value3" })
+        expect(loaded_config[:settings].transform_keys(&:to_s)).to eq({ 'key3' => 'value3' })
       end
 
       it 'shows success message' do
@@ -338,7 +340,7 @@ RSpec.describe CLI::ConfigManager do
     context 'when config file does not exist' do
       it 'creates comprehensive config template' do
         expect { config_manager.init }.to output(/Comprehensive configuration template created at/).to_stdout
-        
+
         expect(File.exist?(temp_config_path)).to be true
         config_content = File.read(temp_config_path)
         expect(config_content).to include('host:')
@@ -362,11 +364,11 @@ RSpec.describe CLI::ConfigManager do
   describe '#init_domain_rules' do
     let(:temp_data_dir) { Dir.mktmpdir }
     let(:config_manager_with_data_dir) { described_class.new(temp_config_path, temp_data_dir) }
-    let(:default_domain_rules_path) { File.expand_path('../../../config/domain_rules.yml', __FILE__) }
+    let(:default_domain_rules_path) { File.expand_path('../../config/domain_rules.yml', __dir__) }
     let(:user_domain_rules_path) { File.join(temp_data_dir, 'domain_rules.yml') }
 
     after do
-      FileUtils.remove_entry(temp_data_dir) if Dir.exist?(temp_data_dir)
+      FileUtils.rm_rf(temp_data_dir)
     end
 
     context 'when domain rules file does not exist' do
@@ -379,8 +381,10 @@ RSpec.describe CLI::ConfigManager do
       end
 
       it 'creates domain rules file in data directory when specified' do
-        expect { config_manager_with_data_dir.init_domain_rules }.to output(/✅ Domain rules file created at #{user_domain_rules_path}/).to_stdout
-        
+        expect do
+          config_manager_with_data_dir.init_domain_rules
+        end.to output(/✅ Domain rules file created at #{user_domain_rules_path}/).to_stdout
+
         expect(File.exist?(user_domain_rules_path)).to be true
         expect(File.read(user_domain_rules_path)).to eq(File.read(default_domain_rules_path))
       end
@@ -389,40 +393,46 @@ RSpec.describe CLI::ConfigManager do
         # Test creating domain rules file in ~/.cleanbox/ when no data directory is set
         config_manager_without_data_dir = described_class.new(temp_config_path)
         home_domain_rules_path = File.expand_path('~/.cleanbox/domain_rules.yml')
-        
+
         # Clean up any existing file
-        File.delete(home_domain_rules_path) if File.exist?(home_domain_rules_path)
-        
-        expect { config_manager_without_data_dir.init_domain_rules }.to output(/✅ Domain rules file created at #{home_domain_rules_path}/).to_stdout
-        
+        FileUtils.rm_f(home_domain_rules_path)
+
+        expect do
+          config_manager_without_data_dir.init_domain_rules
+        end.to output(/✅ Domain rules file created at #{home_domain_rules_path}/).to_stdout
+
         expect(File.exist?(home_domain_rules_path)).to be true
         expect(File.read(home_domain_rules_path)).to eq(File.read(default_domain_rules_path))
-        
+
         # Clean up
-        File.delete(home_domain_rules_path) if File.exist?(home_domain_rules_path)
+        FileUtils.rm_f(home_domain_rules_path)
       end
 
       it 'creates directory structure if needed' do
         nested_data_dir = File.join(temp_data_dir, 'nested', 'dir')
         nested_config_manager = described_class.new(temp_config_path, nested_data_dir)
         nested_domain_rules_path = File.join(nested_data_dir, 'domain_rules.yml')
-        
-        expect { nested_config_manager.init_domain_rules }.to output(/✅ Domain rules file created at #{nested_domain_rules_path}/).to_stdout
-        
+
+        expect do
+          nested_config_manager.init_domain_rules
+        end.to output(/✅ Domain rules file created at #{nested_domain_rules_path}/).to_stdout
+
         expect(File.exist?(nested_domain_rules_path)).to be true
       end
 
       it 'creates domain rules file with helpful information' do
         # Ensure the domain rules file doesn't exist for this test
-        File.delete(user_domain_rules_path) if File.exist?(user_domain_rules_path)
-        
-        expect { config_manager_with_data_dir.init_domain_rules }.to output(/✅ Domain rules file created at #{user_domain_rules_path}/).to_stdout
-        
+        FileUtils.rm_f(user_domain_rules_path)
+
+        expect do
+          config_manager_with_data_dir.init_domain_rules
+        end.to output(/✅ Domain rules file created at #{user_domain_rules_path}/).to_stdout
+
         expect(File.exist?(user_domain_rules_path)).to be true
         expect(File.read(user_domain_rules_path)).to eq(File.read(default_domain_rules_path))
-        
+
         # Clean up
-        File.delete(user_domain_rules_path) if File.exist?(user_domain_rules_path)
+        FileUtils.rm_f(user_domain_rules_path)
       end
     end
 
@@ -433,8 +443,12 @@ RSpec.describe CLI::ConfigManager do
       end
 
       it 'shows already exists message' do
-        expect { config_manager_with_data_dir.init_domain_rules }.to output(/Domain rules file already exists at #{user_domain_rules_path}/).to_stdout
-        expect { config_manager_with_data_dir.init_domain_rules }.to output(/Edit it to customize your domain mappings/).to_stdout
+        expect do
+          config_manager_with_data_dir.init_domain_rules
+        end.to output(/Domain rules file already exists at #{user_domain_rules_path}/).to_stdout
+        expect do
+          config_manager_with_data_dir.init_domain_rules
+        end.to output(/Edit it to customize your domain mappings/).to_stdout
       end
 
       it 'does not overwrite existing file' do
@@ -447,17 +461,19 @@ RSpec.describe CLI::ConfigManager do
     context 'when default domain rules file does not exist' do
       it 'shows error and exits' do
         # Ensure the user domain rules file doesn't exist
-        File.delete(user_domain_rules_path) if File.exist?(user_domain_rules_path)
-        
+        FileUtils.rm_f(user_domain_rules_path)
+
         # Mock File.exist? to return true by default, then specifically mock the files we care about
-        allow(File).to receive(:exist?).and_return(true)  # Default mock
-        allow(File).to receive(:delete).and_return(nil)  # Mock File.delete to prevent cleanup errors
-        default_domain_rules_path = File.expand_path('../../../config/domain_rules.yml', __FILE__)
+        allow(File).to receive(:exist?).and_return(true) # Default mock
+        allow(File).to receive(:delete).and_return(nil) # Mock File.delete to prevent cleanup errors
+        default_domain_rules_path = File.expand_path('../../config/domain_rules.yml', __dir__)
         allow(File).to receive(:exist?).with(default_domain_rules_path).and_return(false)
         allow(File).to receive(:exist?).with(user_domain_rules_path).and_return(false)
-        
-        expect { config_manager_with_data_dir.init_domain_rules }.to output(/Error: Default domain rules file not found at #{default_domain_rules_path}/).to_stdout
-          .and raise_error(SystemExit)
+
+        expect do
+          config_manager_with_data_dir.init_domain_rules
+        end.to output(/Error: Default domain rules file not found at #{default_domain_rules_path}/).to_stdout
+                                                                                                   .and raise_error(SystemExit)
       end
     end
   end
@@ -473,7 +489,7 @@ RSpec.describe CLI::ConfigManager do
     context 'with get command' do
       it 'calls get method with key' do
         expect(config_manager).to receive(:get).with('username')
-        config_manager.handle_command(['get', 'username'])
+        config_manager.handle_command(%w[get username])
       end
 
       it 'shows usage and exits when key missing' do
@@ -499,7 +515,7 @@ RSpec.describe CLI::ConfigManager do
     context 'with add command' do
       it 'calls add method with key and value' do
         expect(config_manager).to receive(:add).with('folders', 'Inbox')
-        config_manager.handle_command(['add', 'folders', 'Inbox'])
+        config_manager.handle_command(%w[add folders Inbox])
       end
 
       it 'shows usage and exits when key or value missing' do
@@ -512,7 +528,7 @@ RSpec.describe CLI::ConfigManager do
     context 'with remove command' do
       it 'calls remove method with key and value' do
         expect(config_manager).to receive(:remove).with('folders', 'Inbox')
-        config_manager.handle_command(['remove', 'folders', 'Inbox'])
+        config_manager.handle_command(%w[remove folders Inbox])
       end
 
       it 'shows usage and exits when key or value missing' do
@@ -538,12 +554,10 @@ RSpec.describe CLI::ConfigManager do
 
     context 'with unknown command' do
       it 'shows error and exits' do
-        expect {
-          begin
-            config_manager.handle_command(['unknown'])
-          rescue SystemExit
-          end
-        }.to output(/Unknown config command: unknown.*Available commands: show, get, set, add, remove, init, init-domain-rules/m).to_stdout
+        expect do
+          config_manager.handle_command(['unknown'])
+        rescue SystemExit
+        end.to output(/Unknown config command: unknown.*Available commands: show, get, set, add, remove, init, init-domain-rules/m).to_stdout
       end
     end
   end
@@ -584,10 +598,10 @@ RSpec.describe CLI::ConfigManager do
     it 'creates directory if needed' do
       nested_path = '/tmp/nested/dir/config.yml'
       manager = described_class.new(nested_path)
-      
+
       expect { manager.save_config({ username: 'test' }) }
         .to output("Configuration saved to #{nested_path}\n").to_stdout
-      
+
       expect(File.exist?(nested_path)).to be true
       loaded_config = YAML.load_file(nested_path)
       loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
@@ -597,7 +611,7 @@ RSpec.describe CLI::ConfigManager do
     it 'saves config to file' do
       config = { username: 'test@example.com', folders: ['Inbox'] }
       config_manager.save_config(config)
-      
+
       loaded_config = YAML.load_file(temp_config_path)
       loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
       expect(loaded_config).to eq({ username: 'test@example.com', folders: ['Inbox'] })
@@ -610,7 +624,7 @@ RSpec.describe CLI::ConfigManager do
         existing_config = {
           host: 'outlook.office365.com',
           username: 'old@example.com',
-          whitelist_folders: ['Family', 'Work'],
+          whitelist_folders: %w[Family Work],
           list_domain_map: {
             'facebook.com' => 'Social',
             'github.com' => 'Development'
@@ -625,16 +639,16 @@ RSpec.describe CLI::ConfigManager do
 
       it 'updates nested hash values' do
         config_manager.set('list_domain_map', '{twitter.com: Social, linkedin.com: Professional}')
-        
+
         loaded_config = YAML.load_file(temp_config_path)
         loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
         expect(loaded_config[:list_domain_map]).to eq({ 'twitter.com' => 'Social', 'linkedin.com' => 'Professional' })
-        expect(loaded_config[:whitelist_folders]).to eq(['Family', 'Work']) # Preserves other keys
+        expect(loaded_config[:whitelist_folders]).to eq(%w[Family Work]) # Preserves other keys
       end
 
       it 'updates nested settings' do
         config_manager.set('settings', '{verbose: false, level: info}')
-        
+
         loaded_config = YAML.load_file(temp_config_path)
         loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
         expect(loaded_config[:settings]).to eq({ 'verbose' => false, 'level' => 'info' })
@@ -642,15 +656,15 @@ RSpec.describe CLI::ConfigManager do
 
       it 'adds to existing arrays' do
         config_manager.add('whitelist_folders', 'Friends')
-        
+
         loaded_config = YAML.load_file(temp_config_path)
         loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
-        expect(loaded_config[:whitelist_folders]).to eq(['Family', 'Work', 'Friends'])
+        expect(loaded_config[:whitelist_folders]).to eq(%w[Family Work Friends])
       end
 
       it 'removes from existing arrays' do
         config_manager.remove('whitelist_folders', 'Work')
-        
+
         loaded_config = YAML.load_file(temp_config_path)
         loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
         expect(loaded_config[:whitelist_folders]).to eq(['Family'])
@@ -658,7 +672,7 @@ RSpec.describe CLI::ConfigManager do
 
       it 'adds to existing hashes' do
         config_manager.add('list_domain_map', '{instagram.com: Social}')
-        
+
         loaded_config = YAML.load_file(temp_config_path)
         loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
         expect(loaded_config[:list_domain_map]).to include('instagram.com' => 'Social')
@@ -667,7 +681,7 @@ RSpec.describe CLI::ConfigManager do
 
       it 'removes from existing hashes' do
         config_manager.remove('list_domain_map', '{facebook.com: Social}')
-        
+
         loaded_config = YAML.load_file(temp_config_path)
         loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
         # The remove operation might not work as expected with hash values
@@ -686,12 +700,12 @@ RSpec.describe CLI::ConfigManager do
         config_manager.set('host', 'imap.gmail.com')
         config_manager.set('username', 'new@example.com')
         config_manager.set('folders', '["Inbox", "Sent", "Drafts"]')
-        
+
         loaded_config = YAML.load_file(temp_config_path)
         loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
         expect(loaded_config[:host]).to eq('imap.gmail.com')
         expect(loaded_config[:username]).to eq('new@example.com')
-        expect(loaded_config[:folders]).to eq(['Inbox', 'Sent', 'Drafts'])
+        expect(loaded_config[:folders]).to eq(%w[Inbox Sent Drafts])
         expect(loaded_config[:settings]).to eq({ debug: true }) # Preserved
       end
 
@@ -700,14 +714,14 @@ RSpec.describe CLI::ConfigManager do
         config_manager.add('folders', 'Drafts')
         config_manager.remove('folders', 'Inbox')
         config_manager.add('settings', '{verbose: true}')
-        
+
         loaded_config = YAML.load_file(temp_config_path)
         loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
-        expect(loaded_config[:folders]).to eq(['Sent', 'Drafts'])
+        expect(loaded_config[:folders]).to eq(%w[Sent Drafts])
         # Check for both string and symbol keys since YAML loading can vary
         expect(loaded_config[:settings]).to satisfy do |settings|
           (settings[:debug] == true && (settings[:verbose] == true || settings['verbose'] == true)) ||
-          (settings['debug'] == true && (settings[:verbose] == true || settings['verbose'] == true))
+            (settings['debug'] == true && (settings[:verbose] == true || settings['verbose'] == true))
         end
       end
     end
@@ -737,7 +751,7 @@ RSpec.describe CLI::ConfigManager do
       it 'saves config with comments' do
         config = { username: 'test@example.com' }
         config_manager.send(:save_config_with_comments, config)
-        
+
         content = File.read(temp_config_path)
         expect(content).to include('#')
         expect(content).to include('username: test@example.com')
@@ -748,7 +762,7 @@ RSpec.describe CLI::ConfigManager do
       it 'generates YAML with comments' do
         config = { username: 'test@example.com' }
         result = config_manager.send(:generate_yaml_with_comments, config)
-        
+
         expect(result).to include('#')
         expect(result).to include('username: test@example.com')
       end
@@ -792,7 +806,7 @@ RSpec.describe CLI::ConfigManager do
       final_config = final_config.transform_keys(&:to_sym) if final_config
       expect(final_config[:username]).to eq('test@example.com')
       expect(final_config[:host]).to eq('outlook.office365.com')
-      expect(final_config[:folders]).to eq(['Inbox', 'Sent'])
+      expect(final_config[:folders]).to eq(%w[Inbox Sent])
     end
   end
-end 
+end

@@ -58,7 +58,7 @@ RSpec.describe Microsoft365ApplicationToken do
 
       it 'logs debug information when CLEANBOX_DEBUG is set' do
         ClimateControl.modify(CLEANBOX_DEBUG: 'true') do
-          expect(logger).to receive(:debug).with("Token response status: 200")
+          expect(logger).to receive(:debug).with('Token response status: 200')
           expect(logger).to receive(:debug).with("Token response body: #{success_response_body}")
           token_instance.token
         end
@@ -183,7 +183,7 @@ RSpec.describe Microsoft365ApplicationToken do
         expect(params['scope']).to eq('https://outlook.office365.com/.default')
         expect(params['grant_type']).to eq('client_credentials')
       end
-      
+
       token_instance.token
     end
   end
@@ -209,4 +209,4 @@ RSpec.describe Microsoft365ApplicationToken do
       end
     end
   end
-end 
+end

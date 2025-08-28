@@ -9,6 +9,8 @@ module CLI
     ENV_FILE_PATH = File.expand_path('.env')
 
     class << self
+      @env_file_loaded = false
+
       def config
         Configuration.options
       end
@@ -16,7 +18,7 @@ module CLI
       def value_from_env_or_secrets(variable)
         # Load .env file if it exists
         load_env_file
-        
+
         # Check environment variable first
         env_var = "CLEANBOX_#{variable.to_s.upcase}"
         val = ENV[env_var] || ENV[variable.to_s.upcase] || password_from_secrets(variable.to_s)
@@ -24,55 +26,62 @@ module CLI
       end
 
       def load_env_file
+        return if @env_file_loaded
         return unless File.exist?(ENV_FILE_PATH)
-        
+
         # Use the dotenv gem to load the .env file
         Dotenv.load(ENV_FILE_PATH)
+
+        @env_file_loaded = true
+      end
+
+      def reset_env_file_loaded
+        @env_file_loaded = false
       end
 
       def create_env_file(secrets)
         env_content = []
-        env_content << "# Cleanbox Environment Variables"
-        env_content << "# ============================="
-        env_content << "# This file contains sensitive credentials for Cleanbox."
-        env_content << "# DO NOT commit this file to version control!"
-        env_content << "#"
-        env_content << ""
-        
+        env_content << '# Cleanbox Environment Variables'
+        env_content << '# ============================='
+        env_content << '# This file contains sensitive credentials for Cleanbox.'
+        env_content << '# DO NOT commit this file to version control!'
+        env_content << '#'
+        env_content << ''
+
         secrets.each do |key, value|
           next if value.nil? || value.empty?
+
           env_content << "#{key}=#{value}"
         end
-        
-        File.write(ENV_FILE_PATH, env_content.join("\n") + "\n")
-        puts "✅ Created .env file with sensitive credentials"
+
+        File.write(ENV_FILE_PATH, "#{env_content.join("\n")}\n")
+        puts '✅ Created .env file with sensitive credentials'
         puts "   Location: #{ENV_FILE_PATH}"
-        puts "   Note: This file is already in .gitignore"
+        puts '   Note: This file is already in .gitignore'
       end
 
       def auth_secrets_available?(auth_type, data_dir: nil)
         load_env_file
-        
+
         case auth_type
         when 'oauth2_microsoft'
-          !!(ENV['CLEANBOX_CLIENT_ID'] && ENV['CLEANBOX_CLIENT_SECRET'] && ENV['CLEANBOX_TENANT_ID'])
+          !!(ENV.fetch('CLEANBOX_CLIENT_ID',
+                       nil) && ENV.fetch('CLEANBOX_CLIENT_SECRET', nil) && ENV.fetch('CLEANBOX_TENANT_ID', nil))
         when 'oauth2_microsoft_user'
           # For user-based OAuth2, we check if tokens exist instead of secrets
           require_relative '../microsoft_365_user_token'
           require_relative '../auth/authentication_manager'
-          
+
           # Get the username from config to check for token file
           username = config[:username]
-          
-          return false unless username
-          
 
-          
+          return false unless username
+
           # Check if token file exists and has valid tokens
           token_file = Auth::AuthenticationManager.default_token_file(username)
-          
+
           return false unless File.exist?(token_file)
-          
+
           # Try to load tokens to verify they're valid
           user_token = Microsoft365UserToken.new
           user_token.load_tokens_from_file(token_file)
@@ -89,39 +98,41 @@ module CLI
         original_env = {}
         case auth_type
         when 'oauth2_microsoft'
-          ['CLEANBOX_CLIENT_ID', 'CLEANBOX_CLIENT_SECRET', 'CLEANBOX_TENANT_ID'].each do |var|
+          %w[CLEANBOX_CLIENT_ID CLEANBOX_CLIENT_SECRET CLEANBOX_TENANT_ID].each do |var|
             original_env[var] = ENV[var] if ENV.key?(var)
           end
         when 'password'
           original_env['CLEANBOX_PASSWORD'] = ENV['CLEANBOX_PASSWORD'] if ENV.key?('CLEANBOX_PASSWORD')
         end
-        
+
         load_env_file
-        
+
         case auth_type
         when 'oauth2_microsoft'
           {
-            configured: !!(ENV['CLEANBOX_CLIENT_ID'] && ENV['CLEANBOX_CLIENT_SECRET'] && ENV['CLEANBOX_TENANT_ID']),
+            configured: !!(ENV.fetch('CLEANBOX_CLIENT_ID',
+                                     nil) && ENV.fetch('CLEANBOX_CLIENT_SECRET',
+                                                       nil) && ENV.fetch('CLEANBOX_TENANT_ID', nil)),
             missing: [
               ('client_id' unless ENV['CLEANBOX_CLIENT_ID']),
               ('client_secret' unless ENV['CLEANBOX_CLIENT_SECRET']),
               ('tenant_id' unless ENV['CLEANBOX_TENANT_ID'])
             ].compact,
-            source: detect_secret_source_with_original(['CLEANBOX_CLIENT_ID', 'CLEANBOX_CLIENT_SECRET', 'CLEANBOX_TENANT_ID'], original_env)
+            source: detect_secret_source_with_original(
+              %w[CLEANBOX_CLIENT_ID CLEANBOX_CLIENT_SECRET CLEANBOX_TENANT_ID], original_env
+            )
           }
         when 'oauth2_microsoft_user'
           # For user-based OAuth2, check if tokens exist
           require_relative '../microsoft_365_user_token'
           require_relative '../auth/authentication_manager'
           require_relative '../configuration'
-          
+
           username = Configuration.options[:username]
-          
+
           if username
             token_file = Auth::AuthenticationManager.default_token_file(username)
-            
 
-            
             if File.exist?(token_file)
               user_token = Microsoft365UserToken.new
               if user_token.load_tokens_from_file(token_file) && user_token.has_valid_tokens?
@@ -198,4 +209,4 @@ module CLI
       end
     end
   end
-end 
+end

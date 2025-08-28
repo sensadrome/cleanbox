@@ -98,7 +98,8 @@ module CLI
         @options[:unjunk] = true
       end
 
-      opts.on('-F', '--file-from FOLDER', 'File (from the Inbox) based on mail in FOLDER (can use multiple times)') do |folder|
+      opts.on('-F', '--file-from FOLDER',
+              'File (from the Inbox) based on mail in FOLDER (can use multiple times)') do |folder|
         @options[:file_from_folders] ||= []
         @options[:file_from_folders] << folder
       end
@@ -144,4 +145,4 @@ module CLI
       opts.separator ''
     end
   end
-end 
+end

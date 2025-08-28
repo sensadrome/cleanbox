@@ -6,7 +6,7 @@ require 'tempfile'
 RSpec.describe Microsoft365UserToken do
   let(:logger) { double('Logger') }
   let(:token) { described_class.new(logger: logger) }
-
+  let(:default_redirect_uri) { 'urn:ietf:wg:oauth:2.0:oob' }
   before do
     allow(logger).to receive(:debug)
     allow(logger).to receive(:error)
@@ -16,7 +16,7 @@ RSpec.describe Microsoft365UserToken do
     it 'uses default values when no parameters provided' do
       token = described_class.new
       expect(token.client_id).to eq('b3fc8598-3357-4f5d-ac0a-969016f6bb24')
-      expect(token.redirect_uri).to eq('https://login.microsoftonline.com/common/oauth2/nativeclient')
+      expect(token.redirect_uri).to eq(default_redirect_uri)
       expect(token.scope).to eq('https://outlook.office365.com/IMAP.AccessAsUser.All offline_access openid')
     end
 
@@ -27,7 +27,7 @@ RSpec.describe Microsoft365UserToken do
         scope: 'custom_scope',
         logger: logger
       )
-      
+
       expect(custom_token.client_id).to eq('custom_client_id')
       expect(custom_token.redirect_uri).to eq('custom_redirect_uri')
       expect(custom_token.scope).to eq('custom_scope')
@@ -37,28 +37,28 @@ RSpec.describe Microsoft365UserToken do
   describe '#authorization_url' do
     it 'generates correct authorization URL with default state' do
       url = token.authorization_url
-      
+
       expect(url).to include('https://login.microsoftonline.com/common/oauth2/v2.0/authorize')
       expect(url).to include('client_id=b3fc8598-3357-4f5d-ac0a-969016f6bb24')
       expect(url).to include('response_type=code')
-      expect(url).to include('redirect_uri=https%3A%2F%2Flogin.microsoftonline.com%2Fcommon%2Foauth2%2Fnativeclient')
+      expect(url).to include('redirect_uri=urn%3Aietf%3Awg%3Aoauth%3A2.0%3Aoob')
       expect(url).to include('scope=https%3A%2F%2Foutlook.office365.com%2FIMAP.AccessAsUser.All+offline_access+openid')
       expect(url).to include('state=')
     end
 
     it 'generates authorization URL with custom state' do
       url = token.authorization_url(state: 'custom_state_123')
-      
+
       expect(url).to include('state=custom_state_123')
     end
 
     it 'generates different state values for different calls' do
       url1 = token.authorization_url
       url2 = token.authorization_url
-      
+
       state1 = URI.parse(url1).query.split('&').find { |p| p.start_with?('state=') }
       state2 = URI.parse(url2).query.split('&').find { |p| p.start_with?('state=') }
-      
+
       expect(state1).not_to eq(state2)
     end
   end
@@ -90,7 +90,7 @@ RSpec.describe Microsoft365UserToken do
 
     it 'successfully exchanges authorization code for tokens' do
       result = token.exchange_code_for_tokens('test_auth_code')
-      
+
       expect(result).to be true
       expect(token.access_token).to eq('test_access_token')
       expect(token.refresh_token).to eq('test_refresh_token')
@@ -99,7 +99,7 @@ RSpec.describe Microsoft365UserToken do
 
     it 'sends correct parameters in token exchange request' do
       expect(mock_request).to receive(:body=).with(
-        'client_id=b3fc8598-3357-4f5d-ac0a-969016f6bb24&code=test_auth_code&redirect_uri=https%3A%2F%2Flogin.microsoftonline.com%2Fcommon%2Foauth2%2Fnativeclient&grant_type=authorization_code'
+        'client_id=b3fc8598-3357-4f5d-ac0a-969016f6bb24&code=test_auth_code&redirect_uri=urn%3Aietf%3Awg%3Aoauth%3A2.0%3Aoob&grant_type=authorization_code'
       )
 
       token.exchange_code_for_tokens('test_auth_code')
@@ -155,7 +155,7 @@ RSpec.describe Microsoft365UserToken do
 
     it 'successfully refreshes access token' do
       result = token.refresh_access_token
-      
+
       expect(result).to be true
       expect(token.access_token).to eq('new_access_token')
       expect(token.refresh_token).to eq('new_refresh_token')
@@ -190,14 +190,14 @@ RSpec.describe Microsoft365UserToken do
     it 'returns access token when valid' do
       token.instance_variable_set(:@access_token, 'test_token')
       token.instance_variable_set(:@expires_at, Time.now + 3600)
-      
+
       expect(token.token).to eq('test_token')
     end
 
     it 'returns nil when token is expired' do
       token.instance_variable_set(:@access_token, 'test_token')
       token.instance_variable_set(:@expires_at, Time.now - 3600)
-      
+
       expect(token.token).to be_nil
     end
 
@@ -205,14 +205,14 @@ RSpec.describe Microsoft365UserToken do
       token.instance_variable_set(:@access_token, 'old_token')
       token.instance_variable_set(:@expires_at, Time.now - 3600)
       token.instance_variable_set(:@refresh_token, 'refresh_token')
-      
+
       allow(token).to receive(:refresh_access_token).and_return(true)
       allow(token).to receive(:access_token).and_return('new_token')
-      
+
       # Mock the token method to return the new token after refresh
       allow(token).to receive(:token).and_call_original
       allow(token).to receive(:token).and_return('new_token')
-      
+
       result = token.token
       expect(result).to eq('new_token')
     end
@@ -243,21 +243,21 @@ RSpec.describe Microsoft365UserToken do
       token.instance_variable_set(:@access_token, 'test_token')
       token.instance_variable_set(:@refresh_token, 'refresh_token')
       token.instance_variable_set(:@expires_at, Time.now + 3600)
-      
+
       expect(token.has_valid_tokens?).to be true
     end
 
     it 'returns false when access token is missing' do
       token.instance_variable_set(:@refresh_token, 'refresh_token')
       token.instance_variable_set(:@expires_at, Time.now + 3600)
-      
+
       expect(token.has_valid_tokens?).to eq(false)
     end
 
     it 'returns false when refresh token is missing' do
       token.instance_variable_set(:@access_token, 'test_token')
       token.instance_variable_set(:@expires_at, Time.now + 3600)
-      
+
       expect(token.has_valid_tokens?).to eq(false)
     end
 
@@ -265,7 +265,7 @@ RSpec.describe Microsoft365UserToken do
       token.instance_variable_set(:@access_token, 'test_token')
       token.instance_variable_set(:@refresh_token, 'refresh_token')
       token.instance_variable_set(:@expires_at, Time.now - 3600)
-      
+
       expect(token.has_valid_tokens?).to be false
     end
   end
@@ -286,11 +286,11 @@ RSpec.describe Microsoft365UserToken do
 
       # Save tokens
       token.save_tokens_to_file(temp_file.path)
-      
+
       # Create new token instance and load
       new_token = described_class.new
       result = new_token.load_tokens_from_file(temp_file.path)
-      
+
       expect(result).to be true
       expect(new_token.access_token).to eq('test_access_token')
       expect(new_token.refresh_token).to eq('test_refresh_token')
@@ -317,9 +317,9 @@ RSpec.describe Microsoft365UserToken do
         client_id: 'test_client_id'
       }
       File.write(temp_file.path, token_data.to_json)
-      
+
       result = token.load_tokens_from_file(temp_file.path)
       expect(result).to be false
     end
   end
-end 
+end

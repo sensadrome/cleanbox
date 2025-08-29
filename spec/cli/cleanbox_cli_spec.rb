@@ -236,20 +236,6 @@ RSpec.describe CLI::CleanboxCLI do
     end
   end
 
-  describe '#update_config_manager_if_needed' do
-    it 'updates config manager when config_file is set' do
-      cli.options[:config_file] = '/custom/config.yml'
-      expect(CLI::ConfigManager).to receive(:new).with('/custom/config.yml')
-      cli.send(:update_config_manager_if_needed)
-    end
-
-    it 'does nothing when config_file is not set' do
-      cli.options[:config_file] = nil
-      expect(CLI::ConfigManager).not_to receive(:new)
-      cli.send(:update_config_manager_if_needed)
-    end
-  end
-
   describe '#show_help' do
     it 'outputs help text' do
       cli.send(:show_help)

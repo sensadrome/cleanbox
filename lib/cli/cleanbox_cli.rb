@@ -27,7 +27,6 @@ module CLI
       handle_setup_command
       handle_analyze_command
       handle_sent_analysis_command
-      update_config_manager_if_needed
       handle_config_command
       handle_no_args_help
       validate_options
@@ -134,13 +133,6 @@ module CLI
       imap = Net::IMAP.new(host, ssl: true)
       Auth::AuthenticationManager.authenticate_imap(imap, @options)
       imap
-    end
-
-    def update_config_manager_if_needed
-      return unless @options[:config_file]
-
-      # Create new config manager with specified config file
-      @config_manager = ConfigManager.new(@options[:config_file])
     end
 
     def show_help

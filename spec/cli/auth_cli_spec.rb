@@ -272,8 +272,6 @@ RSpec.describe CLI::AuthCLI do
 
   describe '#setup_auth' do
     before do
-      allow(auth_cli).to receive(:puts)
-      allow(auth_cli).to receive(:print)
       allow(auth_cli).to receive(:gets).and_return('test_input')
       allow(auth_cli).to receive(:connection_details)
       allow(auth_cli).to receive(:test_connection)
@@ -378,9 +376,8 @@ RSpec.describe CLI::AuthCLI do
                                                                    })
         allow(auth_cli).to receive(:test_connection).and_return(false)
 
-        expect(auth_cli).to receive(:puts).with('❌ Connection test failed. Please check your credentials and try again.')
-
         auth_cli.send(:setup_auth)
+        expect(output.string).to include("❌ Connection test failed. Please check your credentials and try again.")
 
         expect(auth_cli).to have_received(:connection_details)
         expect(auth_cli).to have_received(:test_connection)
@@ -643,8 +640,6 @@ RSpec.describe CLI::AuthCLI do
 
   describe '#reset_auth' do
     before do
-      allow(auth_cli).to receive(:puts)
-      allow(auth_cli).to receive(:print)
       allow(auth_cli).to receive(:gets)
       allow(auth_cli).to receive(:reset_auth_config)
     end
@@ -694,7 +689,8 @@ RSpec.describe CLI::AuthCLI do
 
   describe '#show_help' do
     it 'displays help information' do
-      expect { auth_cli.send(:show_help) }.to output(/Cleanbox Authentication Commands/).to_stdout
+      auth_cli.send(:show_help)
+      expect(output.string).to include("Cleanbox Authentication Commands")
     end
   end
 
@@ -827,8 +823,6 @@ RSpec.describe CLI::AuthCLI do
 
   describe '#prompt' do
     before do
-      allow(auth_cli).to receive(:puts)
-      allow(auth_cli).to receive(:print)
       allow(auth_cli).to receive(:gets)
     end
 
@@ -880,8 +874,6 @@ RSpec.describe CLI::AuthCLI do
 
   describe '#prompt_choice' do
     before do
-      allow(auth_cli).to receive(:puts)
-      allow(auth_cli).to receive(:print)
       allow(auth_cli).to receive(:gets)
     end
 
@@ -920,8 +912,6 @@ RSpec.describe CLI::AuthCLI do
       allow(user_token).to receive(:authorization_url).and_return(auth_url)
       allow(user_token).to receive(:exchange_code_for_tokens).and_return(true)
       allow(user_token).to receive(:save_tokens_to_file)
-      allow(auth_cli).to receive(:puts)
-      allow(auth_cli).to receive(:print)
       allow(auth_cli).to receive(:gets)
       allow(auth_cli).to receive(:default_token_file).and_return('/tmp/test_token.json')
       allow_any_instance_of(CLI::ConfigManager).to receive(:load_config).and_return({})
@@ -936,12 +926,12 @@ RSpec.describe CLI::AuthCLI do
       it 'displays authorization URL and prompts for code' do
         auth_cli.send(:setup_user_oauth2, details)
 
-        expect(auth_cli).to have_received(:puts).with('🔐 Microsoft 365 User-based OAuth2 Setup')
-        expect(auth_cli).to have_received(:puts).with('========================================')
-        expect(auth_cli).to have_received(:puts).with(auth_url)
-        expect(auth_cli).to have_received(:puts).with('Please visit this URL to authorize Cleanbox:')
-        expect(auth_cli).to have_received(:puts).with('After you grant permissions, you\'ll receive an authorization code.')
-        expect(auth_cli).to have_received(:puts).with('Please enter the authorization code: ')
+        expect(output.string).to include("🔐 Microsoft 365 User-based OAuth2 Setup")
+        expect(output.string).to include("========================================")
+        expect(output.string).to include(auth_url)
+        expect(output.string).to include("Please visit this URL to authorize Cleanbox:")
+        expect(output.string).to include("After you grant permissions, you'll receive an authorization code.")
+        expect(output.string).to include("Please enter the authorization code: ")
       end
 
       it 'exchanges code for tokens and saves configuration' do
@@ -956,9 +946,9 @@ RSpec.describe CLI::AuthCLI do
       it 'displays success messages' do
         auth_cli.send(:setup_user_oauth2, details)
 
-        expect(auth_cli).to have_received(:puts).with('✅ OAuth2 setup successful!')
-        expect(auth_cli).to have_received(:puts).with('✅ Tokens saved to: /tmp/test_token.json')
-        expect(auth_cli).to have_received(:puts).with(/✅ Configuration saved to: .*\.yml/)
+        expect(output.string).to include("✅ OAuth2 setup successful!")
+        expect(output.string).to include("✅ Tokens saved to: /tmp/test_token.json")
+        expect(output.string).to include(/✅ Configuration saved to: .*\.yml/)
       end
     end
 
@@ -970,7 +960,7 @@ RSpec.describe CLI::AuthCLI do
       it 'cancels setup and displays error message' do
         auth_cli.send(:setup_user_oauth2, details)
 
-        expect(auth_cli).to have_received(:puts).with('❌ No authorization code provided. Setup cancelled.')
+        expect(output.string).to include("❌ No authorization code provided. Setup cancelled.")
         expect(user_token).not_to have_received(:exchange_code_for_tokens)
       end
     end
@@ -984,8 +974,8 @@ RSpec.describe CLI::AuthCLI do
       it 'displays error message' do
         auth_cli.send(:setup_user_oauth2, details)
 
-        expect(auth_cli).to have_received(:puts).with('❌ Failed to exchange authorization code for tokens.')
-        expect(auth_cli).to have_received(:puts).with('Please check the authorization code and try again.')
+        expect(output.string).to include("❌ Failed to exchange authorization code for tokens.")
+        expect(output.string).to include("Please check the authorization code and try again.")
       end
     end
 
@@ -998,8 +988,8 @@ RSpec.describe CLI::AuthCLI do
       it 'displays error message with details' do
         auth_cli.send(:setup_user_oauth2, details)
 
-        expect(auth_cli).to have_received(:puts).with('❌ OAuth2 setup failed: Test error')
-        expect(auth_cli).to have_received(:puts).with('Please try again or contact support if the problem persists.')
+        expect(output.string).to include("❌ OAuth2 setup failed: Test error")
+        expect(output.string).to include("Please try again or contact support if the problem persists.")
       end
     end
   end

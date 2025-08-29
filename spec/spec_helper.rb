@@ -5,6 +5,7 @@ require 'securerandom'
 require 'logger'
 require 'yaml'
 require 'tempfile'
+require 'pry'
 
 # Main application entry point
 require_relative '../lib/connection'
@@ -235,3 +236,20 @@ end
 
 # Include the shared context globally
 RSpec.configure { |c| c.include_context 'default config options' }
+
+RSpec.shared_context 'captures output' do
+  let(:output) { StringIO.new }
+end
+
+# Include the shared context globally
+RSpec.configure do |config|
+  config.include_context 'captures output'
+  config.before(:each) do
+    allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
+    allow_any_instance_of(CLI::AuthCLI).to receive(:print) { |msg| output.print(msg) }
+    allow_any_instance_of(CLI::AuthenticationGatherer).to receive(:print) { |msg| output.print(msg) }
+    allow_any_instance_of(CLI::AnalyzerCLI).to receive(:print) { |msg| output.print(msg) }
+    allow($stdout).to receive(:print) { |msg| output.print(msg) }
+    # allow(STDOUT).to receive(:print) { |msg| output.print(msg) }
+  end
+end

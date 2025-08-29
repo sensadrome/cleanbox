@@ -10,13 +10,9 @@ RSpec.describe CLI::SetupWizard do
   let(:wizard) { described_class.new(verbose: false) }
   let(:mock_imap) { instance_double(Net::IMAP) }
   let(:mock_analyzer) { instance_double(Analysis::EmailAnalyzer) }
-  let(:output) { StringIO.new }
+  # let(:output) { StringIO.new }
 
   before do
-    # Capture all output to our StringIO instead of stdout
-    allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
-    allow($stdout).to receive(:print) { |msg| output.print(msg) }
-    
     # Mock dependencies
     allow(CLI::SecretsManager).to receive(:create_env_file)
     allow(CLI::SecretsManager).to receive(:value_from_env_or_secrets).and_return('test_value')

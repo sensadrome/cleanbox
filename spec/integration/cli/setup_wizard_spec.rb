@@ -53,12 +53,6 @@ RSpec.describe 'SetupWizard Integration' do
       # Mock IMAP to use our test fixture
       mock_imap_with_fixture('connection_failure')
 
-      # Mock user input for connection failure scenario
-      # Capture output
-      output = StringIO.new
-      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
-      allow($stdout).to receive(:print) { |msg| output.print(msg) }
-
       # Run the setup wizard
       wizard = CLI::SetupWizard.new(verbose: false)
 
@@ -86,11 +80,6 @@ RSpec.describe 'SetupWizard Integration' do
     it 'completes setup successfully with folder analysis' do
       # Mock IMAP to use our test fixture
       mock_imap_with_fixture('happy_path')
-
-      # Capture output
-      output = StringIO.new
-      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
-      allow($stdout).to receive(:print) { |msg| output.print(msg) }
 
       # Run the setup wizard
       wizard = CLI::SetupWizard.new(verbose: false)
@@ -144,11 +133,6 @@ RSpec.describe 'SetupWizard Integration' do
     it 'handles user input for folder categorization and domain mappings' do
       # Mock IMAP to use our test fixture
       mock_imap_with_fixture('interactive_categorization')
-
-      # Capture output
-      output = StringIO.new
-      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
-      allow($stdout).to receive(:print) { |msg| output.print(msg) }
 
       # Run the setup wizard
       wizard = CLI::SetupWizard.new(verbose: false)
@@ -206,11 +190,6 @@ RSpec.describe 'SetupWizard Integration' do
     it 'handles user overriding folder categorizations' do
       # Mock IMAP to use our test fixture
       mock_imap_with_fixture('interactive_categorization')
-
-      # Capture output
-      output = StringIO.new
-      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
-      allow($stdout).to receive(:print) { |msg| output.print(msg) }
 
       # Run the setup wizard
       wizard = CLI::SetupWizard.new(verbose: false)

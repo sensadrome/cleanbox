@@ -127,8 +127,8 @@ RSpec.describe CLI::SecretsManager do
 
     it 'prints a success message' do
       secrets = { 'FOO' => 'bar' }
-      expect { described_class.create_env_file(secrets) }
-        .to output(/Created .env file with sensitive credentials/).to_stdout
+      described_class.create_env_file(secrets)
+      expect(output.string).to include("Created .env file with sensitive credentials")
     end
   end
 

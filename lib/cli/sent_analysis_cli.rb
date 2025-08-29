@@ -56,7 +56,7 @@ module CLI
       progress_callback = lambda do |current, total, folder_name|
         percentage = (current.to_f / total * 100).round(1)
         # Clear the line and write progress
-        print "\r\033[K  📈 Progress: #{percentage}% (#{current}/#{total}) - #{folder_name}"
+        $stdout.print "\r\033[K  📈 Progress: #{percentage}% (#{current}/#{total}) - #{folder_name}"
         $stdout.flush
       end
 

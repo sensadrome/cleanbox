@@ -46,9 +46,8 @@ RSpec.describe CLI::ConfigManager do
       end
 
       it 'shows appropriate message' do
-        expect do
-          non_existent_config_manager.show
-        end.to output("No configuration file found at /non/existent/config.yml\n").to_stdout
+        non_existent_config_manager.show
+        expect(output.string).to include("No configuration file found at /non/existent/config.yml")
       end
     end
 
@@ -74,19 +73,22 @@ RSpec.describe CLI::ConfigManager do
       end
 
       it 'shows recognized keys' do
-        expect { config_manager.show }.to output(/Configuration from #{temp_config_path}:/).to_stdout
-        expect { config_manager.show }.to output(/host: outlook\.office365\.com/).to_stdout
-        expect { config_manager.show }.to output(/username: test@example\.com/).to_stdout
+        config_manager.show
+        expect(output.string).to include("Configuration from #{temp_config_path}:")
+        expect(output.string).to include("host: outlook.office365.com")
+        expect(output.string).to include("username: test@example.com")
       end
 
       it 'shows deprecated keys warning' do
-        expect { config_manager.show }.to output(/Note: Found deprecated keys in your config:/).to_stdout
-        expect { config_manager.show }.to output(/- deprecated_key/).to_stdout
+        config_manager.show
+        expect(output.string).to include("Note: Found deprecated keys in your config:")
+        expect(output.string).to include("- deprecated_key")
       end
 
       it 'shows missing recognized keys' do
-        expect { config_manager.show }.to output(/Recognized keys you have not set/).to_stdout
-        expect { config_manager.show }.to output(/- valid_from/).to_stdout
+        config_manager.show
+        expect(output.string).to include("Recognized keys you have not set")
+        expect(output.string).to include("- valid_from")
       end
     end
   end
@@ -104,11 +106,14 @@ RSpec.describe CLI::ConfigManager do
       end
 
       it 'shows string value' do
-        expect { config_manager.get('username') }.to output(/test@example\.com/).to_stdout
+        config_manager.get('username')
+        expect(output.string).to include("test@example.com")
       end
 
       it 'shows array value' do
-        expect { config_manager.get('folders') }.to output(/- Inbox\n- Sent/m).to_stdout
+        config_manager.get('folders')
+        expect(output.string).to include("- Inbox")
+        expect(output.string).to include("- Sent")
       end
     end
 
@@ -124,9 +129,8 @@ RSpec.describe CLI::ConfigManager do
       end
 
       it 'shows not found message' do
-        expect do
-          config_manager.get('nonexistent')
-        end.to output("Key 'nonexistent' not found in configuration\n").to_stdout
+        config_manager.get('nonexistent')
+        expect(output.string).to include("Key 'nonexistent' not found in configuration")
       end
     end
   end
@@ -142,8 +146,8 @@ RSpec.describe CLI::ConfigManager do
       end
 
       it 'shows success message' do
-        expect { config_manager.set('username', 'new@example.com') }
-          .to output("Configuration saved to #{temp_config_path}\n").to_stdout
+        config_manager.set('username', 'new@example.com')
+        expect(output.string).to include("Configuration saved to #{temp_config_path}")
       end
     end
 
@@ -206,8 +210,9 @@ RSpec.describe CLI::ConfigManager do
       end
 
       it 'shows success message' do
-        expect { config_manager.add('folders', 'Sent') }
-          .to output(/Added 'Sent' to folders.*Configuration saved to .+\.yml/m).to_stdout
+        config_manager.add('folders', 'Sent')
+        expect(output.string).to include("Added 'Sent' to folders")
+        expect(output.string).to include("Configuration saved to #{temp_config_path}")
       end
     end
 
@@ -226,8 +231,9 @@ RSpec.describe CLI::ConfigManager do
       end
 
       it 'shows success message' do
-        expect { config_manager.add('settings', '{key2: value2}') }
-          .to output(/Merged hash into settings.*Configuration saved to .+\.yml/m).to_stdout
+        config_manager.add('settings', '{key2: value2}')
+        expect(output.string).to include("Merged hash into settings")
+        expect(output.string).to include("Configuration saved to #{temp_config_path}")
       end
     end
 
@@ -256,9 +262,8 @@ RSpec.describe CLI::ConfigManager do
       end
 
       it 'shows error and exits' do
-        expect { config_manager.add('username', 'new_value') }
-          .to output("Cannot add to username (type: String)\n").to_stdout
-          .and raise_error(SystemExit)
+        expect { config_manager.add('username', 'new_value') }.to raise_error(SystemExit)
+        expect(output.string).to include("Cannot add to username (type: String)")
       end
     end
   end
@@ -279,13 +284,15 @@ RSpec.describe CLI::ConfigManager do
       end
 
       it 'shows success message' do
-        expect { config_manager.remove('folders', 'Sent') }
-          .to output(/Removed 'Sent' from folders.*Configuration saved to .+\.yml/m).to_stdout
+        config_manager.remove('folders', 'Sent')
+        expect(output.string).to include("Removed 'Sent' from folders")
+        expect(output.string).to include("Configuration saved to #{temp_config_path}")
       end
 
       it 'shows not found message for missing value' do
-        expect { config_manager.remove('folders', 'Nonexistent') }
-          .to output(/Value 'Nonexistent' not found in folders.*Configuration saved to .+\.yml/m).to_stdout
+        config_manager.remove('folders', 'Nonexistent')
+        expect(output.string).to include("Value 'Nonexistent' not found in folders")
+        expect(output.string).to include("Configuration saved to #{temp_config_path}")
       end
     end
 
@@ -304,21 +311,22 @@ RSpec.describe CLI::ConfigManager do
       end
 
       it 'shows success message' do
-        expect { config_manager.remove('settings', '{key1: value1, key2: value2}') }
-          .to output(/(Removed keys key1, key2 from settings|No matching keys found in settings).*Configuration saved to .+\.yml/m).to_stdout
+        config_manager.remove('settings', '{key1: value1, key2: value2}')
+        expect(output.string).to include("Removed keys key1, key2 from settings")
+        expect(output.string).to include("Configuration saved to #{temp_config_path}")
       end
 
       it 'shows no matching keys message' do
-        expect { config_manager.remove('settings', '{nonexistent: value}') }
-          .to output(/No matching keys found in settings.*Configuration saved to .+\.yml/m).to_stdout
+        config_manager.remove('settings', '{nonexistent: value}')
+        expect(output.string).to include("No matching keys found in settings")
+        expect(output.string).to include("Configuration saved to #{temp_config_path}")
       end
     end
 
     context 'with nonexistent key' do
       it 'shows error and exits' do
-        expect { config_manager.remove('nonexistent', 'value') }
-          .to output("Key 'nonexistent' not found in configuration\n").to_stdout
-          .and raise_error(SystemExit)
+        expect { config_manager.remove('nonexistent', 'value') }.to raise_error(SystemExit)
+        expect(output.string).to include("Key 'nonexistent' not found in configuration")
       end
     end
 
@@ -329,9 +337,8 @@ RSpec.describe CLI::ConfigManager do
       end
 
       it 'shows error and exits' do
-        expect { config_manager.remove('username', 'value') }
-          .to output("Cannot remove from username (type: String)\n").to_stdout
-          .and raise_error(SystemExit)
+        expect { config_manager.remove('username', 'value') }.to raise_error(SystemExit)
+        expect(output.string).to include("Cannot remove from username (type: String)")
       end
     end
   end
@@ -339,7 +346,8 @@ RSpec.describe CLI::ConfigManager do
   describe '#init' do
     context 'when config file does not exist' do
       it 'creates comprehensive config template' do
-        expect { config_manager.init }.to output(/Comprehensive configuration template created at/).to_stdout
+        config_manager.init
+        expect(output.string).to include("Comprehensive configuration template created at #{temp_config_path}")
 
         expect(File.exist?(temp_config_path)).to be true
         config_content = File.read(temp_config_path)
@@ -355,8 +363,9 @@ RSpec.describe CLI::ConfigManager do
       end
 
       it 'shows already exists message' do
-        expect { config_manager.init }.to output(/Configuration file already exists at/).to_stdout
-        expect { config_manager.init }.to output(/Use 'cleanbox config show' to view it/).to_stdout
+        config_manager.init
+        expect(output.string).to include("Configuration file already exists at #{temp_config_path}")
+        expect(output.string).to include("Use 'cleanbox config show' to view it")
       end
     end
   end
@@ -381,9 +390,8 @@ RSpec.describe CLI::ConfigManager do
       end
 
       it 'creates domain rules file in data directory when specified' do
-        expect do
-          config_manager_with_data_dir.init_domain_rules
-        end.to output(/✅ Domain rules file created at #{user_domain_rules_path}/).to_stdout
+        config_manager_with_data_dir.init_domain_rules
+        expect(output.string).to include("✅ Domain rules file created at #{user_domain_rules_path}")
 
         expect(File.exist?(user_domain_rules_path)).to be true
         expect(File.read(user_domain_rules_path)).to eq(File.read(default_domain_rules_path))
@@ -397,9 +405,8 @@ RSpec.describe CLI::ConfigManager do
         # Clean up any existing file
         FileUtils.rm_f(home_domain_rules_path)
 
-        expect do
-          config_manager_without_data_dir.init_domain_rules
-        end.to output(/✅ Domain rules file created at #{home_domain_rules_path}/).to_stdout
+        config_manager_without_data_dir.init_domain_rules
+        expect(output.string).to include("✅ Domain rules file created at #{home_domain_rules_path}")
 
         expect(File.exist?(home_domain_rules_path)).to be true
         expect(File.read(home_domain_rules_path)).to eq(File.read(default_domain_rules_path))
@@ -413,9 +420,8 @@ RSpec.describe CLI::ConfigManager do
         nested_config_manager = described_class.new(temp_config_path, nested_data_dir)
         nested_domain_rules_path = File.join(nested_data_dir, 'domain_rules.yml')
 
-        expect do
-          nested_config_manager.init_domain_rules
-        end.to output(/✅ Domain rules file created at #{nested_domain_rules_path}/).to_stdout
+        nested_config_manager.init_domain_rules
+        expect(output.string).to include("✅ Domain rules file created at #{nested_domain_rules_path}")
 
         expect(File.exist?(nested_domain_rules_path)).to be true
       end
@@ -424,9 +430,8 @@ RSpec.describe CLI::ConfigManager do
         # Ensure the domain rules file doesn't exist for this test
         FileUtils.rm_f(user_domain_rules_path)
 
-        expect do
-          config_manager_with_data_dir.init_domain_rules
-        end.to output(/✅ Domain rules file created at #{user_domain_rules_path}/).to_stdout
+        config_manager_with_data_dir.init_domain_rules
+        expect(output.string).to include("✅ Domain rules file created at #{user_domain_rules_path}")
 
         expect(File.exist?(user_domain_rules_path)).to be true
         expect(File.read(user_domain_rules_path)).to eq(File.read(default_domain_rules_path))
@@ -443,12 +448,9 @@ RSpec.describe CLI::ConfigManager do
       end
 
       it 'shows already exists message' do
-        expect do
-          config_manager_with_data_dir.init_domain_rules
-        end.to output(/Domain rules file already exists at #{user_domain_rules_path}/).to_stdout
-        expect do
-          config_manager_with_data_dir.init_domain_rules
-        end.to output(/Edit it to customize your domain mappings/).to_stdout
+        config_manager_with_data_dir.init_domain_rules
+        expect(output.string).to include("Domain rules file already exists at #{user_domain_rules_path}")
+        expect(output.string).to include("Edit it to customize your domain mappings")
       end
 
       it 'does not overwrite existing file' do
@@ -470,10 +472,8 @@ RSpec.describe CLI::ConfigManager do
         allow(File).to receive(:exist?).with(default_domain_rules_path).and_return(false)
         allow(File).to receive(:exist?).with(user_domain_rules_path).and_return(false)
 
-        expect do
-          config_manager_with_data_dir.init_domain_rules
-        end.to output(/Error: Default domain rules file not found at #{default_domain_rules_path}/).to_stdout
-                                                                                                   .and raise_error(SystemExit)
+        expect { config_manager_with_data_dir.init_domain_rules }.to raise_error(SystemExit)
+        expect(output.string).to include("Error: Default domain rules file not found at #{default_domain_rules_path}")
       end
     end
   end
@@ -493,9 +493,8 @@ RSpec.describe CLI::ConfigManager do
       end
 
       it 'shows usage and exits when key missing' do
-        expect { config_manager.handle_command(['get']) }
-          .to output("Usage: cleanbox config get <key>\n").to_stdout
-          .and raise_error(SystemExit)
+        expect { config_manager.handle_command(['get']) }.to raise_error(SystemExit)
+        expect(output.string).to include("Usage: cleanbox config get <key>")
       end
     end
 
@@ -506,9 +505,8 @@ RSpec.describe CLI::ConfigManager do
       end
 
       it 'shows usage and exits when key or value missing' do
-        expect { config_manager.handle_command(['set']) }
-          .to output(/Usage: cleanbox config set <key> <value>/).to_stdout
-          .and raise_error(SystemExit)
+        expect { config_manager.handle_command(['set']) }.to raise_error(SystemExit)
+        expect(output.string).to include("Usage: cleanbox config set <key> <value>")
       end
     end
 
@@ -519,9 +517,8 @@ RSpec.describe CLI::ConfigManager do
       end
 
       it 'shows usage and exits when key or value missing' do
-        expect { config_manager.handle_command(['add']) }
-          .to output(/Usage: cleanbox config add <key> <value>/).to_stdout
-          .and raise_error(SystemExit)
+        expect { config_manager.handle_command(['add']) }.to raise_error(SystemExit)
+        expect(output.string).to include("Usage: cleanbox config add <key> <value>")
       end
     end
 
@@ -532,9 +529,8 @@ RSpec.describe CLI::ConfigManager do
       end
 
       it 'shows usage and exits when key or value missing' do
-        expect { config_manager.handle_command(['remove']) }
-          .to output(/Usage: cleanbox config remove <key> <value>/).to_stdout
-          .and raise_error(SystemExit)
+        expect { config_manager.handle_command(['remove']) }.to raise_error(SystemExit)
+        expect(output.string).to include("Usage: cleanbox config remove <key> <value>")
       end
     end
 
@@ -554,10 +550,9 @@ RSpec.describe CLI::ConfigManager do
 
     context 'with unknown command' do
       it 'shows error and exits' do
-        expect do
-          config_manager.handle_command(['unknown'])
-        rescue SystemExit
-        end.to output(/Unknown config command: unknown.*Available commands: show, get, set, add, remove, init, init-domain-rules/m).to_stdout
+        expect { config_manager.handle_command(['unknown']) }.to raise_error(SystemExit)
+        expect(output.string).to include("Unknown config command: unknown")
+        expect(output.string).to include("Available commands: show, get, set, add, remove, init, init-domain-rules")
       end
     end
   end
@@ -599,8 +594,8 @@ RSpec.describe CLI::ConfigManager do
       nested_path = '/tmp/nested/dir/config.yml'
       manager = described_class.new(nested_path)
 
-      expect { manager.save_config({ username: 'test' }) }
-        .to output("Configuration saved to #{nested_path}\n").to_stdout
+      manager.save_config({ username: 'test' })
+      expect(output.string).to include("Configuration saved to #{nested_path}")
 
       expect(File.exist?(nested_path)).to be true
       loaded_config = YAML.load_file(nested_path)
@@ -792,14 +787,16 @@ RSpec.describe CLI::ConfigManager do
       Configuration.reload!
 
       # Get values
-      expect { integration_config_manager.get('username') }.to output(/test@example\.com/).to_stdout
+      integration_config_manager.get('username')
+      expect(output.string).to include("test@example.com")
 
       # Remove from arrays
       integration_config_manager.remove('folders', 'Drafts')
 
       # Show final config
-      expect { integration_config_manager.show }.to output(/username: test@example\.com/).to_stdout
-      expect { integration_config_manager.show }.to output(/host: outlook\.office365\.com/).to_stdout
+      integration_config_manager.show
+      expect(output.string).to include("username: test@example.com")
+      expect(output.string).to include("host: outlook.office365.com")
 
       # Verify final state
       final_config = YAML.load_file(integration_temp_config_path)

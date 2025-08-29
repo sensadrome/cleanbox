@@ -329,7 +329,8 @@ RSpec.describe Cleanbox do
 
     it 'builds list domains and shows domain mappings' do
       expect(cleanbox).to receive(:build_list_domains!)
-      expect { cleanbox.show_lists! }.to output(include("'newsletter.com' => 'Newsletters'")).to_stdout
+      cleanbox.show_lists!
+      expect(output.string).to include("'newsletter.com' => 'Newsletters'")
     end
   end
 
@@ -341,7 +342,8 @@ RSpec.describe Cleanbox do
     end
 
     it 'shows all cleanbox folders' do
-      expect { cleanbox.show_folders! }.to output(include('TestFolder (Total: 10, 2 new)')).to_stdout
+      cleanbox.show_folders!
+      expect(output.string).to include("TestFolder (Total: 10, 2 new)")
     end
   end
 

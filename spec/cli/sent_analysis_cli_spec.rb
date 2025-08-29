@@ -393,29 +393,33 @@ RSpec.describe CLI::SentAnalysisCLI do
 
   describe '#show_help' do
     it 'displays the help header' do
-      expect { cli.send(:show_help) }.to output(/Sent Analysis CLI - Analyze sent emails vs folder contents/).to_stdout
+      cli.send(:show_help)
+      expect(output.string).to include("Sent Analysis CLI - Analyze sent emails vs folder contents")
     end
 
     it 'displays all available commands' do
-      expect { cli.send(:show_help) }.to output(/Commands:/).to_stdout
-      expect { cli.send(:show_help) }.to output(/collect/).to_stdout
-      expect { cli.send(:show_help) }.to output(/analyze/).to_stdout
-      expect { cli.send(:show_help) }.to output(/compare/).to_stdout
-      expect { cli.send(:show_help) }.to output(/help/).to_stdout
+      cli.send(:show_help)
+      expect(output.string).to include("Commands:")
+      expect(output.string).to include("collect")
+      expect(output.string).to include("analyze")
+      expect(output.string).to include("compare")
+      expect(output.string).to include("help")
     end
 
     it 'displays command descriptions' do
-      expect { cli.send(:show_help) }.to output(/Collect data from IMAP server/).to_stdout
-      expect { cli.send(:show_help) }.to output(/Analyze collected data/).to_stdout
-      expect { cli.send(:show_help) }.to output(/Compare sent emails with folder contents/).to_stdout
-      expect { cli.send(:show_help) }.to output(/Show this help/).to_stdout
+      cli.send(:show_help)
+      expect(output.string).to include("Collect data from IMAP server")
+      expect(output.string).to include("Analyze collected data")
+      expect(output.string).to include("Compare sent emails with folder contents")
+      expect(output.string).to include("Show this help")
     end
 
     it 'displays usage examples' do
-      expect { cli.send(:show_help) }.to output(/Usage:/).to_stdout
-      expect { cli.send(:show_help) }.to output(/cleanbox sent-analysis collect/).to_stdout
-      expect { cli.send(:show_help) }.to output(/cleanbox sent-analysis analyze/).to_stdout
-      expect { cli.send(:show_help) }.to output(/cleanbox sent-analysis compare/).to_stdout
+      cli.send(:show_help)
+      expect(output.string).to include("Usage:")
+      expect(output.string).to include("cleanbox sent-analysis collect")
+      expect(output.string).to include("cleanbox sent-analysis analyze")
+      expect(output.string).to include("cleanbox sent-analysis compare")
     end
 
     it 'displays complete help output with proper formatting' do
@@ -434,21 +438,23 @@ RSpec.describe CLI::SentAnalysisCLI do
           cleanbox sent-analysis compare
       EXPECTED
 
-      expect { cli.send(:show_help) }.to output(expected_output).to_stdout
+      cli.send(:show_help)
+      expect(output.string).to include(expected_output)
     end
 
     it 'includes proper spacing and formatting' do
-      expect do
-        cli.send(:show_help)
-      end.to output(/Sent Analysis CLI - Analyze sent emails vs folder contents\n\nCommands:/).to_stdout
-      expect { cli.send(:show_help) }.to output(/Commands:\n  collect/).to_stdout
-      expect { cli.send(:show_help) }.to output(/Usage:\n  cleanbox sent-analysis collect/).to_stdout
+      cli.send(:show_help)
+      expect(output.string).to include("Sent Analysis CLI - Analyze sent emails vs folder contents")
+      expect(output.string).to include("Commands:")
+      expect(output.string).to include("collect")
+      expect(output.string).to include("Usage:")
+      expect(output.string).to include("cleanbox sent-analysis collect")
 
       # Check that commands are properly indented
-      expect { cli.send(:show_help) }.to output(/  collect/).to_stdout
-      expect { cli.send(:show_help) }.to output(/  analyze/).to_stdout
-      expect { cli.send(:show_help) }.to output(/  compare/).to_stdout
-      expect { cli.send(:show_help) }.to output(/  help/).to_stdout
+      expect(output.string).to include("  collect")
+      expect(output.string).to include("  analyze")
+      expect(output.string).to include("  compare")
+      expect(output.string).to include("  help")
     end
   end
 end

@@ -252,15 +252,18 @@ RSpec.describe CLI::CleanboxCLI do
 
   describe '#show_help' do
     it 'outputs help text' do
-      expect { cli.send(:show_help) }.to output(/Cleanbox - Intelligent Email Management/).to_stdout
+      cli.send(:show_help)
+      expect(output.string).to include("Cleanbox - Intelligent Email Management")
     end
 
     it 'includes quick start information' do
-      expect { cli.send(:show_help) }.to output(/Quick Start/).to_stdout
+      cli.send(:show_help)
+      expect(output.string).to include("Quick Start")
     end
 
     it 'includes common commands' do
-      expect { cli.send(:show_help) }.to output(/Common Commands/).to_stdout
+      cli.send(:show_help)
+      expect(output.string).to include("Common Commands")
     end
   end
 

@@ -10,8 +10,13 @@ RSpec.describe CLI::SetupWizard do
   let(:wizard) { described_class.new(verbose: false) }
   let(:mock_imap) { instance_double(Net::IMAP) }
   let(:mock_analyzer) { instance_double(Analysis::EmailAnalyzer) }
+  let(:output) { StringIO.new }
 
   before do
+    # Capture all output to our StringIO instead of stdout
+    allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
+    allow($stdout).to receive(:print) { |msg| output.print(msg) }
+    
     # Mock dependencies
     allow(CLI::SecretsManager).to receive(:create_env_file)
     allow(CLI::SecretsManager).to receive(:value_from_env_or_secrets).and_return('test_value')
@@ -73,7 +78,8 @@ RSpec.describe CLI::SetupWizard do
         end
 
         it 'prompts for update mode choice' do
-          expect { wizard.run }.to output(/Configuration file already exists!/).to_stdout
+          wizard.run
+          expect(output.string).to include('Configuration file already exists!')
         end
 
         it 'sets update mode and proceeds with setup' do
@@ -89,18 +95,8 @@ RSpec.describe CLI::SetupWizard do
                                                                           })
           allow(wizard).to receive(:save_configuration)
           allow(wizard).to receive(:validate_and_preview)
-          expect { wizard.run }.to output(/Using existing connection settings/).to_stdout
-        end
-
-        it 'uses existing config for update mode' do
-          allow(wizard).to receive(:interactive_configuration).and_return({
-                                                                            whitelist_folders: ['Work'],
-                                                                            list_folders: ['Newsletters'],
-                                                                            domain_mappings: { 'example.com' => 'Newsletters' }
-                                                                          })
-          allow(wizard).to receive(:save_configuration)
-          allow(wizard).to receive(:validate_and_preview)
           wizard.run
+          expect(output.string).to include('Using existing connection settings')
         end
 
         context 'with missing host' do
@@ -113,7 +109,8 @@ RSpec.describe CLI::SetupWizard do
 
           it 'fails fast when config is incomplete' do
             # Expect the wizard to fail fast when config is missing required fields
-            expect { wizard.run }.to output(/Configuration is incomplete/).to_stdout
+            wizard.run
+            expect(output.string).to include('Configuration is incomplete')
             expect(wizard.run).to be_nil
           end
         end
@@ -163,8 +160,9 @@ RSpec.describe CLI::SetupWizard do
           end
 
           it 'successfully proceeds with folder analysis using existing credentials' do
-            expect { wizard.run }.to output(/Using existing connection settings/).to_stdout
-            expect { wizard.run }.to output(/Setup complete/).to_stdout
+            wizard.run
+            expect(output.string).to include('Using existing connection settings')
+            expect(output.string).to include('Setup complete')
           end
 
           it 'runs analysis on existing folders' do
@@ -180,6 +178,69 @@ RSpec.describe CLI::SetupWizard do
           it 'saves the final configuration' do
             expect(wizard).to receive(:save_configuration)
             wizard.run
+          end
+
+          context 'blacklist folder detection' do
+
+            context 'with preconfigured blacklist folder' do
+              let(:config_options) do
+                {
+                  host: 'outlook.office365.com',
+                  username: 'test@example.com',
+                  auth_type: 'oauth2_microsoft',
+                  blacklist_folder: 'Junk'
+                }
+              end
+
+              it 'uses preconfigured blacklist folder' do
+                wizard.run
+                
+                expect(output.string).to include('Using existing connection settings')
+                expect(output.string).to include('Setup complete')
+                # Should not show blacklist folder detection since it's preconfigured
+                expect(output.string).not_to include('🚫 Blacklist Folder Detection')
+              end
+            end
+
+            context 'with potential blacklist folders detected' do
+              before do
+                # Override the mock_imap.list to return potential blacklist candidates
+                allow(mock_imap).to receive(:list).and_return([
+                  double('folder', name: 'INBOX'),
+                  double('folder', name: 'Unsubscribe'),
+                  double('folder', name: 'Blacklist'),
+                  double('folder', name: 'Sent')
+                ])
+              end
+
+              it 'detects and prompts for blacklist folder choice' do
+                wizard.run
+                
+                expect(output.string).to include('🚫 Blacklist Folder Detection')
+                expect(output.string).to include('Found potential blacklist folders')
+                expect(output.string).to include('Unsubscribe')
+                expect(output.string).to include('Blacklist')
+              end
+            end
+
+            context 'with no potential blacklist folders' do
+              before do
+                # Override the mock_imap.list to return no blacklist candidates
+                allow(mock_imap).to receive(:list).and_return([
+                  double('folder', name: 'INBOX'),
+                  double('folder', name: 'Work'),
+                  double('folder', name: 'Sent')
+                ])
+              end
+
+              it 'prompts to create blacklist folder' do
+                wizard.run
+                
+                expect(output.string).to include('🚫 Blacklist Folder Detection')
+                expect(output.string).to include('No obvious blacklist folders found')
+                expect(output.string).to include('Would you like to create a blacklist folder')
+              end
+            end
           end
         end
       end
@@ -223,7 +284,8 @@ RSpec.describe CLI::SetupWizard do
         end
 
         it 'outputs cancellation message' do
-          expect { wizard.run }.to output(/Setup cancelled/).to_stdout
+          wizard.run
+          expect(output.string).to include('Setup cancelled')
         end
       end
 
@@ -237,7 +299,8 @@ RSpec.describe CLI::SetupWizard do
         end
 
         it 'outputs error message' do
-          expect { wizard.run }.to output(/Invalid choice/).to_stdout
+          wizard.run
+          expect(output.string).to include('Invalid choice')
         end
       end
     end
@@ -253,6 +316,7 @@ RSpec.describe CLI::SetupWizard do
           wizard.instance_variable_set(:@secrets, { 'CLEANBOX_PASSWORD' => 'password123' })
           nil
         end
+        allow(wizard).to receive(:determine_blacklist_folder).and_return('blacklisted')
         allow(wizard).to receive(:run_analysis)
         allow(wizard).to receive(:generate_recommendations).and_return({
                                                                          whitelist_folders: ['Work'],
@@ -288,7 +352,8 @@ RSpec.describe CLI::SetupWizard do
       end
 
       it 'outputs welcome message' do
-        expect { wizard.run }.to output(/Welcome to Cleanbox Setup Wizard!/).to_stdout
+        wizard.run
+        expect(output.string).to include('Welcome to Cleanbox Setup Wizard!')
       end
     end
 
@@ -311,7 +376,8 @@ RSpec.describe CLI::SetupWizard do
           # Mock the authentication setup to skip it
           allow_any_instance_of(CLI::AuthCLI).to receive(:setup_auth)
 
-          expect { wizard.run }.to output(/❌ Connection failed: Connection failed/).to_stdout
+          wizard.run
+          expect(output.string).to include('❌ Connection failed: Connection failed')
         end
 
         it 'does not proceed with setup' do
@@ -389,6 +455,7 @@ RSpec.describe CLI::SetupWizard do
           allow(mock_gatherer).to receive(:secrets).and_return({ 'CLEANBOX_PASSWORD' => 'password123' })
           allow(CLI::AuthenticationGatherer).to receive(:new).and_return(mock_gatherer)
 
+          allow(wizard).to receive(:determine_blacklist_folder)
           allow(wizard).to receive(:run_analysis)
           allow(wizard).to receive(:generate_recommendations).and_return({
                                                                            whitelist_folders: ['Work'],
@@ -405,11 +472,13 @@ RSpec.describe CLI::SetupWizard do
         end
 
         it 'prompts for authentication setup choice' do
-          expect { wizard.run }.to output(/Authentication not configured!/).to_stdout
+          wizard.run
+          expect(output.string).to include('Authentication not configured!')
         end
 
         it 'offers to set up authentication' do
-          expect { wizard.run }.to output(/Set up authentication now/).to_stdout
+          wizard.run
+          expect(output.string).to include('Set up authentication now')
         end
       end
 
@@ -437,7 +506,8 @@ RSpec.describe CLI::SetupWizard do
         end
 
         it 'skips authentication setup and continues' do
-          expect { wizard.run }.to output(/Skipping authentication setup/).to_stdout
+          wizard.run
+          expect(output.string).to include('Skipping authentication setup')
         end
       end
 
@@ -451,7 +521,8 @@ RSpec.describe CLI::SetupWizard do
         end
 
         it 'outputs cancellation message' do
-          expect { wizard.run }.to output(/Setup cancelled/).to_stdout
+          wizard.run
+          expect(output.string).to include('Setup cancelled')
         end
       end
     end
@@ -481,7 +552,8 @@ RSpec.describe CLI::SetupWizard do
       end
 
       it 'skips authentication setup and proceeds directly' do
-        expect { wizard.run }.not_to output(/Authentication not configured!/).to_stdout
+        wizard.run
+        expect(output.string).not_to include('Authentication not configured!')
       end
     end
   end

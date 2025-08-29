@@ -36,7 +36,7 @@ This file tracks planned improvements, features, and tasks for the Cleanbox proj
   - Profile current performance bottlenecks
   - Implement batch processing for large mailboxes
   - Add progress indicators for long operations
-- [ ] **Improve Caching Strategy**
+- [x] **Improve Caching Strategy** ✅
   - Implement smarter cache invalidation
   - Add cache size management
   - Optimize folder analysis caching
@@ -347,6 +347,28 @@ This file tracks planned improvements, features, and tasks for the Cleanbox proj
   - Real-time progress updates
   - Live email processing status
   - Interactive configuration updates
+- [ ] **Unknown Sender Handling Strategies**
+  - **Holding Folder with Retention Policy** (Recommended)
+    - Create configurable "Unknown Senders" folder for emails that pass hygiene checks
+    - Implement retention policy (e.g., 30 days) with auto-pruning
+    - Allow users to review and manually file emails they want to keep
+    - Configurable retention periods and pruning behavior
+  - **Legitimacy Scoring System**
+    - DKIM, SPF, DMARC validation
+    - Header analysis for suspicious patterns
+    - Sending infrastructure reputation checks
+    - Configurable thresholds for "legit" vs "suspicious"
+  - **User Preference Options**
+    - Aggressive (junk unknown senders) - **Currently implemented as default**
+    - Moderate (holding folder with retention)
+    - Lenient (file in preferred location if legit)
+  - **Configuration Options**
+    - `unknown_sender_handling`: "junk" | "holding_folder" | "preference"
+    - `holding_folder_name`: "Unknown Senders" (default)
+    - `holding_folder_retention_days`: 30 (default)
+    - `auto_prune_holding_folder`: true (default)
+    - `legitimacy_threshold`: "strict" | "moderate" | "lenient"
+  - **Note**: Currently using aggressive approach (junk unknown senders) to address DKIM permissiveness issue
 
 ## 🔄 Maintenance
 
@@ -404,6 +426,7 @@ This file tracks planned improvements, features, and tasks for the Cleanbox proj
 
 ## 🎯 Completed ✅
 
+- [x] **Interactive Console** - Added REPL interface with Pry/IRB fallback, config file support, and convenience methods
 - [x] **Separate Authentication Setup** - Added standalone auth CLI commands with setup, test, show, and reset functionality
 - [x] **Code Encapsulation Improvements** - Replaced all instance_variable_get usage with proper public readers
 - [x] **Documentation Reorganization** - Split large README into focused docs
@@ -412,6 +435,10 @@ This file tracks planned improvements, features, and tasks for the Cleanbox proj
 - [x] **Branch Management** - Renamed master to main
 - [x] **Authentication Documentation** - Updated with Podman secrets
 - [x] **Default Action Fix** - Corrected documentation about ./cleanbox behavior
+- [x] **Setup Wizard Performance Optimization** - Implemented selective analysis modes (:full, :partial, :skip) for efficient updates
+- [x] **Blacklist Folder Management** - Added early blacklist folder detection and exclusion from analysis
+- [x] **Folder Analysis Caching** - Implemented caching in FolderCategorizer to avoid redundant IMAP calls
+- [x] **Analysis Mode Implementation** - Added config-aware analysis that reuses existing configuration data
 
 ---
 

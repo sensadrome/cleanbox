@@ -113,6 +113,8 @@ class CleanboxFolderChecker < CleanboxConnection
   end
 
   def date_search
+    return [] if all_messages?
+
     # Use valid_from if present, otherwise use valid_since_months (default 12 months)
     date = if options[:valid_from].present?
              Date.parse(options[:valid_from])
@@ -121,6 +123,10 @@ class CleanboxFolderChecker < CleanboxConnection
              Date.today << months
            end
     ['SINCE', date.strftime('%d-%b-%Y')]
+  end
+
+  def all_messages?
+    options[:all_messages]
   end
 
   def since

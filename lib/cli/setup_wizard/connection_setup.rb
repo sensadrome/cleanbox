@@ -44,7 +44,7 @@ module CLI
       def setup_authentication_from_existing(existing_config)
         # Validate that the existing config has all required fields
         validate_existing_config!(existing_config)
-        
+
         @details[:host] = existing_config[:host]
         @details[:username] = existing_config[:username]
         @details[:auth_type] = auth_type_from_config(existing_config)
@@ -56,11 +56,11 @@ module CLI
         missing_fields << 'host' if existing_config[:host].blank?
         missing_fields << 'username' if existing_config[:username].blank?
         missing_fields << 'auth_type' if existing_config[:auth_type].blank?
-        
-        if missing_fields.any?
-          puts I18n.t('setup_wizard.connection.config_incomplete', missing_fields: missing_fields.join(', '))
-          raise ArgumentError, "Configuration is incomplete: missing #{missing_fields.join(', ')}"
-        end
+
+        return unless missing_fields.any?
+
+        puts I18n.t('setup_wizard.connection.config_incomplete', missing_fields: missing_fields.join(', '))
+        raise ArgumentError, "Configuration is incomplete: missing #{missing_fields.join(', ')}"
       end
 
       def auth_type_from_config(existing_config)

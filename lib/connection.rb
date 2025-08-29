@@ -14,6 +14,7 @@ class CleanboxConnection
 
     imap_connection.create(folder)
     @folders.concat(folder)
+    @imap_folders = nil
   end
 
   protected

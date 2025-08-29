@@ -146,7 +146,8 @@ module CLI
           config.merge!({
                           whitelist_folders: final_config[:whitelist_folders],
                           list_folders: final_config[:list_folders],
-                          list_domain_map: final_config[:domain_mappings]
+                          list_domain_map: final_config[:domain_mappings],
+                          blacklist_folder: final_config[:blacklist_folder]
                         })
           puts I18n.t('setup_wizard.configuration.updated_analysis')
         else
@@ -156,7 +157,8 @@ module CLI
           config.merge!({
                           whitelist_folders: final_config[:whitelist_folders],
                           list_folders: final_config[:list_folders],
-                          list_domain_map: final_config[:domain_mappings]
+                          list_domain_map: final_config[:domain_mappings],
+                          blacklist_folder: final_config[:blacklist_folder]
                         })
           puts I18n.t('setup_wizard.configuration.created_configuration')
         end
@@ -183,6 +185,9 @@ module CLI
                     folders: final_config[:whitelist_folders].join(', '))
         puts I18n.t('setup_wizard.configuration.list_folders_summary', folders: final_config[:list_folders].join(', '))
         puts I18n.t('setup_wizard.configuration.domain_mappings_summary', count: final_config[:domain_mappings].length)
+        if final_config[:blacklist_folder]
+          puts I18n.t('setup_wizard.configuration.blacklist_folder_summary', folder: final_config[:blacklist_folder])
+        end
       end
 
       def prompt_for_preview?

@@ -62,6 +62,8 @@ module CLI
                                         recommendations[:list_folders]
                                       end
 
+
+
         # Domain mappings
         if recommendations[:domain_mappings].any?
           puts ''
@@ -86,6 +88,9 @@ module CLI
             final_config[:domain_mappings] = recommendations[:domain_mappings]
           end
         end
+
+        # Add blacklist folder from workflow orchestrator
+        final_config[:blacklist_folder] = @blacklist_folder if @blacklist_folder
 
         final_config
       end

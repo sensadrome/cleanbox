@@ -28,6 +28,8 @@ module CLI
           return
         end
 
+        @blacklist_folder = determine_blacklist_folder
+
         # Step 5: Analyze
         run_analysis
 
@@ -48,13 +50,11 @@ module CLI
       end
 
       def connection_details_valid?
-        begin
-          retrieve_connection_details
-          connection_details_provided? && authentication_details_provided?
-        rescue ArgumentError => e
-          # Configuration is incomplete, return false to stop the wizard
-          false
-        end
+        retrieve_connection_details
+        connection_details_provided? && authentication_details_provided?
+      rescue ArgumentError
+        # Configuration is incomplete, return false to stop the wizard
+        false
       end
 
       def connection_details_provided?
@@ -89,6 +89,94 @@ module CLI
 
       def password_present?
         @update_mode || @secrets['CLEANBOX_PASSWORD'].present?
+      end
+
+      def determine_blacklist_folder
+        if @update_mode && blacklist_folder_from_config
+          blacklist_folder_from_config
+        else
+          prompt_for_blacklist_folder
+        end
+      end
+
+      def blacklist_folder_from_config
+        Configuration.options[:blacklist_folder]
+      end
+
+      def prompt_for_blacklist_folder
+        # Get available folders for blacklist detection
+        folders = imap_folders.map { |f| { name: f.name } }
+        blacklist_candidates = possible_blacklist_folders(folders)
+
+        puts ''
+        puts I18n.t('setup_wizard.recommendations.blacklist_folder_detection')
+
+        if blacklist_candidates.any?
+          puts I18n.t('setup_wizard.recommendations.blacklist_folders_found')
+          blacklist_candidates.each_with_index do |folder, _index|
+            puts I18n.t('setup_wizard.recommendations.folder_entry', folder_name: folder[:name], message_count: '?')
+          end
+          puts ''
+
+          # Use choice system for selection
+          choices = blacklist_candidates.map { |folder| { key: folder[:name], label: folder[:name] } }
+          choices << { key: nil, label: 'Skip blacklist folder' }
+
+          selected_key = prompt_choice(I18n.t('setup_wizard.recommendations.blacklist_folder_choice_prompt'), choices)
+          return selected_key if selected_key
+        else
+          handle_custom_blacklist_folder_creation
+        end
+
+        nil
+      end
+
+      def possible_blacklist_folders(folders)
+        folders.select do |folder|
+          blacklist_folder_patterns.any? { |pattern| folder[:name].downcase.match?(pattern) }
+        end
+      end
+
+      def blacklist_folder_patterns
+        [/unsubscribe/, /blacklist/, /blocked/]
+      end
+
+      def handle_custom_blacklist_folder_creation
+        puts I18n.t('setup_wizard.recommendations.no_blacklist_folders')
+        puts I18n.t('setup_wizard.recommendations.create_blacklist_folder_prompt')
+        create_blacklist = gets.chomp.strip.downcase
+
+        return nil unless %w[y yes].include?(create_blacklist)
+
+        puts I18n.t('setup_wizard.recommendations.blacklist_folder_name_prompt')
+        folder_name = gets.chomp.strip
+
+        return nil if folder_name.empty?
+
+        create_or_use_existing_folder(folder_name)
+      end
+
+      def create_or_use_existing_folder(folder_name)
+        # Check if folder already exists
+        if folder_exists?(folder_name)
+          puts I18n.t('setup_wizard.recommendations.blacklist_folder_exists', folder: folder_name)
+          return folder_name
+        end
+
+        # Create the folder on the IMAP server
+        begin
+          @imap_connection.create(folder_name)
+          puts I18n.t('setup_wizard.recommendations.blacklist_folder_created', folder: folder_name)
+          folder_name
+        rescue StandardError => e
+          puts I18n.t('setup_wizard.recommendations.blacklist_folder_creation_failed', folder: folder_name,
+                                                                                       error: e.message)
+          nil
+        end
+      end
+
+      def folder_exists?(folder_name)
+        imap_folders.any? { |f| f.name == folder_name }
       end
     end
   end

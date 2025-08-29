@@ -28,11 +28,20 @@ module CLI
 
       def perform_folder_analysis
         # Get the raw folder data first
-        folder_results = analyzer.analyze_folders
-        raw_folders = folder_results[:folders]
+        progress_callback = lambda do |current, total, folder_name|
+          percentage = (current.to_f / total * 100).round(1)
+          # Clear the line and write progress
+          print "\r\033[K  📈 Progress: #{percentage}% (#{current}/#{total}) - #{folder_name}"
+          $stdout.flush
+        end
 
-        # Now do interactive categorization
-        @analysis_results[:folders] = interactive_folder_categorization(raw_folders)
+        folder_results = analyzer.analyze_folders(progress_callback)
+        folders_for_categorization = folder_results[:folders]
+
+        # Now do interactive categorization (alphabetically sorted)
+        @analysis_results[:folders] = interactive_folder_categorization(folders_for_categorization.sort_by do |f|
+          f[:name].downcase
+        end)
       end
 
       def perform_sent_analysis
@@ -54,7 +63,9 @@ module CLI
         @analyzer ||= Analysis::EmailAnalyzer.new(
           @imap_connection,
           logger: @logger,
-          folder_categorizer_class: Analysis::FolderCategorizer
+          folder_categorizer_class: Analysis::FolderCategorizer,
+          analysis_mode: analysis_mode_for_update,
+          blacklist_folder: @blacklist_folder
         )
       end
 
@@ -63,6 +74,33 @@ module CLI
         puts ''
 
         analyzer.generate_recommendations(domain_mapper_class: Analysis::DomainMapper)
+      end
+
+      private
+
+      def analysis_mode_for_update
+        return :full unless @update_mode
+
+        prompt_for_analysis_mode
+      end
+
+      def prompt_for_analysis_mode
+        puts I18n.t('setup_wizard.analysis.mode_choice_prompt')
+        puts ''
+
+        choice = gets.chomp.strip.downcase
+
+        case choice
+        when '1', 'full'
+          :full
+        when '2', 'partial'
+          :partial
+        when '3', 'skip'
+          :skip
+        else
+          puts I18n.t('setup_wizard.analysis.invalid_mode_choice')
+          prompt_for_analysis_mode # Recursive call for invalid input
+        end
       end
     end
   end

@@ -29,14 +29,8 @@ module CLI
         puts ''
         puts I18n.t('setup_wizard.analysis.analyzing_folder', name: name, message_count: message_count)
 
-        categorizer = Analysis::FolderCategorizer.new(
-          folder,
-          imap_connection: @imap_connection,
-          logger: @logger
-        )
-
-        initial_categorization = categorizer.categorization
-        reason = categorizer.categorization_reason
+        initial_categorization = folder[:categorization]
+        reason = folder[:categorization_reason]
 
         puts I18n.t('setup_wizard.analysis.folder_categorization',
                     category: initial_categorization.upcase, reason: reason)

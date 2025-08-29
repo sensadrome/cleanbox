@@ -14,44 +14,61 @@ module Analysis
       @attributes = folder_data[:attributes] || {}
       @imap_connection = imap_connection
       @logger = logger || Logger.new($stdout)
+
+      # Check if folder is pre-configured
+      @categorization = folder_data[:categorization]
+      @categorization_reason = folder_data[:categorization_reason]
+
+      # Skip analysis if we have config data
+      @skip = true if @categorization && @categorization_reason
     end
 
     def skip?
-      should_skip_folder? || low_volume?
+      return @skip if @skip_set
+
+      @skip_set = true
+      @skip = should_skip_folder? || low_volume?
     end
 
     def categorization
-      return :skip if skip?
-      return :list if has_bulk_headers?
-      return :list if list_folder_by_name?
-      return :whitelist if whitelist_folder_by_name?
+      return @categorization if @categorization
 
-      categorize_by_senders
+      @categorization = if skip?
+                          :skip
+                        elsif whitelist_folder_by_name?
+                          :whitelist
+                        elsif list_folder_by_name? || bulk_headers?
+                          :list
+                        else
+                          categorize_by_senders
+                        end
     end
 
     def categorization_reason
-      case categorization
-      when :list
-        if has_bulk_headers?
-          'found newsletter/bulk email headers'
-        elsif list_folder_by_name?
-          'folder name suggests list/newsletter content'
-        else
-          'sender patterns suggest list/newsletter content'
-        end
-      when :whitelist
-        if whitelist_folder_by_name?
-          'folder name suggests personal/professional emails'
-        else
-          'sender patterns suggest personal correspondence'
-        end
-      when :skip
-        if low_volume?
-          "low volume (#{message_count} messages)"
-        else
-          'system folder'
-        end
-      end
+      return @categorization_reason if @categorization_reason
+
+      @categorization_reason = case categorization
+                               when :list
+                                 if bulk_headers?
+                                   'found newsletter/bulk email headers'
+                                 elsif list_folder_by_name?
+                                   'folder name suggests list/newsletter content'
+                                 else
+                                   'sender patterns suggest list/newsletter content'
+                                 end
+                               when :whitelist
+                                 if whitelist_folder_by_name?
+                                   'folder name suggests personal/professional emails'
+                                 else
+                                   'sender patterns suggest personal correspondence'
+                                 end
+                               when :skip
+                                 if low_volume?
+                                   "low volume (#{message_count} messages)"
+                                 else
+                                   'system folder'
+                                 end
+                               end
     end
 
     private
@@ -60,29 +77,34 @@ module Analysis
       message_count < 5
     end
 
-    def has_bulk_headers?
+    def bulk_headers?
       return false unless @imap_connection
+      return @bulk_headers if @bulk_headers_set
 
-      begin
-        @imap_connection.select(@folder)
-        message_ids = @imap_connection.search(['ALL']).last(20)
-
-        return false if message_ids.empty?
-
-        bulk_indicators = 0
-        message_ids.each do |id|
-          headers = @imap_connection.fetch(id, 'BODY.PEEK[HEADER]').first
-          bulk_indicators += 1 if has_bulk_headers_pattern?(headers)
-        end
-
-        (bulk_indicators.to_f / message_ids.length) > 0.3
-      rescue StandardError => e
-        @logger.debug "Could not analyze headers for #{@folder}: #{e.message}"
-        false
-      end
+      @bulk_headers_set = true
+      @bulk_headers = check_bulk_headers
     end
 
-    def has_bulk_headers_pattern?(headers)
+    def check_bulk_headers
+      @imap_connection.select(@folder)
+      message_ids = @imap_connection.search(['ALL']).last(20)
+
+      return false if message_ids.empty?
+
+      bulk_indicators = 0
+      message_ids.each do |id|
+        headers = @imap_connection.fetch(id, 'BODY.PEEK[HEADER]').first
+        bulk_indicators += 1 if bulk_headers_pattern?(headers)
+      end
+
+      (bulk_indicators.to_f / message_ids.length) > 0.3
+
+    rescue StandardError => e
+      @logger.debug "Could not analyze headers for #{@folder}: #{e.message}"
+      false
+    end
+
+    def bulk_headers_pattern?(headers)
       header_text = headers.attr['BODY[HEADER]']
 
       bulk_patterns = [

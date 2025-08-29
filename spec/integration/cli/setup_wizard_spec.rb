@@ -62,6 +62,9 @@ RSpec.describe 'SetupWizard Integration' do
       # Run the setup wizard
       wizard = CLI::SetupWizard.new(verbose: false)
 
+      # Mock analysis prompts to prevent hanging
+      mock_analysis_prompts(wizard)
+
       # Mock gets on the specific wizard instance
       allow(wizard).to receive(:gets).and_return(
         '2',                      # Skip authentication setup
@@ -91,6 +94,9 @@ RSpec.describe 'SetupWizard Integration' do
 
       # Run the setup wizard
       wizard = CLI::SetupWizard.new(verbose: false)
+
+      # Mock analysis prompts to prevent hanging
+      mock_analysis_prompts(wizard)
 
       # Mock gets on the specific wizard instance for happy path
       allow(wizard).to receive(:gets).and_return(
@@ -146,6 +152,9 @@ RSpec.describe 'SetupWizard Integration' do
 
       # Run the setup wizard
       wizard = CLI::SetupWizard.new(verbose: false)
+
+      # Mock analysis prompts to prevent hanging
+      mock_analysis_prompts(wizard)
 
       # Mock gets on the specific wizard instance for interactive categorization
       allow(wizard).to receive(:gets).and_return(
@@ -205,6 +214,9 @@ RSpec.describe 'SetupWizard Integration' do
 
       # Run the setup wizard
       wizard = CLI::SetupWizard.new(verbose: false)
+
+      # Mock analysis prompts to prevent hanging
+      mock_analysis_prompts(wizard)
 
       # Mock gets on the specific wizard instance with overrides
       allow(wizard).to receive(:gets).and_return(
@@ -274,5 +286,10 @@ RSpec.describe 'SetupWizard Integration' do
   def mock_user_input
     # This will be overridden in specific tests
     allow(self).to receive(:gets).and_return('')
+  end
+
+  def mock_analysis_prompts(wizard)
+    # Mock the analysis mode prompt to prevent hanging in tests
+    allow(wizard).to receive(:prompt_for_analysis_mode).and_return(:full)
   end
 end

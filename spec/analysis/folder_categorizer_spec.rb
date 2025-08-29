@@ -243,7 +243,7 @@ RSpec.describe Analysis::FolderCategorizer do
     end
   end
 
-  describe '#has_bulk_headers?' do
+  describe '#bulk_headers?' do
     let(:imap_connection) { double('imap_connection') }
     let(:categorizer) { described_class.new(folder_data, imap_connection: imap_connection) }
 
@@ -251,7 +251,7 @@ RSpec.describe Analysis::FolderCategorizer do
       let(:categorizer) { described_class.new(folder_data) }
 
       it 'returns false' do
-        expect(categorizer.send(:has_bulk_headers?)).to be false
+        expect(categorizer.send(:bulk_headers?)).to be false
       end
     end
 
@@ -266,7 +266,7 @@ RSpec.describe Analysis::FolderCategorizer do
         end
 
         it 'returns false' do
-          expect(categorizer.send(:has_bulk_headers?)).to be false
+          expect(categorizer.send(:bulk_headers?)).to be false
         end
       end
 
@@ -285,9 +285,9 @@ RSpec.describe Analysis::FolderCategorizer do
             allow(imap_connection).to receive(:fetch).and_return([headers_with_bulk])
           end
 
-          it 'returns true' do
-            expect(categorizer.send(:has_bulk_headers?)).to be true
-          end
+                  it 'returns true' do
+          expect(categorizer.send(:bulk_headers?)).to be true
+        end
         end
 
         context 'when bulk headers are detected in minority of messages' do
@@ -300,9 +300,9 @@ RSpec.describe Analysis::FolderCategorizer do
             allow(imap_connection).to receive(:fetch).and_return([headers_without_bulk])
           end
 
-          it 'returns false' do
-            expect(categorizer.send(:has_bulk_headers?)).to be false
-          end
+                  it 'returns false' do
+          expect(categorizer.send(:bulk_headers?)).to be false
+        end
         end
 
         context 'when IMAP operations fail' do
@@ -315,7 +315,7 @@ RSpec.describe Analysis::FolderCategorizer do
             allow(logger).to receive(:debug)
             categorizer_with_logger = described_class.new(folder_data, imap_connection: imap_connection, logger: logger)
 
-            expect(categorizer_with_logger.send(:has_bulk_headers?)).to be false
+            expect(categorizer_with_logger.send(:bulk_headers?)).to be false
             expect(logger).to have_received(:debug).with(/Could not analyze headers for TestFolder/)
           end
         end
@@ -323,7 +323,7 @@ RSpec.describe Analysis::FolderCategorizer do
     end
   end
 
-  describe '#has_bulk_headers_pattern?' do
+  describe '#bulk_headers_pattern?' do
     let(:headers) { double('headers') }
 
     context 'with List-Unsubscribe header' do
@@ -334,7 +334,7 @@ RSpec.describe Analysis::FolderCategorizer do
       end
 
       it 'returns true' do
-        expect(categorizer.send(:has_bulk_headers_pattern?, headers)).to be true
+        expect(categorizer.send(:bulk_headers_pattern?, headers)).to be true
       end
     end
 
@@ -346,7 +346,7 @@ RSpec.describe Analysis::FolderCategorizer do
       end
 
       it 'returns true' do
-        expect(categorizer.send(:has_bulk_headers_pattern?, headers)).to be true
+        expect(categorizer.send(:bulk_headers_pattern?, headers)).to be true
       end
     end
 
@@ -358,7 +358,7 @@ RSpec.describe Analysis::FolderCategorizer do
       end
 
       it 'returns true' do
-        expect(categorizer.send(:has_bulk_headers_pattern?, headers)).to be true
+        expect(categorizer.send(:bulk_headers_pattern?, headers)).to be true
       end
     end
 
@@ -370,7 +370,7 @@ RSpec.describe Analysis::FolderCategorizer do
       end
 
       it 'returns true' do
-        expect(categorizer.send(:has_bulk_headers_pattern?, headers)).to be true
+        expect(categorizer.send(:bulk_headers_pattern?, headers)).to be true
       end
     end
 
@@ -382,7 +382,7 @@ RSpec.describe Analysis::FolderCategorizer do
       end
 
       it 'returns true' do
-        expect(categorizer.send(:has_bulk_headers_pattern?, headers)).to be true
+        expect(categorizer.send(:bulk_headers_pattern?, headers)).to be true
       end
     end
 
@@ -394,7 +394,7 @@ RSpec.describe Analysis::FolderCategorizer do
       end
 
       it 'returns true' do
-        expect(categorizer.send(:has_bulk_headers_pattern?, headers)).to be true
+        expect(categorizer.send(:bulk_headers_pattern?, headers)).to be true
       end
     end
 
@@ -406,7 +406,7 @@ RSpec.describe Analysis::FolderCategorizer do
       end
 
       it 'returns true' do
-        expect(categorizer.send(:has_bulk_headers_pattern?, headers)).to be true
+        expect(categorizer.send(:bulk_headers_pattern?, headers)).to be true
       end
     end
 
@@ -418,7 +418,7 @@ RSpec.describe Analysis::FolderCategorizer do
       end
 
       it 'returns true' do
-        expect(categorizer.send(:has_bulk_headers_pattern?, headers)).to be true
+        expect(categorizer.send(:bulk_headers_pattern?, headers)).to be true
       end
     end
 
@@ -430,7 +430,7 @@ RSpec.describe Analysis::FolderCategorizer do
       end
 
       it 'returns true' do
-        expect(categorizer.send(:has_bulk_headers_pattern?, headers)).to be true
+        expect(categorizer.send(:bulk_headers_pattern?, headers)).to be true
       end
     end
 
@@ -442,7 +442,7 @@ RSpec.describe Analysis::FolderCategorizer do
       end
 
       it 'returns false' do
-        expect(categorizer.send(:has_bulk_headers_pattern?, headers)).to be false
+        expect(categorizer.send(:bulk_headers_pattern?, headers)).to be false
       end
     end
 
@@ -454,7 +454,7 @@ RSpec.describe Analysis::FolderCategorizer do
       end
 
       it 'returns true' do
-        expect(categorizer.send(:has_bulk_headers_pattern?, headers)).to be true
+        expect(categorizer.send(:bulk_headers_pattern?, headers)).to be true
       end
     end
   end

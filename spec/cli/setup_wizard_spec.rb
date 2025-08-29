@@ -489,9 +489,9 @@ RSpec.describe CLI::SetupWizard do
   describe '#interactive_folder_categorization' do
     let(:folders) do
       [
-        { name: 'Work', message_count: 100 },
-        { name: 'Newsletters', message_count: 50 },
-        { name: 'Family', message_count: 25 }
+        { name: 'Work', message_count: 100, categorization: :whitelist, categorization_reason: 'Contains work emails' },
+        { name: 'Newsletters', message_count: 50, categorization: :list, categorization_reason: 'Contains newsletters' },
+        { name: 'Family', message_count: 25, categorization: :whitelist, categorization_reason: 'Contains family emails' }
       ]
     end
 
@@ -569,7 +569,7 @@ RSpec.describe CLI::SetupWizard do
 
         result = wizard.send(:interactive_folder_categorization, folders)
 
-        expect(result.first[:categorization]).to eq(:list)
+        expect(result.first[:categorization]).to eq(:whitelist)
       end
     end
 

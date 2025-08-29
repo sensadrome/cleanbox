@@ -9,6 +9,7 @@ class MessageProcessor
   end
 
   def decide_for_new_message(message)
+    return { action: :junk } if blacklisted?(message)
     return { action: :keep } if whitelisted?(message)
     return { action: :move, folder: list_folder_for(message) } if valid_list_email?(message)
 
@@ -28,6 +29,14 @@ class MessageProcessor
   end
 
   private
+
+  def blacklisted?(message)
+    return false if @context[:unjunking]
+    return true if @context[:blacklisted_emails]&.include?(message.from_address) # User blacklist always wins
+    return false if whitelisted?(message) # Whitelist protects against junk folder false positives
+
+    @context[:junk_emails]&.include?(message.from_address) # Junk folder as fallback
+  end
 
   def whitelisted?(message)
     return false if @context[:unjunking]

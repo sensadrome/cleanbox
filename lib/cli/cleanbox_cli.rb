@@ -119,14 +119,15 @@ module CLI
       Cleanbox.new(imap, @options).send(action)
     end
 
-    def determine_action
-      return 'unjunk!' if @options[:unjunk]
-      return 'show_lists!' if ARGV.last == 'list'
-      return 'file_messages!' if %w[file filing].include?(ARGV.last)
-      return 'show_folders!' if ARGV.last == 'folders'
+  def determine_action
+    return 'unjunk!' if @options[:unjunk]
+    return 'show_lists!' if ARGV.last == 'list'
+    return 'file_messages!' if %w[file filing].include?(ARGV.last)
+    return 'show_folders!' if ARGV.last == 'folders'
+    return 'show_blacklist!' if ARGV.last == 'blacklist'
 
-      'clean!' # default action
-    end
+    'clean!' # default action
+  end
 
     def create_imap_connection
       host = @options.delete(:host)
@@ -167,6 +168,7 @@ module CLI
       puts '  ./cleanbox file           # File existing inbox messages'
       puts '  ./cleanbox list           # Show email-to-folder mappings'
       puts '  ./cleanbox folders        # List all folders'
+      puts '  ./cleanbox blacklist      # Show blacklisted email addresses'
       puts ''
       puts 'For detailed help and all options:'
       puts '  ./cleanbox --help'

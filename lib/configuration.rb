@@ -48,7 +48,8 @@ class Configuration
         analysis_folder: nil,
         verbose: false,
         level: 'info',
-        log_file: nil
+        log_file: nil,
+        blacklist_folder: nil
       }
     end
 

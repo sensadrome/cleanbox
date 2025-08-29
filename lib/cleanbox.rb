@@ -7,7 +7,7 @@ require_relative 'message_action_runner'
 # main class
 # rubocop:disable Metrics/ClassLength
 class Cleanbox < CleanboxConnection
-  attr_accessor :blacklisted_emails, :whitelisted_emails, :list_domains, :list_domain_map, :sender_map
+  attr_accessor :blacklisted_emails, :junk_emails, :whitelisted_emails, :list_domains, :list_domain_map, :sender_map
 
   def initialize(imap_connection, options)
     super
@@ -16,7 +16,7 @@ class Cleanbox < CleanboxConnection
   end
 
   def clean!
-    # build_blacklist!
+    build_blacklist!
     build_whitelist!
     build_list_domains!
     clean_inbox!
@@ -27,6 +27,16 @@ class Cleanbox < CleanboxConnection
     build_list_domains!
     list_domain_map.sort.to_h.each_pair do |domain, folder|
       puts "'#{domain}' => '#{folder}',"
+    end
+  end
+
+  def show_blacklist!
+    build_blacklist!
+    if blacklisted_emails.any?
+      puts "Blacklisted email addresses (#{blacklisted_emails.length}):"
+      blacklisted_emails.sort.each { |email| puts "  #{email}" }
+    else
+      puts 'No blacklisted email addresses found'
     end
   end
 
@@ -98,14 +108,32 @@ class Cleanbox < CleanboxConnection
   end
 
   def build_blacklist!
-    logger.info 'Building Junk List....'
-    @blacklisted_emails = blacklist_folders.flat_map do |folder|
-      CleanboxFolderChecker.new(imap_connection, folder: folder, logger: logger).email_addresses
-    end.uniq
+    logger.info 'Building Blacklist....'
+
+    # Build user blacklist from blacklist folder
+    @blacklisted_emails = fetch_blacklisted_emails
+
+    # Build junk folder blacklist
+    @junk_emails = fetch_junk_emails
+
+    logger.info "Found #{@blacklisted_emails.length} blacklisted emails and #{@junk_emails.length} junk folder emails"
   end
 
-  def blacklist_folders
-    options[:blacklist_folders] || %w[Junk]
+  def fetch_blacklisted_emails
+    return [] unless options[:blacklist_folder].present?
+
+    CleanboxFolderChecker.new(imap_connection, all_messages: true,
+                                               folder: options[:blacklist_folder],
+                                               logger: logger).email_addresses
+  rescue StandardError => e
+    logger.warn "Blacklist folder '#{options[:blacklist_folder]}' not found or inaccessible: #{e.message}"
+    []
+  end
+
+  def fetch_junk_emails
+    return [] unless junk_folder
+
+    CleanboxFolderChecker.new(imap_connection, folder: junk_folder, logger: logger).email_addresses
   end
 
   def build_whitelist!
@@ -211,7 +239,9 @@ class Cleanbox < CleanboxConnection
       list_domain_map: list_domain_map,
       sender_map: sender_map,
       list_folder: list_folder,
-      unjunking: unjunking?
+      unjunking: unjunking?,
+      blacklisted_emails: blacklisted_emails,
+      junk_emails: junk_emails
     }
   end
 

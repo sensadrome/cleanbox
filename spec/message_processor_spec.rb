@@ -10,7 +10,9 @@ RSpec.describe MessageProcessor do
       list_domains: ['list.example.com'],
       list_domain_map: { 'list.example.com' => 'Lists' },
       sender_map: { 'sender@example.com' => 'Work' },
-      list_folder: 'Lists'
+      list_folder: 'Lists',
+      blacklisted_emails: ['list@list.example.com'],  # User blacklisted (unsubscribe folder)
+      junk_emails: ['spam@example.com', 'unwanted@trusted.com']  # From junk folder
     }
   end
 
@@ -36,7 +38,7 @@ RSpec.describe MessageProcessor do
     end
 
     context 'when message is from list domain' do
-      let(:message) { build_message('list@list.example.com', 'list.example.com') }
+      let(:message) { build_message('newsletter@list.example.com', 'list.example.com') }
 
       it 'returns move action to list folder' do
         decision = processor.decide_for_new_message(message)
@@ -44,8 +46,35 @@ RSpec.describe MessageProcessor do
       end
     end
 
+    context 'when message is from list domain but user blacklisted' do
+      let(:message) { build_message('list@list.example.com', 'list.example.com') }
+
+      it 'returns junk action (user blacklist always wins over list classification)' do
+        decision = processor.decide_for_new_message(message)
+        expect(decision).to eq({ action: :junk })
+      end
+    end
+
+    context 'when message is from whitelisted domain but found in junk folder' do
+      let(:message) { build_message('unwanted@trusted.com', 'trusted.com') }
+
+      it 'returns keep action (whitelist protects against junk folder false positives)' do
+        decision = processor.decide_for_new_message(message)
+        expect(decision).to eq({ action: :keep })
+      end
+    end
+
+    context 'when message is from junk folder but not whitelisted' do
+      let(:message) { build_message('spam@example.com', 'example.com') }
+
+      it 'returns junk action (junk folder provides fallback blacklisting)' do
+        decision = processor.decide_for_new_message(message)
+        expect(decision).to eq({ action: :junk })
+      end
+    end
+
     context 'when message is not whitelisted or list' do
-      let(:message) { build_message('spam@spam.com', 'spam.com') }
+      let(:message) { build_message('spam@spam.com', 'spam.com', valid_list_email: false) }
 
       it 'returns junk action' do
         decision = processor.decide_for_new_message(message)
@@ -77,6 +106,15 @@ RSpec.describe MessageProcessor do
       let(:message) { build_message('unknown@example.com', 'example.com') }
 
       it 'returns keep action' do
+        decision = processor.decide_for_filing(message)
+        expect(decision).to eq({ action: :keep })
+      end
+    end
+
+    context 'when sender is blacklisted but has a folder mapping' do
+      let(:message) { build_message('spam@example.com', 'example.com') }
+
+      it 'still returns keep action (blacklist does not affect filing decisions)' do
         decision = processor.decide_for_filing(message)
         expect(decision).to eq({ action: :keep })
       end
@@ -151,11 +189,25 @@ RSpec.describe MessageProcessor do
 
   private
 
-  def build_message(from_address, from_domain)
+  def build_message(from_address, from_domain, valid_list_email: true)
+    # header_fields.detect { |f| f.name == 'Authentication-Results' }
+    headers = valid_list_email ? list_email_headers : []
     double('message',
            from_address: from_address,
            from_domain: from_domain,
-           message: double('mail', header_fields: []))
+           message: double('mail', header_fields: headers))
+  end
+
+  def list_email_headers
+    [
+      OpenStruct.new(name: 'Authentication-Results', value: <<~RESULTS
+        Authentication-Results: spf=pass (sender IP is 1.2.3.4)
+        smtp.mailfrom=mail.example.com; dkim=pass (signature was verified)
+        header.d=mg2.example.com;dmarc=pass action=none
+        header.from=example.com;compauth=pass reason=100
+      RESULTS
+      )
+    ]
   end
 
   def build_message_with_headers(from_address, from_domain, headers_hash)

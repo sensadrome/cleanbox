@@ -87,6 +87,8 @@ def help
     cb.clean!            - Process new messages in inbox
     cb.file_messages!    - File existing messages
     cb.unjunk!           - Unjunk messages from junk folder
+    cb.show_blacklist!   - Show blacklisted email addresses
+    cb.build_blacklist!  - Rebuild blacklist from folders
 
     # Convenience methods (monkey patched):
     cb.pretend!          - Enable pretend mode (no actual moves)

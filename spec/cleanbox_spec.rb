@@ -161,6 +161,38 @@ RSpec.describe Cleanbox do
     end
   end
 
+  describe '#build_blacklist!' do
+    let(:mock_folder_checker) { double('CleanboxFolderChecker') }
+
+    before do
+      allow(CleanboxFolderChecker).to receive(:new).and_return(mock_folder_checker)
+      allow(mock_folder_checker).to receive(:email_addresses).and_return(['spam@example.com', 'unwanted@newsletter.com'])
+    end
+
+    it 'builds blacklist from unsubscribe folder and junk folder' do
+      expect(cleanbox.logger).to receive(:info).with('Building Blacklist....')
+
+      cleanbox.send(:build_blacklist!)
+
+      expect(cleanbox.blacklisted_emails).to eq([])  # No unsubscribe folder configured
+      expect(cleanbox.junk_emails).to include('spam@example.com', 'unwanted@newsletter.com')
+    end
+
+    it 'creates CleanboxFolderChecker for junk folder' do
+      cleanbox.send(:build_blacklist!)
+
+      expect(CleanboxFolderChecker).to have_received(:new).with(
+        mock_imap,
+        hash_including(
+          folder: 'Junk',
+          logger: cleanbox.logger
+        )
+      )
+    end
+  end
+
+  # Removed blacklist_folders tests - method no longer exists
+
   describe '#new_messages' do
     let(:mock_envelope) { double('envelope', attr: { 'BODY[HEADER]' => 'test header' }) }
 
@@ -201,6 +233,43 @@ RSpec.describe Cleanbox do
 
       expect(first_call).to eq(second_call)
       expect(mock_imap).to have_received(:search).once
+    end
+  end
+
+  describe '#message_processing_context' do
+    before do
+      allow(cleanbox).to receive(:whitelisted_emails).and_return(['family@example.com'])
+      allow(cleanbox).to receive(:whitelisted_domains).and_return(['trusted.com'])
+      allow(cleanbox).to receive(:list_domains).and_return(['newsletter.com'])
+      allow(cleanbox).to receive(:list_domain_map).and_return({ 'newsletter.com' => 'Newsletters' })
+      allow(cleanbox).to receive(:sender_map).and_return({ 'sender@example.com' => 'Work' })
+      allow(cleanbox).to receive(:list_folder).and_return('Lists')
+      allow(cleanbox).to receive(:unjunking?).and_return(false)
+      allow(cleanbox).to receive(:blacklisted_emails).and_return([])
+      allow(cleanbox).to receive(:junk_emails).and_return([])
+    end
+
+    it 'includes blacklisted emails and junk emails in the context' do
+      context = cleanbox.send(:message_processing_context)
+      
+      expect(context[:blacklisted_emails]).to eq([])  # No unsubscribe folder configured
+      expect(context[:junk_emails]).to eq([])  # Not built yet
+    end
+
+    it 'includes all required context keys' do
+      context = cleanbox.send(:message_processing_context)
+      
+      expect(context).to include(
+        :whitelisted_emails,
+        :whitelisted_domains,
+        :list_domains,
+        :list_domain_map,
+        :sender_map,
+        :list_folder,
+        :unjunking,
+        :blacklisted_emails,
+        :junk_emails
+      )
     end
   end
 

@@ -34,7 +34,7 @@ class MessageActionRunner
       @logger.info "PRETEND: Would move message #{message.seqno} from '#{message.from_address}' to folder '#{folder}'"
     else
       @logger.info "Moving message #{message.seqno} from '#{message.from_address}' to folder '#{folder}'"
-      @imap.add_folder(folder) if folder_needs_creation?(folder)
+      @imap.add_folder(folder)
       @imap.copy(message.seqno, folder)
       @imap.store(message.seqno, '+FLAGS', [:Deleted])
     end
@@ -46,16 +46,12 @@ class MessageActionRunner
       @logger.info "PRETEND: Would move message #{message.seqno} from '#{message.from_address}' to junk folder '#{@junk_folder}'"
     else
       @logger.info "Moving message #{message.seqno} from '#{message.from_address}' to junk folder '#{@junk_folder}'"
-      @imap.add_folder(@junk_folder) if folder_needs_creation?(@junk_folder)
+      @imap.add_folder(@junk_folder)
       @imap.copy(message.seqno, @junk_folder)
       @imap.store(message.seqno, '+FLAGS', [:Deleted])
     end
     @changed_folders.add(@junk_folder)
   end
 
-  def folder_needs_creation?(_folder)
-    # This would need to be implemented based on how folder creation works
-    # For now, we'll assume the folder exists or IMAP will handle creation
-    false
-  end
+
 end

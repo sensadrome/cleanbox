@@ -12,6 +12,7 @@ RSpec.describe MessageActionRunner do
       let(:decision) { { action: :move, folder: 'Work' } }
 
       it 'copies message to the specified folder' do
+        expect(imap).to receive(:add_folder).with('Work')
         expect(imap).to receive(:copy).with(message.seqno, 'Work')
         expect(imap).to receive(:store).with(message.seqno, '+FLAGS', [:Deleted])
 
@@ -19,6 +20,7 @@ RSpec.describe MessageActionRunner do
       end
 
       it 'adds the folder to changed_folders' do
+        allow(imap).to receive(:add_folder)
         allow(imap).to receive(:copy)
         allow(imap).to receive(:store)
 
@@ -32,6 +34,7 @@ RSpec.describe MessageActionRunner do
       let(:decision) { { action: :junk } }
 
       it 'copies message to junk folder' do
+        expect(imap).to receive(:add_folder).with('Junk')
         expect(imap).to receive(:copy).with(message.seqno, 'Junk')
         expect(imap).to receive(:store).with(message.seqno, '+FLAGS', [:Deleted])
 
@@ -39,6 +42,7 @@ RSpec.describe MessageActionRunner do
       end
 
       it 'adds junk folder to changed_folders' do
+        allow(imap).to receive(:add_folder)
         allow(imap).to receive(:copy)
         allow(imap).to receive(:store)
 
@@ -76,6 +80,7 @@ RSpec.describe MessageActionRunner do
 
   describe '#changed_folders' do
     it 'returns unique list of changed folders' do
+      allow(imap).to receive(:add_folder)
       allow(imap).to receive(:copy)
       allow(imap).to receive(:store)
 
@@ -97,6 +102,7 @@ RSpec.describe MessageActionRunner do
     let(:decision) { { action: :junk } }
 
     it 'uses the custom junk folder' do
+      expect(imap).to receive(:add_folder).with('Spam')
       expect(imap).to receive(:copy).with(message.seqno, 'Spam')
       expect(imap).to receive(:store).with(message.seqno, '+FLAGS', [:Deleted])
 
@@ -104,6 +110,7 @@ RSpec.describe MessageActionRunner do
     end
 
     it 'tracks the custom junk folder in changed_folders' do
+      allow(imap).to receive(:add_folder)
       allow(imap).to receive(:copy)
       allow(imap).to receive(:store)
 
@@ -115,6 +122,7 @@ RSpec.describe MessageActionRunner do
 
   describe 'multiple executions' do
     before do
+      allow(imap).to receive(:add_folder)
       allow(imap).to receive(:copy)
       allow(imap).to receive(:store)
     end

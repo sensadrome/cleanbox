@@ -289,11 +289,7 @@ module CLI
 
     def reset_auth_config
       # Remove authentication settings from config
-      config = begin
-        config_manager.load_config
-      rescue StandardError
-        {}
-      end
+      config = Configuration.options
       config.delete(:host)
       config.delete(:username)
       config.delete(:auth_type)

@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 # Suppress pry-byebug deprecation warning
-$VERBOSE = nil
+# $VERBOSE = nil
 
 require 'optparse'
 require 'yaml'

@@ -4,6 +4,7 @@ require 'yaml'
 require 'fileutils'
 require_relative 'core_ext'
 
+# Main configuration for Cleanbox
 class Configuration
   class << self
     attr_accessor :options, :data_dir

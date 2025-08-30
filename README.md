@@ -146,6 +146,29 @@ chmod +x ~/cleanbox-run ~/cb
 
 For complete container deployment documentation, see [deploy/CONTAINER_DEPLOYMENT.md](deploy/CONTAINER_DEPLOYMENT.md).
 
+## Development and Testing
+
+Cleanbox includes a comprehensive test suite with improved infrastructure:
+
+- **Organized Test Helpers**: Test utilities are organized in `spec/helpers/` for better maintainability
+- **Improved Test Isolation**: Each test gets its own temporary configuration and directories
+- **Better Error Handling**: Comprehensive error output for debugging test failures
+- **Flexible Configuration**: Tests can override configuration options using `let` blocks
+- **Clean Test Infrastructure**: Eliminated class variable warnings and improved test organization
+
+### Running Tests
+
+```bash
+# Run the full test suite
+bundle exec rspec
+
+# Run specific test files
+bundle exec rspec spec/cli/config_manager_spec.rb
+
+# Run with documentation format
+bundle exec rspec --format documentation
+```
+
 ## Getting Started Safely
 
 Since Cleanbox can be aggressive initially, here's a safe approach:

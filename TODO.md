@@ -31,6 +31,24 @@ This file tracks planned improvements, features, and tasks for the Cleanbox proj
 
 ## 🔧 Medium Priority
 
+### Test Infrastructure Improvements ✅ **COMPLETED**
+- [x] **Eliminate Class Variable Warnings** ✅
+  - Removed top-level class variables from spec_helper.rb
+  - Organized test helpers into focused files in `spec/helpers/`
+  - Eliminated "class variable access from toplevel" warnings
+- [x] **Improve Test Isolation** ✅
+  - Each test now gets its own temporary configuration directories
+  - Better Configuration management per test with `Configuration.configure(config_options)`
+  - Flexible test configuration using `let` block overrides
+- [x] **Organize Test Helpers** ✅
+  - Created `spec/helpers/config_helpers.rb` for configuration-related test utilities
+  - Created `spec/helpers/capture_output_helper.rb` for output capture
+  - Improved test maintainability and organization
+- [x] **Better Error Handling in Tests** ✅
+  - Restored `warn` functionality by removing `$VERBOSE = nil` restrictions
+  - Improved ConfigManager error handling with `exit_with_error` method
+  - Better test output and debugging capabilities
+
 ### Performance Optimizations
 - [ ] **Optimize Email Processing**
   - Profile current performance bottlenecks
@@ -89,6 +107,17 @@ This file tracks planned improvements, features, and tasks for the Cleanbox proj
     - Create storage provider plugins system
     - Add storage quota management and alerts
     - Implement storage provider auto-scaling for cloud backends
+
+### Code Quality and Architecture ✅ **COMPLETED**
+- [x] **Improve ConfigManager Error Handling** ✅
+  - Added centralized `exit_with_error` method for consistent error handling
+  - Improved variable naming consistency (`config_data` instead of mixing `config` and `load_config()`)
+  - Better error messages with heredoc formatting
+  - Consistent exit patterns throughout the class
+- [x] **Eliminate Pry Auto-loading Warnings** ✅
+  - Added `require: false` to pry gems in Gemfile
+  - Prevents automatic loading and warning spam during normal operation
+  - Gives developers control over when pry is loaded
 
 ### User Experience
 - [ ] **Improve Setup Wizard UX and Clarity**

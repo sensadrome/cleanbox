@@ -55,7 +55,7 @@ require 'cli/cli_parser'
 require 'auth/authentication_manager'
 require 'message'
 require 'message_processor'
-require 'message_action_runner'
+
 require 'connection'
 require 'cleanbox'
 require 'folder_checker'

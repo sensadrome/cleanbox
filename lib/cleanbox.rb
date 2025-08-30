@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 require 'logger'
+require 'set'
 require_relative 'message_processor'
-require_relative 'message_action_runner'
 
 # main class
 # rubocop:disable Metrics/ClassLength
@@ -168,8 +168,6 @@ class Cleanbox < CleanboxConnection
     (Date.today << months).strftime('%d-%b-%Y')
   end
 
-
-
   def list_folders
     [*options[:list_folders] || list_folder]
   end
@@ -178,14 +176,16 @@ class Cleanbox < CleanboxConnection
     # Log context-specific message count
     logger.info "Processing #{messages.length} messages for #{context_name}"
 
+    changed_folders = Set.new
+
     messages.each do |message|
       decision = message_processor.send(decision_method, message)
-      message_action_runner.execute(decision, message)
+      execute_decision(decision, message, changed_folders)
     end
 
-    log_processing_summary
+    log_processing_summary(changed_folders)
 
-    message_action_runner.changed_folders.each do |folder|
+    changed_folders.each do |folder|
       CleanboxFolderChecker.update_cache_stats(folder, imap_connection)
     end
 
@@ -196,19 +196,40 @@ class Cleanbox < CleanboxConnection
     @message_processor ||= MessageProcessor.new(message_processing_context)
   end
 
-  def message_action_runner
-    @message_action_runner ||= MessageActionRunner.new(
-      imap: self,
-      junk_folder: junk_folder,
-      pretending: pretending?,
-      logger: logger
-    )
+  def move_message(message, folder)
+    if pretending?
+      logger.info "PRETEND: Would move message #{message.seqno} from '#{message.from_address}' to folder '#{folder}'"
+    else
+      logger.info "Moving message #{message.seqno} from '#{message.from_address}' to folder '#{folder}'"
+      add_folder(folder)
+      imap_connection.copy(message.seqno, folder)
+      imap_connection.store(message.seqno, '+FLAGS', [:Deleted])
+    end
   end
 
-  def log_processing_summary
-    if message_action_runner.changed_folders.any?
-      folders = message_action_runner.changed_folders.to_a.join(', ')
-      logger.info "Updated #{message_action_runner.changed_folders.length} folders: #{folders}"
+  def junk_message(message)
+    move_message(message, junk_folder)
+  end
+
+  def execute_decision(decision, message, changed_folders)
+    case decision[:action]
+    when :move
+      move_message(message, decision[:folder])
+      changed_folders.add(decision[:folder])
+    when :junk
+      junk_message(message)
+      changed_folders.add(junk_folder)
+    when :keep
+      logger.debug "Keeping message #{message.seqno} from '#{message.from_address}' in inbox"
+    else
+      raise ArgumentError, "Unknown action: #{decision[:action]}"
+    end
+  end
+
+  def log_processing_summary(changed_folders = nil)
+    if changed_folders&.any?
+      folders = changed_folders.to_a.join(', ')
+      logger.info "Updated #{changed_folders.length} folders: #{folders}"
     else
       logger.info 'No messages were moved'
     end

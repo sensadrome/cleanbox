@@ -60,17 +60,14 @@ RSpec.describe Cleanbox do
   describe '#clean!' do
     let(:mock_message) { double('CleanboxMessage') }
     let(:mock_processor) { double('processor') }
-    let(:mock_runner) { double('runner') }
 
     before do
       allow(cleanbox).to receive(:new_messages).and_return([mock_message])
       allow(cleanbox).to receive(:clear_deleted_messages!)
       allow(cleanbox).to receive(:message_processing_context).and_return({})
       allow(MessageProcessor).to receive(:new).and_return(mock_processor)
-      allow(MessageActionRunner).to receive(:new).and_return(mock_runner)
+      allow(cleanbox).to receive(:execute_decision)
       allow(mock_processor).to receive(:decide_for_new_message).and_return({ action: :keep })
-      allow(mock_runner).to receive(:execute)
-      allow(mock_runner).to receive(:changed_folders).and_return([])
     end
 
     it 'processes new messages and clears deleted messages' do
@@ -239,17 +236,14 @@ RSpec.describe Cleanbox do
 
   describe '#file_messages!' do
     let(:mock_processor) { double('processor') }
-    let(:mock_runner) { double('runner') }
 
     before do
       allow(cleanbox).to receive(:all_messages).and_return([])
       allow(cleanbox).to receive(:clear_deleted_messages!)
       allow(cleanbox).to receive(:message_processing_context).and_return({})
       allow(MessageProcessor).to receive(:new).and_return(mock_processor)
-      allow(MessageActionRunner).to receive(:new).and_return(mock_runner)
+      allow(cleanbox).to receive(:execute_decision)
       allow(mock_processor).to receive(:decide_for_filing).and_return({ action: :keep })
-      allow(mock_runner).to receive(:execute)
-      allow(mock_runner).to receive(:changed_folders).and_return([])
     end
 
     it 'processes all messages with filing logic' do
@@ -261,7 +255,6 @@ RSpec.describe Cleanbox do
 
   describe '#unjunk!' do
     let(:mock_processor) { double('processor') }
-    let(:mock_runner) { double('runner') }
 
     before do
       allow(cleanbox).to receive(:junk_messages).and_return([])
@@ -269,10 +262,8 @@ RSpec.describe Cleanbox do
       allow(cleanbox).to receive(:message_processing_context).and_return({})
       allow(cleanbox).to receive(:unjunk_folders).and_return(['CleanFolder'])
       allow(MessageProcessor).to receive(:new).and_return(mock_processor)
-      allow(MessageActionRunner).to receive(:new).and_return(mock_runner)
+      allow(cleanbox).to receive(:execute_decision)
       allow(mock_processor).to receive(:decide_for_filing).and_return({ action: :keep })
-      allow(mock_runner).to receive(:execute)
-      allow(mock_runner).to receive(:changed_folders).and_return([])
     end
 
     it 'processes junk messages with filing logic' do

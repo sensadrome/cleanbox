@@ -6,39 +6,34 @@ require 'fileutils'
 require_relative '../../lib/cli/authentication_gatherer'
 
 RSpec.describe CLI::AuthCLI do
-  let(:temp_dir) { Dir.mktmpdir }
-  let(:config_path) { File.join(temp_dir, '.cleanbox.yml') }
-  let(:env_path) { File.join(temp_dir, '.env') }
+  let(:env_path) { File.join(temp_config_dir, '.env') }
   let(:auth_cli) { described_class.new }
+  let(:loaded_config) { read_config_from_file(temp_config_path) }
 
   before do
     # Set up the environment for testing
     stub_const('CLI::SecretsManager::ENV_FILE_PATH', env_path)
     # Reset the env file loaded flag for each test
     CLI::SecretsManager.reset_env_file_loaded
-  end
-
-  after do
-    FileUtils.rm_rf temp_dir
+    allow(Configuration).to receive(:config_loaded?).and_return(true)
   end
 
   describe 'authentication configuration detection' do
     context 'when authentication is properly configured' do
-      before do
-        # Create a config file with authentication details
-        config_content = {
+      let(:config) do
+        {
           host: 'outlook.office365.com',
           username: 'test@example.com',
           auth_type: 'oauth2_microsoft'
-        }.to_yaml
-        File.write(config_path, config_content)
+        }
+      end
+
+      before do
+        write_config_to_file(temp_config_path, config)
 
         # Create an env file with secrets
         File.write(env_path,
                    "CLEANBOX_CLIENT_ID=test_id\nCLEANBOX_CLIENT_SECRET=test_secret\nCLEANBOX_TENANT_ID=test_tenant")
-
-        # Configure with the config file
-        Configuration.configure({ config_file: config_path })
       end
 
       it 'returns true' do
@@ -61,24 +56,21 @@ RSpec.describe CLI::AuthCLI do
     end
 
     context 'when config exists but credentials are missing' do
-      before do
-        # Create a config file with authentication details
-        config_content = {
+      let(:config_options) do
+        {
           host: 'outlook.office365.com',
           username: 'test@example.com',
           auth_type: 'oauth2_microsoft'
-        }.to_yaml
-        File.write(config_path, config_content)
+        }
+      end
 
+      before do
         # Ensure no .env file exists for this test
         FileUtils.rm_f(env_path)
         # Clear any environment variables that might interfere
         ENV.delete('CLEANBOX_CLIENT_ID')
         ENV.delete('CLEANBOX_CLIENT_SECRET')
         ENV.delete('CLEANBOX_TENANT_ID')
-
-        # Configure with the config file
-        Configuration.configure({ config_file: config_path })
       end
 
       it 'returns false' do
@@ -88,17 +80,11 @@ RSpec.describe CLI::AuthCLI do
     end
 
     context 'when config exists but auth_type is missing' do
-      before do
-        # Create a config file with authentication details but missing auth_type
-        config_content = {
+      let(:config_options) do
+        {
           host: 'outlook.office365.com',
           username: 'test@example.com'
-          # Missing auth_type
-        }.to_yaml
-        File.write(config_path, config_content)
-
-        # Configure with the config file
-        Configuration.configure({ config_file: config_path })
+        }
       end
 
       it 'returns false' do
@@ -157,21 +143,21 @@ RSpec.describe CLI::AuthCLI do
     # Override config_options to use a real temp directory
     let(:config_options) do
       {
-        config_file: config_path,
-        data_dir: temp_dir
+        config_file: temp_config_path,
+        data_dir: temp_config_dir
       }
     end
+
+    # The save handler should reload it...
+    let(:config) { Configuration.options }
 
     it 'saves auth settings to config and creates env file' do
       # Use real file operations instead of mocking ConfigManager
       auth_cli.send(:save_auth_config, details, secrets)
 
-      # Verify the config was saved correctly
-      expect(File.exist?(config_path)).to be true
-      config = YAML.load_file(config_path)
-      expect(config[:host]).to eq('outlook.office365.com')
-      expect(config[:username]).to eq('test@example.com')
-      expect(config[:auth_type]).to eq('oauth2_microsoft')
+      expect(loaded_config[:host]).to eq('outlook.office365.com')
+      expect(loaded_config[:username]).to eq('test@example.com')
+      expect(loaded_config[:auth_type]).to eq('oauth2_microsoft')
 
       # Verify the env file was created
       expect(File.exist?(env_path)).to be true
@@ -200,22 +186,17 @@ RSpec.describe CLI::AuthCLI do
     end
 
     it 'removes auth settings from config and deletes env file' do
-      # Mock the config manager to use our test paths
-      allow_any_instance_of(CLI::ConfigManager).to receive(:config_path).and_return(config_path)
-      allow_any_instance_of(CLI::ConfigManager).to receive(:load_config) do
-        # Return the current configuration from Configuration
-        Configuration.options
-      end
-      allow_any_instance_of(CLI::ConfigManager).to receive(:save_config) do |_instance, config|
-        File.write(config_path, config.to_yaml)
-      end
+      config = Configuration.options
+      expect(config[:host]).to eq('outlook.office365.com')
+      expect(config[:username]).to eq('test@example.com')
+      expect(config[:auth_type]).to eq('oauth2_microsoft')
 
       auth_cli.send(:reset_auth_config)
 
-      config = YAML.load_file(config_path)
-      expect(config[:host]).to be_nil
-      expect(config[:username]).to be_nil
-      expect(config[:auth_type]).to be_nil
+      config = Configuration.options
+      expect(config[:host]).not_to be_present
+      expect(config[:username]).not_to be_present
+      expect(config[:auth_type]).not_to be_present
       # The other settings should remain unchanged
       expect(config[:whitelist_folders]).to eq(['Work'])
       expect(config[:list_folders]).to eq(['Newsletters'])
@@ -395,11 +376,11 @@ RSpec.describe CLI::AuthCLI do
     context 'when authentication is configured' do
       before do
         allow(auth_cli).to receive(:auth_configured?).and_return(true)
-        allow_any_instance_of(CLI::ConfigManager).to receive(:load_config).and_return({
-                                                                                        host: 'test.com',
-                                                                                        username: 'test@example.com',
-                                                                                        auth_type: 'password'
-                                                                                      })
+        # allow_any_instance_of(CLI::ConfigManager).to receive(:load_config).and_return({
+        #                                                                                 host: 'test.com',
+        #                                                                                 username: 'test@example.com',
+        #                                                                                 auth_type: 'password'
+        #                                                                               })
         allow(auth_cli).to receive(:load_secrets).and_return({
                                                                'CLEANBOX_PASSWORD' => 'test_password'
                                                              })
@@ -438,11 +419,11 @@ RSpec.describe CLI::AuthCLI do
       before do
         allow(auth_cli).to receive(:auth_configured?).and_return(false)
         allow_any_instance_of(CLI::ConfigManager).to receive(:config_file_exists?).and_return(true)
-        allow_any_instance_of(CLI::ConfigManager).to receive(:load_config).and_return({
-                                                                                        host: 'test.com',
-                                                                                        username: 'test@example.com',
-                                                                                        auth_type: 'oauth2_microsoft'
-                                                                                      })
+        # allow_any_instance_of(CLI::ConfigManager).to receive(:load_config).and_return({
+        #                                                                                 host: 'test.com',
+        #                                                                                 username: 'test@example.com',
+        #                                                                                 auth_type: 'oauth2_microsoft'
+        #                                                                               })
       end
 
       it 'shows error message about missing credentials' do
@@ -463,18 +444,16 @@ RSpec.describe CLI::AuthCLI do
     end
 
     context 'when config file exists and is complete' do
-      before do
-        # Create a config file with authentication details
-        config_content = {
+      let(:config_options) { super().merge(config) }
+      let(:config) do
+        {
           host: 'test.com',
           username: 'test@example.com',
           auth_type: 'oauth2_microsoft'
-        }.to_yaml
-        File.write(config_path, config_content)
+        }
+      end
 
-        # Configure with the config file
-        Configuration.configure({ config_file: config_path })
-
+      before do
         allow(CLI::SecretsManager).to receive(:auth_secrets_status).and_return({
                                                                                  configured: true,
                                                                                  source: 'environment',
@@ -511,10 +490,10 @@ RSpec.describe CLI::AuthCLI do
           username: 'test@example.com',
           auth_type: 'oauth2_microsoft'
         }.to_yaml
-        File.write(config_path, config_content)
+        File.write(temp_config_path, config_content)
 
         # Configure with the config file
-        Configuration.configure({ config_file: config_path })
+        Configuration.configure({ config_file: temp_config_path })
       end
 
       it 'shows missing credentials message' do
@@ -539,10 +518,10 @@ RSpec.describe CLI::AuthCLI do
           username: 'test@example.com',
           auth_type: 'oauth2_microsoft'
         }.to_yaml
-        File.write(config_path, config_content)
+        File.write(temp_config_path, config_content)
 
         # Configure with the config file
-        Configuration.configure({ config_file: config_path })
+        Configuration.configure({ config_file: temp_config_path })
       end
 
       context 'when no credentials are available (source: none)' do
@@ -914,7 +893,7 @@ RSpec.describe CLI::AuthCLI do
       allow(user_token).to receive(:save_tokens_to_file)
       allow(auth_cli).to receive(:gets)
       allow(auth_cli).to receive(:default_token_file).and_return('/tmp/test_token.json')
-      allow_any_instance_of(CLI::ConfigManager).to receive(:load_config).and_return({})
+      # allow_any_instance_of(CLI::ConfigManager).to receive(:load_config).and_return({})
       allow_any_instance_of(CLI::ConfigManager).to receive(:save_config)
     end
 

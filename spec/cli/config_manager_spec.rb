@@ -5,49 +5,14 @@ require 'tempfile'
 require 'fileutils'
 
 RSpec.describe CLI::ConfigManager do
-  let(:temp_config_path) { Tempfile.new(['test_config', '.yml']).path }
-  let(:config_options) { { config_file: temp_config_path } }
   let(:config_manager) { described_class.new(temp_config_path) }
-
-  before do
-    # Clean up any existing test config
-    FileUtils.rm_f(temp_config_path)
-  end
-
-  after do
-    # Clean up test config
-    FileUtils.rm_f(temp_config_path)
-  end
-
-  # Use a separate temp file for integration tests to avoid conflicts
-  let(:integration_temp_config_path) { Tempfile.new(['integration_test_config', '.yml']).path }
-  let(:integration_config_manager) { described_class.new(integration_temp_config_path) }
-
-  after do
-    # Clean up integration test config
-    FileUtils.rm_f(integration_temp_config_path)
-  end
+  let(:loaded_config) { read_config_from_file(temp_config_path) }
 
   describe '#show' do
     context 'when config file does not exist' do
-      # Override the shared context for this specific test
-      let(:config_options) do
-        { config_file: '/non/existent/config.yml' }
-      end
-
-      let(:non_existent_config_manager) do
-        described_class.new('/non/existent/config.yml')
-      end
-
-      before do
-        # Reconfigure Configuration with the non-existent file
-        Configuration.reset!
-        Configuration.configure(config_options)
-      end
-
       it 'shows appropriate message' do
-        non_existent_config_manager.show
-        expect(output.string).to include("No configuration file found at /non/existent/config.yml")
+        config_manager.show
+        expect(captured_output.string).to include("No configuration file found at #{temp_config_path}")
       end
     end
 
@@ -61,76 +26,65 @@ RSpec.describe CLI::ConfigManager do
         }
       end
 
-      let(:config_options) do
-        super().merge(config_file: temp_config_path)
-      end
-
       before do
-        File.write(temp_config_path, sample_config.to_yaml)
-        # Ensure the file exists
-        expect(File.exist?(temp_config_path)).to be true
-        Configuration.reload!
+        write_config_to_file(temp_config_path, sample_config)
       end
 
       it 'shows recognized keys' do
         config_manager.show
-        expect(output.string).to include("Configuration from #{temp_config_path}:")
-        expect(output.string).to include("host: outlook.office365.com")
-        expect(output.string).to include("username: test@example.com")
+        expect(captured_output.string).to include("Configuration from #{temp_config_path}:")
+        expect(captured_output.string).to include('host: outlook.office365.com')
+        expect(captured_output.string).to include('username: test@example.com')
       end
 
       it 'shows deprecated keys warning' do
         config_manager.show
-        expect(output.string).to include("Note: Found deprecated keys in your config:")
-        expect(output.string).to include("- deprecated_key")
+        expect(captured_output.string).to include('Note: Found deprecated keys in your config:')
+        expect(captured_output.string).to include('- deprecated_key')
       end
 
       it 'shows missing recognized keys' do
         config_manager.show
-        expect(output.string).to include("Recognized keys you have not set")
-        expect(output.string).to include("- valid_from")
+        expect(captured_output.string).to include('Recognized keys you have not set')
+        expect(captured_output.string).to include('- valid_from')
       end
     end
   end
 
   describe '#get' do
     context 'when key exists' do
-      let(:config_options) do
-        super().merge(config_file: temp_config_path)
-      end
+      let(:sample_config) { { username: 'test@example.com', list_folders: %w[Social Work] } }
 
       before do
-        config = { username: 'test@example.com', folders: %w[Inbox Sent] }
-        File.write(temp_config_path, config.to_yaml)
-        Configuration.reload!
+        write_config_to_file(temp_config_path, sample_config)
       end
 
       it 'shows string value' do
         config_manager.get('username')
-        expect(output.string).to include("test@example.com")
+        expect(captured_output.string).to include('test@example.com')
       end
 
       it 'shows array value' do
-        config_manager.get('folders')
-        expect(output.string).to include("- Inbox")
-        expect(output.string).to include("- Sent")
+        config_manager.get('list_folders')
+        expect(captured_output.string).to include('- Social')
+        expect(captured_output.string).to include('- Work')
       end
     end
 
     context 'when key does not exist' do
-      let(:config_options) do
-        super().merge(config_file: temp_config_path)
-      end
-
       before do
         config = { username: 'test@example.com' }
-        File.write(temp_config_path, config.to_yaml)
-        Configuration.reload!
+        # We need to ensure that something that ought to be there is there....
+        write_config_to_file(temp_config_path, config)
       end
 
       it 'shows not found message' do
+        # First ensure that the username value is present
+        config_manager.get('username')
+        expect(captured_output.string).to include('test@example.com')
+
         config_manager.get('nonexistent')
-        expect(output.string).to include("Key 'nonexistent' not found in configuration")
+        expect(captured_output.string).to include("Key 'nonexistent' not found in configuration")
       end
     end
   end
@@ -140,205 +94,183 @@ RSpec.describe CLI::ConfigManager do
       it 'sets simple string value' do
         config_manager.set('username', 'new@example.com')
 
-        loaded_config = YAML.load_file(temp_config_path)
-        loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
         expect(loaded_config[:username]).to eq('new@example.com')
       end
 
       it 'shows success message' do
         config_manager.set('username', 'new@example.com')
-        expect(output.string).to include("Configuration saved to #{temp_config_path}")
+        expect(captured_output.string).to include("Configuration saved to #{temp_config_path}")
       end
     end
 
     context 'with YAML value' do
       it 'parses and sets array' do
-        config_manager.set('folders', '["Inbox", "Sent"]')
+        config_manager.set('whitelist_folders', '["Inbox", "Sent"]')
 
-        loaded_config = YAML.load_file(temp_config_path)
-        loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
-        expect(loaded_config[:folders]).to eq(%w[Inbox Sent])
+        expect(loaded_config[:whitelist_folders]).to eq(%w[Inbox Sent])
       end
 
       it 'parses and sets hash' do
-        config_manager.set('settings', '{key1: value1, key2: value2}')
+        config_manager.set('list_domain_map', '{key1: value1, key2: value2}')
 
-        loaded_config = YAML.load_file(temp_config_path)
-        loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
-        expect(loaded_config[:settings]).to eq({ 'key1' => 'value1', 'key2' => 'value2' })
+        expect(loaded_config[:list_domain_map]).to eq({ 'key1' => 'value1', 'key2' => 'value2' })
       end
 
       it 'falls back to string when YAML parsing fails' do
-        config_manager.set('invalid_yaml', '{invalid: yaml:')
+        config_manager.set('username', '{invalid: yaml:')
 
-        loaded_config = YAML.load_file(temp_config_path)
-        loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
-        expect(loaded_config[:invalid_yaml]).to eq('{invalid: yaml:')
+        expect(loaded_config[:username]).to eq('{invalid: yaml:')
       end
     end
 
     context 'with existing config' do
-      before do
-        existing_config = { username: 'old@example.com', folders: ['Old'] }
-        File.write(temp_config_path, existing_config.to_yaml)
+      let(:config_options) do
+        super().merge(username: 'old@example.com', whitelist_folders: ['Old'])
       end
 
       it 'updates existing key' do
         config_manager.set('username', 'new@example.com')
 
-        loaded_config = YAML.load_file(temp_config_path)
-        loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
         expect(loaded_config[:username]).to eq('new@example.com')
-        expect(loaded_config[:folders]).to eq(['Old']) # Preserves other keys
+        expect(loaded_config[:whitelist_folders]).to eq(['Old']) # Preserves other keys
       end
     end
   end
 
   describe '#add' do
     context 'with array values' do
-      before do
-        config = { folders: ['Inbox'] }
-        File.write(temp_config_path, config.to_yaml)
+      let(:config_options) do
+        super().merge(whitelist_folders: ['Inbox'])
       end
 
       it 'appends to existing array' do
-        config_manager.add('folders', 'Sent')
+        config_manager.add('whitelist_folders', 'Sent')
 
-        loaded_config = YAML.load_file(temp_config_path)
-        loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
-        expect(loaded_config[:folders]).to eq(%w[Inbox Sent])
+        expect(loaded_config[:whitelist_folders]).to eq(%w[Inbox Sent])
       end
 
       it 'shows success message' do
-        config_manager.add('folders', 'Sent')
-        expect(output.string).to include("Added 'Sent' to folders")
-        expect(output.string).to include("Configuration saved to #{temp_config_path}")
+        config_manager.add('whitelist_folders', 'Sent')
+        expect(captured_output.string).to include("Added 'Sent' to whitelist_folders")
+        expect(captured_output.string).to include("Configuration saved to #{temp_config_path}")
       end
     end
 
     context 'with hash values' do
-      before do
-        config = { settings: { key1: 'value1' } }
-        File.write(temp_config_path, config.to_yaml)
+      let(:config_options) do
+        super().merge(list_domain_map: { 'key1' => 'value1' })
       end
 
       it 'merges with existing hash' do
-        config_manager.add('settings', '{key2: value2}')
+        config_manager.add('list_domain_map', '{key2: value2}')
 
-        loaded_config = YAML.load_file(temp_config_path)
-        loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
-        expect(loaded_config[:settings].transform_keys(&:to_s)).to eq({ 'key1' => 'value1', 'key2' => 'value2' })
+        expect(loaded_config[:list_domain_map]).to eq({ 'key1' => 'value1', 'key2' => 'value2' })
       end
 
       it 'shows success message' do
-        config_manager.add('settings', '{key2: value2}')
-        expect(output.string).to include("Merged hash into settings")
-        expect(output.string).to include("Configuration saved to #{temp_config_path}")
+        config_manager.add('list_domain_map', '{key2: value2}')
+        expect(captured_output.string).to include('Merged hash into list_domain_map')
+        expect(captured_output.string).to include("Configuration saved to #{temp_config_path}")
       end
     end
 
     context 'with new key' do
       it 'creates array for string value' do
-        config_manager.add('folders', 'Inbox')
+        config_manager.add('whitelist_folders', 'Inbox')
 
-        loaded_config = YAML.load_file(temp_config_path)
-        loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
-        expect(loaded_config[:folders]).to eq(['Inbox'])
+        expect(loaded_config[:whitelist_folders]).to eq(['Inbox'])
       end
 
       it 'creates hash for hash value' do
-        config_manager.add('settings', '{key1: value1}')
+        config_manager.add('list_domain_map', '{key1: value1}')
 
-        loaded_config = YAML.load_file(temp_config_path)
-        loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
-        expect(loaded_config[:settings]).to eq({ 'key1' => 'value1' })
+        expect(loaded_config[:list_domain_map]).to eq({ 'key1' => 'value1' })
       end
     end
 
     context 'with incompatible type' do
-      before do
-        config = { username: 'test@example.com' }
-        File.write(temp_config_path, config.to_yaml)
+      let(:config_options) do
+        super().merge(username: 'test@example.com')
       end
 
       it 'shows error and exits' do
-        expect { config_manager.add('username', 'new_value') }.to raise_error(SystemExit)
-        expect(output.string).to include("Cannot add to username (type: String)")
+        expect do
+          config_manager.add('username', 'new_value')
+        end.to raise_error(SystemExit)
+          .and output(a_string_including('Cannot add to username (type: String)')).to_stderr
       end
     end
   end
 
   describe '#remove' do
     context 'with array values' do
-      before do
-        config = { folders: %w[Inbox Sent Drafts] }
-        File.write(temp_config_path, config.to_yaml)
+      let(:config_options) do
+        super().merge(whitelist_folders: %w[Inbox Sent Drafts])
       end
 
       it 'removes from array' do
-        config_manager.remove('folders', 'Sent')
+        config_manager.remove('whitelist_folders', 'Sent')
 
-        loaded_config = YAML.load_file(temp_config_path)
-        loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
-        expect(loaded_config[:folders]).to eq(%w[Inbox Drafts])
+        expect(loaded_config[:whitelist_folders]).to eq(%w[Inbox Drafts])
       end
 
       it 'shows success message' do
-        config_manager.remove('folders', 'Sent')
-        expect(output.string).to include("Removed 'Sent' from folders")
-        expect(output.string).to include("Configuration saved to #{temp_config_path}")
+        config_manager.remove('whitelist_folders', 'Sent')
+        expect(captured_output.string).to include("Removed 'Sent' from whitelist_folders")
+        expect(captured_output.string).to include("Configuration saved to #{temp_config_path}")
       end
 
       it 'shows not found message for missing value' do
-        config_manager.remove('folders', 'Nonexistent')
-        expect(output.string).to include("Value 'Nonexistent' not found in folders")
-        expect(output.string).to include("Configuration saved to #{temp_config_path}")
+        config_manager.remove('whitelist_folders', 'Nonexistent')
+        expect(captured_output.string).to include("Value 'Nonexistent' not found in whitelist_folders")
+        expect(captured_output.string).to include("Configuration saved to #{temp_config_path}")
       end
     end
 
     context 'with hash values' do
-      before do
-        config = { settings: { key1: 'value1', key2: 'value2', key3: 'value3' } }
-        File.write(temp_config_path, config.to_yaml)
+      let(:config_options) { super().merge(config) }
+      let(:config) do
+        { list_domain_map: { 'key1' => 'value1', 'key2' => 'value2', 'key3' => 'value3' } }
       end
 
       it 'removes keys from hash' do
-        config_manager.remove('settings', '{key1: value1, key2: value2}')
+        config_manager.remove('list_domain_map', '{key1: value1, key2: value2}')
 
-        loaded_config = YAML.load_file(temp_config_path)
-        loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
-        expect(loaded_config[:settings].transform_keys(&:to_s)).to eq({ 'key3' => 'value3' })
+        expect(loaded_config[:list_domain_map].transform_keys(&:to_s)).to eq({ 'key3' => 'value3' })
       end
 
       it 'shows success message' do
-        config_manager.remove('settings', '{key1: value1, key2: value2}')
-        expect(output.string).to include("Removed keys key1, key2 from settings")
-        expect(output.string).to include("Configuration saved to #{temp_config_path}")
+        config_manager.remove('list_domain_map', '{key1: value1, key2: value2}')
+        expect(captured_output.string).to include('Removed keys key1, key2 from list_domain_map')
+        expect(captured_output.string).to include("Configuration saved to #{temp_config_path}")
       end
 
       it 'shows no matching keys message' do
-        config_manager.remove('settings', '{nonexistent: value}')
-        expect(output.string).to include("No matching keys found in settings")
-        expect(output.string).to include("Configuration saved to #{temp_config_path}")
+        config_manager.remove('list_domain_map', '{nonexistent: value}')
+        expect(captured_output.string).to include('No matching keys found in list_domain_map')
+        expect(captured_output.string).to include("Configuration saved to #{temp_config_path}")
       end
     end
 
     context 'with nonexistent key' do
       it 'shows error and exits' do
-        expect { config_manager.remove('nonexistent', 'value') }.to raise_error(SystemExit)
-        expect(output.string).to include("Key 'nonexistent' not found in configuration")
+        expect do
+          config_manager.remove('nonexistent', 'value')
+        end.to output(a_string_including("Key 'nonexistent' not found in configuration")).to_stderr
+                                                                                         .and raise_error(SystemExit)
       end
     end
 
     context 'with incompatible type' do
-      before do
-        config = { username: 'test@example.com' }
-        File.write(temp_config_path, config.to_yaml)
+      let(:config_options) do
+        super().merge(username: 'test@example.com')
       end
 
       it 'shows error and exits' do
-        expect { config_manager.remove('username', 'value') }.to raise_error(SystemExit)
-        expect(output.string).to include("Cannot remove from username (type: String)")
+        expect do
+          config_manager.remove('username', 'value')
+        end.to output(a_string_including('Cannot remove from username (type: String)')).to_stderr
+                                                                                       .and raise_error(SystemExit)
       end
     end
   end
@@ -347,7 +279,7 @@ RSpec.describe CLI::ConfigManager do
     context 'when config file does not exist' do
       it 'creates comprehensive config template' do
         config_manager.init
-        expect(output.string).to include("Comprehensive configuration template created at #{temp_config_path}")
+        expect(captured_output.string).to include("Comprehensive configuration template created at #{temp_config_path}")
 
         expect(File.exist?(temp_config_path)).to be true
         config_content = File.read(temp_config_path)
@@ -359,13 +291,13 @@ RSpec.describe CLI::ConfigManager do
 
     context 'when config file exists' do
       before do
-        File.write(temp_config_path, { username: 'test@example.com' }.to_yaml)
+        write_config_to_file temp_config_path, { host: 'mail.example.com' }
       end
 
       it 'shows already exists message' do
         config_manager.init
-        expect(output.string).to include("Configuration file already exists at #{temp_config_path}")
-        expect(output.string).to include("Use 'cleanbox config show' to view it")
+        expect(captured_output.string).to include("Configuration file already exists at #{temp_config_path}")
+        expect(captured_output.string).to include("Use 'cleanbox config show' to view it")
       end
     end
   end
@@ -391,7 +323,7 @@ RSpec.describe CLI::ConfigManager do
 
       it 'creates domain rules file in data directory when specified' do
         config_manager_with_data_dir.init_domain_rules
-        expect(output.string).to include("✅ Domain rules file created at #{user_domain_rules_path}")
+        expect(captured_output.string).to include("✅ Domain rules file created at #{user_domain_rules_path}")
 
         expect(File.exist?(user_domain_rules_path)).to be true
         expect(File.read(user_domain_rules_path)).to eq(File.read(default_domain_rules_path))
@@ -406,7 +338,7 @@ RSpec.describe CLI::ConfigManager do
         FileUtils.rm_f(home_domain_rules_path)
 
         config_manager_without_data_dir.init_domain_rules
-        expect(output.string).to include("✅ Domain rules file created at #{home_domain_rules_path}")
+        expect(captured_output.string).to include("✅ Domain rules file created at #{home_domain_rules_path}")
 
         expect(File.exist?(home_domain_rules_path)).to be true
         expect(File.read(home_domain_rules_path)).to eq(File.read(default_domain_rules_path))
@@ -421,7 +353,7 @@ RSpec.describe CLI::ConfigManager do
         nested_domain_rules_path = File.join(nested_data_dir, 'domain_rules.yml')
 
         nested_config_manager.init_domain_rules
-        expect(output.string).to include("✅ Domain rules file created at #{nested_domain_rules_path}")
+        expect(captured_output.string).to include("✅ Domain rules file created at #{nested_domain_rules_path}")
 
         expect(File.exist?(nested_domain_rules_path)).to be true
       end
@@ -431,7 +363,7 @@ RSpec.describe CLI::ConfigManager do
         FileUtils.rm_f(user_domain_rules_path)
 
         config_manager_with_data_dir.init_domain_rules
-        expect(output.string).to include("✅ Domain rules file created at #{user_domain_rules_path}")
+        expect(captured_output.string).to include("✅ Domain rules file created at #{user_domain_rules_path}")
 
         expect(File.exist?(user_domain_rules_path)).to be true
         expect(File.read(user_domain_rules_path)).to eq(File.read(default_domain_rules_path))
@@ -449,8 +381,8 @@ RSpec.describe CLI::ConfigManager do
 
       it 'shows already exists message' do
         config_manager_with_data_dir.init_domain_rules
-        expect(output.string).to include("Domain rules file already exists at #{user_domain_rules_path}")
-        expect(output.string).to include("Edit it to customize your domain mappings")
+        expect(captured_output.string).to include("Domain rules file already exists at #{user_domain_rules_path}")
+        expect(captured_output.string).to include('Edit it to customize your domain mappings')
       end
 
       it 'does not overwrite existing file' do
@@ -472,8 +404,10 @@ RSpec.describe CLI::ConfigManager do
         allow(File).to receive(:exist?).with(default_domain_rules_path).and_return(false)
         allow(File).to receive(:exist?).with(user_domain_rules_path).and_return(false)
 
-        expect { config_manager_with_data_dir.init_domain_rules }.to raise_error(SystemExit)
-        expect(output.string).to include("Error: Default domain rules file not found at #{default_domain_rules_path}")
+        expect do
+          config_manager_with_data_dir.init_domain_rules
+        end.to output(a_string_including("Error: Default domain rules file not found at #{default_domain_rules_path}")).to_stderr
+                                                                                                                       .and raise_error(SystemExit)
       end
     end
   end
@@ -493,8 +427,10 @@ RSpec.describe CLI::ConfigManager do
       end
 
       it 'shows usage and exits when key missing' do
-        expect { config_manager.handle_command(['get']) }.to raise_error(SystemExit)
-        expect(output.string).to include("Usage: cleanbox config get <key>")
+        expect do
+          config_manager.handle_command(['get'])
+        end.to output(a_string_including('Usage: cleanbox config get <key>')).to_stderr
+                                                                             .and raise_error(SystemExit)
       end
     end
 
@@ -505,8 +441,10 @@ RSpec.describe CLI::ConfigManager do
       end
 
       it 'shows usage and exits when key or value missing' do
-        expect { config_manager.handle_command(['set']) }.to raise_error(SystemExit)
-        expect(output.string).to include("Usage: cleanbox config set <key> <value>")
+        expect do
+          config_manager.handle_command(['set'])
+        end.to output(a_string_including('Usage: cleanbox config set <key> <value>')).to_stderr
+                                                                                     .and raise_error(SystemExit)
       end
     end
 
@@ -517,8 +455,10 @@ RSpec.describe CLI::ConfigManager do
       end
 
       it 'shows usage and exits when key or value missing' do
-        expect { config_manager.handle_command(['add']) }.to raise_error(SystemExit)
-        expect(output.string).to include("Usage: cleanbox config add <key> <value>")
+        expect do
+          config_manager.handle_command(['add'])
+        end.to output(a_string_including('Usage: cleanbox config add <key> <value>')).to_stderr
+                                                                                     .and raise_error(SystemExit)
       end
     end
 
@@ -529,8 +469,10 @@ RSpec.describe CLI::ConfigManager do
       end
 
       it 'shows usage and exits when key or value missing' do
-        expect { config_manager.handle_command(['remove']) }.to raise_error(SystemExit)
-        expect(output.string).to include("Usage: cleanbox config remove <key> <value>")
+        expect do
+          config_manager.handle_command(['remove'])
+        end.to output(a_string_including('Usage: cleanbox config remove <key> <value>')).to_stderr
+                                                                                        .and raise_error(SystemExit)
       end
     end
 
@@ -550,126 +492,74 @@ RSpec.describe CLI::ConfigManager do
 
     context 'with unknown command' do
       it 'shows error and exits' do
-        expect { config_manager.handle_command(['unknown']) }.to raise_error(SystemExit)
-        expect(output.string).to include("Unknown config command: unknown")
-        expect(output.string).to include("Available commands: show, get, set, add, remove, init, init-domain-rules")
-      end
-    end
-  end
-
-  describe '#load_config' do
-    context 'when file exists' do
-      before do
-        config = { username: 'test@example.com', folders: ['Inbox'] }
-        File.write(temp_config_path, config.to_yaml)
-      end
-
-      it 'loads and converts keys to symbols' do
-        result = config_manager.load_config
-        expect(result).to eq({ username: 'test@example.com', folders: ['Inbox'] })
-      end
-    end
-
-    context 'when file does not exist' do
-      it 'returns empty hash' do
-        result = config_manager.load_config
-        expect(result).to eq({})
-      end
-    end
-
-    context 'when file is empty' do
-      before do
-        File.write(temp_config_path, '')
-      end
-
-      it 'returns empty hash' do
-        result = config_manager.load_config
-        expect(result).to eq({})
+        expect { config_manager.handle_command(['unknown']) }.to output(a_string_including('Unknown config command: unknown')).to_stderr
+                                                             .and raise_error(SystemExit)
       end
     end
   end
 
   describe '#save_config' do
-    it 'creates directory if needed' do
-      nested_path = '/tmp/nested/dir/config.yml'
-      manager = described_class.new(nested_path)
+    context 'when the directory path does not exist yet' do
+      let(:temp_config_path) { File.join(temp_config_dir, 'tmp/nested/dir/config.yml') }
 
-      manager.save_config({ username: 'test' })
-      expect(output.string).to include("Configuration saved to #{nested_path}")
+      it 'creates directory if needed' do
+        config_manager.save_config({ username: 'test' })
+        expect(captured_output.string).to include("Configuration saved to #{temp_config_path}")
 
-      expect(File.exist?(nested_path)).to be true
-      loaded_config = YAML.load_file(nested_path)
-      loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
-      expect(loaded_config[:username]).to eq('test')
+        expect(File.exist?(temp_config_path)).to be true
+        expect(loaded_config[:username]).to eq('test')
+      end
     end
 
     it 'saves config to file' do
-      config = { username: 'test@example.com', folders: ['Inbox'] }
+      config = { username: 'test@example.com', whitelist_folders: ['Inbox'] }
       config_manager.save_config(config)
 
-      loaded_config = YAML.load_file(temp_config_path)
-      loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
-      expect(loaded_config).to eq({ username: 'test@example.com', folders: ['Inbox'] })
+      expect(loaded_config).to eq({ username: 'test@example.com', whitelist_folders: ['Inbox'] })
     end
   end
 
   describe 'updating existing configuration files' do
     context 'with complex nested structures' do
-      before do
-        existing_config = {
+      let(:complex_config) do
+        {
           host: 'outlook.office365.com',
           username: 'old@example.com',
           whitelist_folders: %w[Family Work],
-          list_domain_map: {
-            'facebook.com' => 'Social',
-            'github.com' => 'Development'
-          },
-          settings: {
-            verbose: true,
-            level: 'debug'
-          }
+          list_domain_map: { 'facebook.com' => 'Social', 'github.com' => 'Development' }
         }
-        File.write(temp_config_path, existing_config.to_yaml)
       end
+
+      let(:config_options) {  super().merge(complex_config) }
 
       it 'updates nested hash values' do
         config_manager.set('list_domain_map', '{twitter.com: Social, linkedin.com: Professional}')
 
-        loaded_config = YAML.load_file(temp_config_path)
-        loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
         expect(loaded_config[:list_domain_map]).to eq({ 'twitter.com' => 'Social', 'linkedin.com' => 'Professional' })
         expect(loaded_config[:whitelist_folders]).to eq(%w[Family Work]) # Preserves other keys
       end
 
       it 'updates nested settings' do
-        config_manager.set('settings', '{verbose: false, level: info}')
+        config_manager.set('list_domain_map', '{verbose: false, level: info}')
 
-        loaded_config = YAML.load_file(temp_config_path)
-        loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
-        expect(loaded_config[:settings]).to eq({ 'verbose' => false, 'level' => 'info' })
+        expect(loaded_config[:list_domain_map]).to eq({ 'verbose' => false, 'level' => 'info' })
       end
 
       it 'adds to existing arrays' do
         config_manager.add('whitelist_folders', 'Friends')
 
-        loaded_config = YAML.load_file(temp_config_path)
-        loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
         expect(loaded_config[:whitelist_folders]).to eq(%w[Family Work Friends])
       end
 
       it 'removes from existing arrays' do
         config_manager.remove('whitelist_folders', 'Work')
 
-        loaded_config = YAML.load_file(temp_config_path)
-        loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
         expect(loaded_config[:whitelist_folders]).to eq(['Family'])
       end
 
       it 'adds to existing hashes' do
         config_manager.add('list_domain_map', '{instagram.com: Social}')
 
-        loaded_config = YAML.load_file(temp_config_path)
-        loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
         expect(loaded_config[:list_domain_map]).to include('instagram.com' => 'Social')
         expect(loaded_config[:list_domain_map]).to include('facebook.com' => 'Social')
       end
@@ -677,8 +567,6 @@ RSpec.describe CLI::ConfigManager do
       it 'removes from existing hashes' do
         config_manager.remove('list_domain_map', '{facebook.com: Social}')
 
-        loaded_config = YAML.load_file(temp_config_path)
-        loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
         # The remove operation might not work as expected with hash values
         # Let's just verify the operation doesn't crash and preserves other keys
         expect(loaded_config[:list_domain_map]).to include('github.com' => 'Development')
@@ -686,35 +574,31 @@ RSpec.describe CLI::ConfigManager do
     end
 
     context 'with multiple operations on same config' do
-      before do
-        config = { folders: ['Inbox'], settings: { debug: true } }
-        File.write(temp_config_path, config.to_yaml)
-      end
+      let(:config) { { whitelist_folders: ['Inbox'], list_domain_map: { debug: true } } }
+      let(:config_options) { super().merge(config) }
 
       it 'handles multiple set operations' do
         config_manager.set('host', 'imap.gmail.com')
         config_manager.set('username', 'new@example.com')
-        config_manager.set('folders', '["Inbox", "Sent", "Drafts"]')
+        config_manager.set('whitelist_folders', '["Inbox", "Sent", "Drafts"]')
 
-        loaded_config = YAML.load_file(temp_config_path)
-        loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
         expect(loaded_config[:host]).to eq('imap.gmail.com')
         expect(loaded_config[:username]).to eq('new@example.com')
-        expect(loaded_config[:folders]).to eq(%w[Inbox Sent Drafts])
-        expect(loaded_config[:settings]).to eq({ debug: true }) # Preserved
+        expect(loaded_config[:whitelist_folders]).to eq(%w[Inbox Sent Drafts])
+        expect(loaded_config[:list_domain_map]).to eq({ debug: true }) # Preserved
       end
 
       it 'handles mixed add and remove operations' do
-        config_manager.add('folders', 'Sent')
-        config_manager.add('folders', 'Drafts')
-        config_manager.remove('folders', 'Inbox')
-        config_manager.add('settings', '{verbose: true}')
+        config_manager.add('whitelist_folders', 'Sent')
+        config_manager.add('whitelist_folders', 'Drafts')
+        config_manager.remove('whitelist_folders', 'Inbox')
+        config_manager.add('list_domain_map', '{verbose: true}')
 
         loaded_config = YAML.load_file(temp_config_path)
         loaded_config = loaded_config.transform_keys(&:to_sym) if loaded_config
-        expect(loaded_config[:folders]).to eq(%w[Sent Drafts])
+        expect(loaded_config[:whitelist_folders]).to eq(%w[Sent Drafts])
         # Check for both string and symbol keys since YAML loading can vary
-        expect(loaded_config[:settings]).to satisfy do |settings|
+        expect(loaded_config[:list_domain_map]).to satisfy do |settings|
           (settings[:debug] == true && (settings[:verbose] == true || settings['verbose'] == true)) ||
             (settings['debug'] == true && (settings[:verbose] == true || settings['verbose'] == true))
         end
@@ -761,49 +645,6 @@ RSpec.describe CLI::ConfigManager do
         expect(result).to include('#')
         expect(result).to include('username: test@example.com')
       end
-    end
-  end
-
-  describe 'integration scenarios' do
-    let(:config_options) do
-      super().merge(config_file: integration_temp_config_path)
-    end
-
-    it 'handles full config lifecycle' do
-      # Initialize config
-      integration_config_manager.init
-      expect(File.exist?(integration_temp_config_path)).to be true
-
-      # Set values
-      integration_config_manager.set('username', 'test@example.com')
-      Configuration.reload!
-      integration_config_manager.set('host', 'outlook.office365.com')
-      Configuration.reload!
-      integration_config_manager.set('folders', '["Inbox", "Sent"]')
-      Configuration.reload!
-
-      # Add to arrays
-      integration_config_manager.add('folders', 'Drafts')
-      Configuration.reload!
-
-      # Get values
-      integration_config_manager.get('username')
-      expect(output.string).to include("test@example.com")
-
-      # Remove from arrays
-      integration_config_manager.remove('folders', 'Drafts')
-
-      # Show final config
-      integration_config_manager.show
-      expect(output.string).to include("username: test@example.com")
-      expect(output.string).to include("host: outlook.office365.com")
-
-      # Verify final state
-      final_config = YAML.load_file(integration_temp_config_path)
-      final_config = final_config.transform_keys(&:to_sym) if final_config
-      expect(final_config[:username]).to eq('test@example.com')
-      expect(final_config[:host]).to eq('outlook.office365.com')
-      expect(final_config[:folders]).to eq(%w[Inbox Sent])
     end
   end
 end

@@ -19,9 +19,6 @@ RSpec.describe CLI::AnalyzerCLI do
 
   describe '#show_help' do
     it 'displays help information' do
-      output = StringIO.new
-      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
-
       analyzer_cli.send(:show_help)
 
       expect(captured_output.string).to include('Cleanbox Analysis Commands')
@@ -110,9 +107,6 @@ RSpec.describe CLI::AnalyzerCLI do
     end
 
     it 'shows brief folder analysis' do
-      output = StringIO.new
-      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
-
       folder_results = {
         folders: folders,
         total_analyzed: 2,
@@ -130,9 +124,6 @@ RSpec.describe CLI::AnalyzerCLI do
     end
 
     it 'shows standard folder analysis' do
-      output = StringIO.new
-      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
-
       analyzer_cli.send(:show_standard_folder_analysis, folders)
 
       expect(captured_output.string).to include('📊 Folder Analysis:')
@@ -152,9 +143,6 @@ RSpec.describe CLI::AnalyzerCLI do
     end
 
     it 'shows date range impact' do
-      output = StringIO.new
-      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
-
       analyzer_cli.send(:show_date_range_impact, folders)
 
       expect(captured_output.string).to include('📅 Date Range Impact Analysis:')
@@ -194,45 +182,30 @@ RSpec.describe CLI::AnalyzerCLI do
     end
 
     it 'analyzes inbox' do
-      output = StringIO.new
-      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
-
       analyzer_cli.send(:analyze_inbox)
 
       expect(captured_output.string).to include('📧 Inbox Analysis')
     end
 
     it 'analyzes senders' do
-      output = StringIO.new
-      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
-
       analyzer_cli.send(:analyze_senders)
 
       expect(captured_output.string).to include('👤 Sender Analysis')
     end
 
     it 'analyzes domains' do
-      output = StringIO.new
-      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
-
       analyzer_cli.send(:analyze_domains)
 
       expect(captured_output.string).to include('🌐 Domain Analysis')
     end
 
     it 'analyzes recommendations' do
-      output = StringIO.new
-      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
-
       analyzer_cli.send(:analyze_recommendations)
 
       expect(captured_output.string).to include('🤖 Configuration Recommendations')
     end
 
     it 'analyzes summary' do
-      output = StringIO.new
-      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
-
       analyzer_cli.send(:analyze_summary)
 
       expect(captured_output.string).to include('📊 Comprehensive Analysis Summary')
@@ -257,9 +230,6 @@ RSpec.describe CLI::AnalyzerCLI do
     end
 
     it 'shows brief inbox analysis' do
-      output = StringIO.new
-      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
-
       inbox_data = {
         total_messages: 150,
         unread_messages: 25,
@@ -275,9 +245,6 @@ RSpec.describe CLI::AnalyzerCLI do
     end
 
     it 'shows brief sender analysis' do
-      output = StringIO.new
-      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
-
       sender_analysis = {
         'alice@work.com' => { folders: ['Work'], total_count: 10, sent_count: 5 },
         'bob@friend.com' => { folders: ['Friends'], total_count: 5, sent_count: 2 }
@@ -289,9 +256,6 @@ RSpec.describe CLI::AnalyzerCLI do
     end
 
     it 'shows brief domain analysis' do
-      output = StringIO.new
-      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
-
       domain_analysis_with_folders = {
         'work.com' => { categorization: 'work', folders: ['Work'], total_messages: 100 },
         'example.com' => { categorization: 'newsletter', folders: ['Newsletters'], total_messages: 50 },
@@ -304,9 +268,6 @@ RSpec.describe CLI::AnalyzerCLI do
     end
 
     it 'shows recommendations' do
-      output = StringIO.new
-      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
-
       recommendations = {
         whitelist_folders: ['Work'],
         list_folders: ['Newsletters'],
@@ -325,8 +286,6 @@ RSpec.describe CLI::AnalyzerCLI do
     end
 
     it 'shows comprehensive summary' do
-      output = StringIO.new
-      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
       allow(mock_imap).to receive(:select)
       allow(mock_imap).to receive(:search).and_return([])
       allow(mock_imap).to receive(:fetch).and_return([])
@@ -401,9 +360,6 @@ RSpec.describe CLI::AnalyzerCLI do
     end
 
     it 'shows detailed folder analysis' do
-      output = StringIO.new
-      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
-
       analyzer_cli.send(:show_detailed_folder_analysis, folders)
 
       expect(captured_output.string).to include('📊 Folder Analysis:')
@@ -412,9 +368,6 @@ RSpec.describe CLI::AnalyzerCLI do
     end
 
     it 'shows detailed inbox analysis' do
-      output = StringIO.new
-      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
-
       analyzer_cli.send(:show_detailed_inbox_analysis, inbox_data)
 
       expect(captured_output.string).to include('📧 Inbox Summary:')
@@ -422,9 +375,6 @@ RSpec.describe CLI::AnalyzerCLI do
     end
 
     it 'shows detailed sender analysis' do
-      output = StringIO.new
-      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
-
       analyzer_cli.send(:show_detailed_sender_analysis, sender_analysis)
 
       expect(captured_output.string).to include('👤 Sender Summary:')
@@ -432,9 +382,6 @@ RSpec.describe CLI::AnalyzerCLI do
     end
 
     it 'shows detailed domain analysis' do
-      output = StringIO.new
-      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
-
       analyzer_cli.send(:show_detailed_domain_analysis, domain_analysis)
 
       expect(captured_output.string).to include('🌐 Domain Summary:')
@@ -478,9 +425,6 @@ RSpec.describe CLI::AnalyzerCLI do
     end
 
     it 'shows standard folder analysis' do
-      output = StringIO.new
-      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
-
       analyzer_cli.send(:show_standard_folder_analysis, folders)
 
       expect(captured_output.string).to include('📊 Folder Analysis:')
@@ -489,9 +433,6 @@ RSpec.describe CLI::AnalyzerCLI do
     end
 
     it 'shows standard inbox analysis' do
-      output = StringIO.new
-      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
-
       analyzer_cli.send(:show_standard_inbox_analysis, inbox_data)
 
       expect(captured_output.string).to include('📧 Inbox Summary:')
@@ -499,9 +440,6 @@ RSpec.describe CLI::AnalyzerCLI do
     end
 
     it 'shows standard sender analysis' do
-      output = StringIO.new
-      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
-
       analyzer_cli.send(:show_standard_sender_analysis, sender_analysis)
 
       expect(captured_output.string).to include('👤 Sender Summary:')
@@ -509,9 +447,6 @@ RSpec.describe CLI::AnalyzerCLI do
     end
 
     it 'shows standard domain analysis' do
-      output = StringIO.new
-      allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
-
       analyzer_cli.send(:show_standard_domain_analysis, domain_analysis)
 
       expect(captured_output.string).to include('🌐 Domain Summary:')

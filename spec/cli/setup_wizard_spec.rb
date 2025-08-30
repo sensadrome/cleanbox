@@ -32,7 +32,6 @@ RSpec.describe CLI::SetupWizard do
   describe '#initialize' do
     it 'creates a new setup wizard with default settings' do
       wizard = described_class.new
-      expect(wizard.config_manager).to respond_to(:load_config)
       expect(wizard.provider).to be_nil
     end
 
@@ -421,6 +420,7 @@ RSpec.describe CLI::SetupWizard do
 
       before do
         allow(CLI::SecretsManager).to receive(:auth_secrets_available?).and_return(true)
+        allow(Configuration).to receive(:config_loaded?).and_return(true)
       end
 
       it 'returns true' do

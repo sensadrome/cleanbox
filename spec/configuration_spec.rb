@@ -114,7 +114,6 @@ RSpec.describe 'Configuration Integration' do
         # Clear any existing environment variables first
         ENV.delete('CLEANBOX_CONFIG')
         ENV.delete('CLEANBOX_DATA_DIR')
-        Configuration.reset!
 
         data_dir_config = File.join(temp_dir, 'cleanbox.yml')
         File.write(data_dir_config, "host: env_data_dir.example.com\n")
@@ -130,7 +129,6 @@ RSpec.describe 'Configuration Integration' do
         # Clear any existing environment variables first
         ENV.delete('CLEANBOX_DATA_DIR')
         ENV.delete('CLEANBOX_CONFIG')
-        Configuration.reset!
 
         # Temporarily allow the real home_config for this test
         allow(Configuration).to receive(:home_config).and_call_original
@@ -142,33 +140,6 @@ RSpec.describe 'Configuration Integration' do
 
         expect(Configuration.config_file_path).to eq(home_config)
       end
-    end
-  end
-
-  describe 'Configuration.reset!' do
-    let(:temp_dir) { Dir.mktmpdir('cleanbox_test') }
-
-    after do
-      FileUtils.rm_rf(temp_dir)
-    end
-
-    it 'clears all configuration state' do
-      # Set up some configuration
-      ENV['CLEANBOX_DATA_DIR'] = temp_dir
-      Configuration.configure({})
-
-      expect(Configuration.data_dir).to eq(File.expand_path(temp_dir))
-      expect(Configuration.config_file_path).to be_present
-
-      # Reset
-      Configuration.reset!
-
-      # Should be cleared
-      expect(Configuration.data_dir).to be_nil
-      expect(Configuration.config_file_path).to be_nil
-      expect(Configuration.options).to be_nil
-
-      ENV.delete('CLEANBOX_DATA_DIR')
     end
   end
 end

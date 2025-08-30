@@ -75,8 +75,8 @@ RSpec.describe CLI::CleanboxCLI do
         allow(CLI::SetupWizard).to receive(:new).and_return(double(run: nil))
         allow(cli).to receive(:exit)
         # Mock puts to suppress CLI output during tests
-        allow($stdout).to receive(:puts)
-        allow($stderr).to receive(:puts)
+        # allow($stdout).to receive(:puts)
+        # allow($stderr).to receive(:puts)
         # Mock parse_command_line_options to prevent actual argument parsing
         allow(cli).to receive(:parse_command_line_options)
         # Mock validate_options to prevent validation errors

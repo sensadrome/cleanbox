@@ -13,7 +13,7 @@ class CleanboxConnection
     return if folders.include?(folder)
 
     imap_connection.create(folder)
-    @folders.concat(folder)
+    @folders.push(folder)
     @imap_folders = nil
   end
 

@@ -99,6 +99,63 @@ This guide covers how to use Cleanbox effectively, from basic commands to advanc
 
 # Use custom data directory for config, cache, and domain rules
 ./cleanbox --data-dir /path/to/data
+
+## Retention Policy Management
+
+The retention policy system controls how Cleanbox handles unknown senders. You can configure this during setup or modify your configuration file.
+
+### During Setup
+
+When running the interactive setup wizard, you'll be prompted to choose a retention policy:
+
+```bash
+./cleanbox setup
+```
+
+You'll see options for:
+- **Spammy**: Treats legitimate-looking unknown emails as list emails (default)
+- **Hold**: Keeps unknown emails in inbox for configurable days before junking
+- **Quarantine**: Files unknown emails to configurable quarantine folder for review
+- **Paranoid**: Junks all unknown emails immediately (most aggressive)
+
+### Configuration Management
+
+**View current retention policy:**
+```bash
+./cleanbox config get retention_policy
+./cleanbox config get hold_days
+./cleanbox config get quarantine_folder
+```
+
+**Modify retention policy:**
+```bash
+./cleanbox config set retention_policy 'hold'
+./cleanbox config set hold_days 14
+./cleanbox config set quarantine_folder 'Review'
+```
+
+**Example configurations:**
+
+**Conservative approach (keep more emails):**
+```bash
+./cleanbox config set retention_policy 'spammy'
+```
+
+**Balanced approach (review before junking):**
+```bash
+./cleanbox config set retention_policy 'hold'
+./cleanbox config set hold_days 7
+```
+
+**Safe approach (quarantine for review):**
+```bash
+./cleanbox config set retention_policy 'quarantine'
+./cleanbox config set quarantine_folder 'Unknown Senders'
+```
+
+**Aggressive approach (junk immediately):**
+```bash
+./cleanbox config set retention_policy 'paranoid'
 ```
 
 ### Logging Options

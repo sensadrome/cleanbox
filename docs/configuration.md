@@ -33,6 +33,11 @@ list_domain_map:                                 # Map domains to specific folde
   'facebook.com': 'Social'
   'github.com': 'Development'
 
+# Retention Policy Settings
+retention_policy: 'spammy'        # Options: spammy, hold, quarantine, paranoid
+quarantine_folder: 'Quarantine'   # Folder for quarantined emails
+hold_days: 7                      # Days to hold unknown emails in inbox
+
 # Unjunk Options
 unjunk: false
 unjunk_folders: ['Inbox']  # Use these folders as reference for unjunking
@@ -100,6 +105,52 @@ list_folders: ['Newsletters', 'Notifications', 'Marketing']
 whitelist_folders: ['Family', 'Work', 'Friends', 'Important']
 list_folders: ['Newsletters']  # Only move obvious newsletters
 # Unknown senders stay in inbox
+```
+
+## Retention Policy System
+
+The retention policy system controls how Cleanbox handles emails from unknown senders. This gives you fine-grained control over the aggressiveness of spam filtering.
+
+### Available Policies
+
+**`spammy` (Default)**: Treats legitimate-looking unknown emails as list emails
+- Unknown senders with valid DKIM signatures are moved to your list folder
+- Good for users who want to keep most legitimate emails
+- Configuration: `retention_policy: 'spammy'`
+
+**`hold`**: Keeps unknown emails in inbox for a configurable period
+- Unknown emails are kept in the inbox for `hold_days` before being junked
+- Allows you to review emails before they're automatically removed
+- Configuration: `retention_policy: 'hold'` and `hold_days: 7`
+
+**`quarantine`**: Files unknown emails to a designated folder for review
+- Unknown emails are moved to a quarantine folder instead of being junked
+- You can review and manually file emails you want to keep
+- Configuration: `retention_policy: 'quarantine'` and `quarantine_folder: 'Quarantine'`
+
+**`paranoid`**: Junks all unknown emails immediately
+- The most aggressive approach - moves all unknown senders to junk/spam
+- Good for users who prefer to manually whitelist senders they want
+- Configuration: `retention_policy: 'paranoid'`
+
+### Configuration Examples
+
+**Balanced approach with hold policy:**
+```yaml
+retention_policy: 'hold'
+hold_days: 14
+quarantine_folder: 'Review'
+```
+
+**Conservative approach with quarantine:**
+```yaml
+retention_policy: 'quarantine'
+quarantine_folder: 'Unknown Senders'
+```
+
+**Aggressive approach (original behavior):**
+```yaml
+retention_policy: 'paranoid'
 ```
 
 ## Domain Rules

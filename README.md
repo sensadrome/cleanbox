@@ -110,6 +110,11 @@ The console provides a REPL interface for exploring your email structure, testin
 - **Unjunking**: Restores emails from junk/spam folders based on trusted sender patterns
 - **List Management**: Handles newsletters, notifications, and marketing emails by moving them to designated folders
 - **Whitelisting**: Keeps important emails in the inbox based on sender addresses and domains
+- **Retention Policy System**: Configurable handling of unknown senders with four options:
+  - **Spammy**: Treats legitimate-looking unknown emails as list emails
+  - **Hold**: Keeps unknown emails in inbox for configurable days before junking
+  - **Quarantine**: Files unknown emails to configurable quarantine folder for review
+  - **Paranoid**: Junks all unknown emails regardless of DKIM status
 - **Sent Email Analysis**: Analyzes your sent emails to understand who you correspond with and suggests whitelist candidates
 - **Intelligent Caching**: Folder analysis is cached for performance
 - **Multiple Authentication Methods**: Supports OAuth2 (Microsoft 365) and password-based authentication
@@ -177,7 +182,11 @@ New emails are automatically processed based on learned patterns:
 
 - **Whitelisted Senders**: Emails from senders found in your important folders stay in the inbox
 - **List Senders**: Emails from senders found in list folders get moved to appropriate folders
-- **Unknown Senders**: Emails from unknown senders get moved to junk/spam (this is where the "aggressive" behavior comes from)
+- **Unknown Senders**: Emails from unknown senders are handled according to your retention policy:
+  - **Spammy**: Moved to list folders if they pass DKIM validation
+  - **Hold**: Kept in inbox for a configurable period before being junked
+  - **Quarantine**: Moved to a quarantine folder for manual review
+  - **Paranoid**: Moved to junk/spam immediately (the original "aggressive" behavior)
 
 ### Important Notes
 - **Works Best with Existing Organization**: Cleanbox is most effective when you've already started organizing your emails into folders

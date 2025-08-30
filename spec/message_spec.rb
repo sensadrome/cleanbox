@@ -90,32 +90,4 @@ RSpec.describe CleanboxMessage do
       message.authentication_result # Should not search header_fields again
     end
   end
-
-  describe '#has_fake_headers?' do
-    it 'detects X-Antiabuse header' do
-      mock_mail = double('Mail')
-      mock_header = double('Header', name: 'X-Antiabuse')
-      allow(mock_mail).to receive(:header_fields).and_return([mock_header])
-      allow(message).to receive(:message).and_return(mock_mail)
-
-      expect(message.has_fake_headers?).to be true
-    end
-
-    it 'returns false when no fake headers present' do
-      mock_mail = double('Mail')
-      allow(mock_mail).to receive(:header_fields).and_return([])
-      allow(message).to receive(:message).and_return(mock_mail)
-
-      expect(message.has_fake_headers?).to be false
-    end
-
-    it 'ignores other headers' do
-      mock_mail = double('Mail')
-      mock_header = double('Header', name: 'Subject')
-      allow(mock_mail).to receive(:header_fields).and_return([mock_header])
-      allow(message).to receive(:message).and_return(mock_mail)
-
-      expect(message.has_fake_headers?).to be false
-    end
-  end
 end

@@ -112,10 +112,6 @@ module CLI
       opts.on('--detailed', 'Show detailed analysis with examples (for analysis commands)') do
         @options[:detailed] = true
       end
-
-      opts.on('--folder FOLDER', 'Analyze specific folder only (for analysis commands)') do |folder|
-        @options[:analysis_folder] = folder
-      end
     end
 
     def setup_commands_help(opts)

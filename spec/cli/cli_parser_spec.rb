@@ -124,20 +124,6 @@ RSpec.describe CLI::CLIParser do
         result = parser.parse!
         expect(result[:detailed]).to be true
       end
-
-      it 'sets analysis folder' do
-        ARGV.replace(['--folder', 'Work'])
-        result = parser.parse!
-        expect(result[:analysis_folder]).to eq('Work')
-      end
-
-      it 'handles multiple analysis options together' do
-        ARGV.replace(['--brief', '--detailed', '--folder', 'Inbox'])
-        result = parser.parse!
-        expect(result[:brief]).to be true
-        expect(result[:detailed]).to be true
-        expect(result[:analysis_folder]).to eq('Inbox')
-      end
     end
 
     context 'with help option' do

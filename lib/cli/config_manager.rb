@@ -18,6 +18,8 @@ module CLI
     end
 
     def show
+      puts "File.exist?(@config_path): #{File.exist?(@config_path)}"
+
       config_data = config
       if File.exist?(@config_path)
         puts "Configuration from #{@config_path}:"
@@ -61,23 +63,23 @@ module CLI
 
     def set(key, value)
       key = key.to_sym
-      config = load_config
+      config_data = config
 
       # Try to parse value as YAML for complex types
       begin
         parsed_value = YAML.safe_load(value)
-        config[key] = parsed_value
+        config_data[key] = parsed_value
       rescue StandardError
         # If YAML parsing fails, treat as string
-        config[key] = value
+        config_data[key] = value
       end
 
-      save_config(config)
+      save_config(config_data)
     end
 
     def add(key, value)
       key = key.to_sym
-      config = load_config
+      config_data = config
 
       # Try to parse value as YAML for complex types
       begin
@@ -88,34 +90,33 @@ module CLI
       end
 
       # Handle different types
-      if config[key].is_a?(Array)
+      if config_data[key].is_a?(Array)
         # Append to array
-        config[key] << parsed_value
+        config_data[key] << parsed_value
         puts "Added '#{parsed_value}' to #{key}"
-      elsif config[key].is_a?(Hash) && parsed_value.is_a?(Hash)
+      elsif config_data[key].is_a?(Hash) && parsed_value.is_a?(Hash)
         # Merge with hash
-        config[key] = config[key].deep_merge(parsed_value)
+        config_data[key] = config_data[key].deep_merge(parsed_value)
         puts "Merged hash into #{key}"
-      elsif config[key].nil?
+      elsif config_data[key].nil?
         # Create new array or hash based on value type
         if parsed_value.is_a?(Hash)
-          config[key] = parsed_value
+          config_data[key] = parsed_value
           puts "Created new hash for #{key}"
         else
-          config[key] = [parsed_value]
+          config_data[key] = [parsed_value]
           puts "Created new array for #{key} with '#{parsed_value}'"
         end
       else
-        puts "Cannot add to #{key} (type: #{config[key].class})"
-        exit 1
+        exit_with_error "Cannot add to #{key} (type: #{config_data[key].class})"
       end
 
-      save_config(config)
+      save_config(config_data)
     end
 
     def remove(key, value)
       key = key.to_sym
-      config = load_config
+      config_data = config
 
       # Try to parse value as YAML for complex types
       begin
@@ -126,22 +127,21 @@ module CLI
       end
 
       # Handle different types
-      if config[key].is_a?(Array)
+      if config_data[key].is_a?(Array)
         # Remove from array
-        if config[key].include?(parsed_value)
-          config[key].delete(parsed_value)
+        if config_data[key].include?(parsed_value)
+          config_data[key].delete(parsed_value)
           puts "Removed '#{parsed_value}' from #{key}"
         else
           puts "Value '#{parsed_value}' not found in #{key}"
         end
-      elsif config[key].is_a?(Hash) && parsed_value.is_a?(Hash)
+      elsif config_data[key].is_a?(Hash) && parsed_value.is_a?(Hash)
         # Remove keys from hash
         removed_keys = []
         parsed_value.each_key do |k|
-          # Convert string key to symbol to match config keys
-          symbol_key = k.to_sym
-          if config[key].key?(symbol_key)
-            config[key].delete(symbol_key)
+          # Convert string key to symbol to match config_data keys
+          if config_data[key].key?(k)
+            config_data[key].delete(k)
             removed_keys << k
           end
         end
@@ -150,15 +150,13 @@ module CLI
         else
           puts "No matching keys found in #{key}"
         end
-      elsif config[key].nil?
-        puts "Key '#{key}' not found in configuration"
-        exit 1
+      elsif config_data[key].nil?
+        exit_with_error "Key '#{key}' not found in configuration"
       else
-        puts "Cannot remove from #{key} (type: #{config[key].class})"
-        exit 1
+        exit_with_error "Cannot remove from #{key} (type: #{config_data[key].class})"
       end
 
-      save_config(config)
+      save_config(config_data)
     end
 
     def init
@@ -189,8 +187,7 @@ module CLI
         puts 'Edit it to customize your domain mappings'
       else
         unless File.exist?(default_domain_rules_path)
-          puts "Error: Default domain rules file not found at #{default_domain_rules_path}"
-          exit 1
+          exit_with_error "Error: Default domain rules file not found at #{default_domain_rules_path}"
         end
 
         FileUtils.mkdir_p(File.dirname(user_domain_rules_path))
@@ -207,14 +204,6 @@ module CLI
       end
     end
 
-    def load_config
-      return {} unless File.exist?(@config_path)
-
-      config = YAML.load_file(@config_path) || {}
-      # Convert string keys to symbols for consistency with options hash
-      config.transform_keys(&:to_sym)
-    end
-
     def config_file_exists?
       File.exist?(@config_path)
     end
@@ -224,6 +213,9 @@ module CLI
       FileUtils.mkdir_p(File.dirname(@config_path))
       File.write(@config_path, safe_config.to_yaml)
       puts "Configuration saved to #{@config_path}"
+
+      # Update the global configuration
+      Configuration.configure(safe_config)
     end
 
     def handle_command(args, show_all: false)
@@ -234,19 +226,17 @@ module CLI
         show
       when 'get'
         key = args[1]
-        if key.nil?
-          puts 'Usage: cleanbox config get <key>'
-          exit 1
-        end
+        exit_with_error 'Usage: cleanbox config get <key>' if key.nil?
         get(key)
       when 'set'
         key = args[1]
         value = args[2]
 
         if key.nil? || value.blank?
-          puts 'Usage: cleanbox config set <key> <value>'
-          puts "For complex values, edit the config file directly: #{@config_path}"
-          exit 1
+          exit_with_error <<~ERROR
+            Usage: cleanbox config set <key> <value>
+            For complex values, edit the config file directly: #{@config_path}
+          ERROR
         end
         set(key, value)
       when 'add'
@@ -254,9 +244,10 @@ module CLI
         value = args[2]
 
         if key.nil? || value.blank?
-          puts 'Usage: cleanbox config add <key> <value>'
-          puts 'This will append to arrays or merge with hashes'
-          exit 1
+          exit_with_error <<~ERROR
+            Usage: cleanbox config add <key> <value>
+            This will append to arrays or merge with hashes
+          ERROR
         end
         add(key, value)
       when 'remove'
@@ -264,9 +255,10 @@ module CLI
         value = args[2]
 
         if key.nil? || value.blank?
-          puts 'Usage: cleanbox config remove <key> <value>'
-          puts 'This will remove from arrays or delete keys from hashes'
-          exit 1
+          exit_with_error <<~ERROR
+            Usage: cleanbox config remove <key> <value>
+            This will remove from arrays or delete keys from hashes
+          ERROR
         end
         remove(key, value)
       when 'init'
@@ -274,9 +266,10 @@ module CLI
       when 'init-domain-rules'
         init_domain_rules
       else
-        puts "Unknown config command: #{command}"
-        puts 'Available commands: show, get, set, add, remove, init, init-domain-rules'
-        exit 1
+        exit_with_error <<~ERROR
+          Unknown config command: #{command}
+          Available commands: show, get, set, add, remove, init, init-domain-rules
+        ERROR
       end
     end
 
@@ -356,9 +349,9 @@ module CLI
         'list_since_months' => 12,          # Process list folders from last X months
 
         # Retention Policy Settings
-        'retention_policy' => 'spammy',     # Options: spammy, hold, quarantine, paranoid
+        'retention_policy' => 'spammy', # Options: spammy, hold, quarantine, paranoid
         'quarantine_folder' => 'Quarantine', # Folder for quarantined emails
-        'hold_days' => 7,                   # Days to hold unknown emails in inbox
+        'hold_days' => 7, # Days to hold unknown emails in inbox
 
         # Data Directory
         'data_dir' => nil, # Directory for cache, logs, and analysis files (defaults to current directory)
@@ -515,6 +508,11 @@ module CLI
     def should_show_empty?(key)
       # Show empty with helpful comments for "optional but useful" options
       %w[client_id client_secret tenant_id password file_from_folders unjunk_folders valid_from log_file].include?(key)
+    end
+
+    def exit_with_error(error)
+      warn error
+      exit 1
     end
   end
 end

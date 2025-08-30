@@ -5,6 +5,7 @@ require_relative 'connection'
 require_relative 'cleanbox'
 require_relative 'configuration'
 require_relative 'auth/authentication_manager'
+require_relative '../lib/i18n_config'
 
 # Monkey patch Cleanbox to add convenience methods
 class Cleanbox

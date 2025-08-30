@@ -16,21 +16,25 @@ class CleanboxMessage < SimpleDelegator
     @message ||= Mail.read_from_string(attr['BODY[HEADER]'])
   end
 
+  def date
+    message.date
+  end
+
   def authentication_result
     @authentication_result ||= message.header_fields.detect do |f|
       f.name == 'Authentication-Results'
     end
   end
 
-  def has_fake_headers?
-    fake_header_fields.any? do |fake_field|
-      message.header_fields.any? { |field| field.name == fake_field }
-    end
-  end
+  # def has_fake_headers?
+  #   fake_header_fields.any? do |fake_field|
+  #     message.header_fields.any? { |field| field.name == fake_field }
+  #   end
+  # end
 
-  private
+  # private
 
-  def fake_header_fields
-    %w[X-Antiabuse]
-  end
+  # def fake_header_fields
+  #   %w[X-Antiabuse]
+  # end
 end

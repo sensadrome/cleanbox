@@ -347,28 +347,31 @@ This file tracks planned improvements, features, and tasks for the Cleanbox proj
   - Real-time progress updates
   - Live email processing status
   - Interactive configuration updates
-- [ ] **Unknown Sender Handling Strategies**
-  - **Holding Folder with Retention Policy** (Recommended)
-    - Create configurable "Unknown Senders" folder for emails that pass hygiene checks
-    - Implement retention policy (e.g., 30 days) with auto-pruning
-    - Allow users to review and manually file emails they want to keep
-    - Configurable retention periods and pruning behavior
+- [x] **Unknown Sender Handling Strategies** ✅ **COMPLETED**
+  - **Retention Policy System** ✅ **COMPLETED**
+    - Implemented comprehensive retention policy system with four options:
+      - `:spammy` - Treats legitimate-looking unknown emails as list emails
+      - `:hold` - Keeps unknown emails in inbox for configurable days before junking
+      - `:quarantine` - Files unknown emails to configurable quarantine folder
+      - `:paranoid` - Junks all unknown emails regardless of DKIM status
+    - Added configuration options: `hold_days`, `quarantine_folder`, `retention_policy`
+    - Integrated with setup wizard for interactive configuration
+    - Added comprehensive test coverage for all retention policies
+    - Updated configuration management and defaults
   - **Legitimacy Scoring System**
     - DKIM, SPF, DMARC validation
     - Header analysis for suspicious patterns
     - Sending infrastructure reputation checks
     - Configurable thresholds for "legit" vs "suspicious"
-  - **User Preference Options**
+  - **User Preference Options** ✅ **COMPLETED**
     - Aggressive (junk unknown senders) - **Currently implemented as default**
-    - Moderate (holding folder with retention)
-    - Lenient (file in preferred location if legit)
-  - **Configuration Options**
-    - `unknown_sender_handling`: "junk" | "holding_folder" | "preference"
-    - `holding_folder_name`: "Unknown Senders" (default)
-    - `holding_folder_retention_days`: 30 (default)
-    - `auto_prune_holding_folder`: true (default)
-    - `legitimacy_threshold`: "strict" | "moderate" | "lenient"
-  - **Note**: Currently using aggressive approach (junk unknown senders) to address DKIM permissiveness issue
+    - Moderate (holding folder with retention) - **Implemented as :hold policy**
+    - Lenient (file in preferred location if legit) - **Implemented as :spammy policy**
+  - **Configuration Options** ✅ **COMPLETED**
+    - `retention_policy`: "spammy" | "hold" | "quarantine" | "paranoid"
+    - `quarantine_folder`: "Quarantine" (default)
+    - `hold_days`: 7 (default)
+    - **Note**: Retention policy system now provides flexible unknown sender handling
 
 ## 🔄 Maintenance
 
@@ -439,6 +442,7 @@ This file tracks planned improvements, features, and tasks for the Cleanbox proj
 - [x] **Blacklist Folder Management** - Added early blacklist folder detection and exclusion from analysis
 - [x] **Folder Analysis Caching** - Implemented caching in FolderCategorizer to avoid redundant IMAP calls
 - [x] **Analysis Mode Implementation** - Added config-aware analysis that reuses existing configuration data
+- [x] **Retention Policy System** - Implemented comprehensive unknown sender handling with four retention policies (spammy, hold, quarantine, paranoid), configuration management, setup wizard integration, and full test coverage
 
 ---
 

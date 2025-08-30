@@ -220,8 +220,9 @@ module CLI
     end
 
     def save_config(config)
+      safe_config = config.slice(*recognized_keys)
       FileUtils.mkdir_p(File.dirname(@config_path))
-      File.write(@config_path, config.to_yaml)
+      File.write(@config_path, safe_config.to_yaml)
       puts "Configuration saved to #{@config_path}"
     end
 

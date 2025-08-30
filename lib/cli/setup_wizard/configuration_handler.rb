@@ -57,8 +57,8 @@ module CLI
         display_saving_message
         handle_secrets_file
 
-        config = configuration_for_mode
-        update_configuration_for_mode(config, final_config)
+        config = configuration_for_mode.merge(final_config)
+        # update_configuration_for_mode(config, final_config)
         save_and_display_results(config)
       end
 
@@ -98,16 +98,31 @@ module CLI
       def run_authentication_setup
         puts I18n.t('setup_wizard.authentication.setup_choice')
         puts ''
-        
+
         # Use AuthenticationGatherer directly instead of going through AuthCLI
         gatherer = CLI::AuthenticationGatherer.new
         gatherer.gather_authentication_details!
-        
+
         # Set both @details and @secrets from the gatherer
         @details = gatherer.connection_details
         @secrets = gatherer.secrets
-        
+
         puts ''
+      end
+
+      def display_saving_message
+        puts ''
+        puts I18n.t('setup_wizard.configuration.saving')
+      end
+
+      def handle_secrets_file
+        # Create .env file for sensitive credentials (only if not in update mode)
+        CLI::SecretsManager.create_env_file(@secrets) unless @update_mode
+      end
+
+      def configuration_for_mode
+        # Load existing config or create new
+        @update_mode ? Configuration.options : default_config
       end
 
       # Set sensible defaults for other configuration options
@@ -125,44 +140,29 @@ module CLI
         }
       end
 
-      def display_saving_message
-        puts ''
-        puts I18n.t('setup_wizard.configuration.saving')
-      end
-
-      def handle_secrets_file
-        # Create .env file for sensitive credentials (only if not in update mode)
-        CLI::SecretsManager.create_env_file(@secrets) unless @update_mode
-      end
-
-      def configuration_for_mode
-        # Load existing config or create new
-        @update_mode ? Configuration.options : {}
-      end
-
-      def update_configuration_for_mode(config, final_config)
-        if @update_mode
-          # In update mode, only update folder-related settings
-          config.merge!({
-                          whitelist_folders: final_config[:whitelist_folders],
-                          list_folders: final_config[:list_folders],
-                          list_domain_map: final_config[:domain_mappings],
-                          blacklist_folder: final_config[:blacklist_folder]
-                        })
-          puts I18n.t('setup_wizard.configuration.updated_analysis')
-        else
-          # In full setup mode, update everything
-          config.merge!(default_config)
-          config.merge!(@details)
-          config.merge!({
-                          whitelist_folders: final_config[:whitelist_folders],
-                          list_folders: final_config[:list_folders],
-                          list_domain_map: final_config[:domain_mappings],
-                          blacklist_folder: final_config[:blacklist_folder]
-                        })
-          puts I18n.t('setup_wizard.configuration.created_configuration')
-        end
-      end
+      # def update_configuration_for_mode(config, final_config)
+      #   if @update_mode
+      #     # In update mode, only update folder-related settings
+      #     config.merge!({
+      #                     whitelist_folders: final_config[:whitelist_folders],
+      #                     list_folders: final_config[:list_folders],
+      #                     list_domain_map: final_config[:domain_mappings],
+      #                     blacklist_folder: final_config[:blacklist_folder]
+      #                   })
+      #     puts I18n.t('setup_wizard.configuration.updated_analysis')
+      #   else
+      #     # In full setup mode, update everything
+      #     config.merge!(default_config)
+      #     config.merge!(@details)
+      #     config.merge!({
+      #                     whitelist_folders: final_config[:whitelist_folders],
+      #                     list_folders: final_config[:list_folders],
+      #                     list_domain_map: final_config[:domain_mappings],
+      #                     blacklist_folder: final_config[:blacklist_folder]
+      #                   })
+      #     puts I18n.t('setup_wizard.configuration.created_configuration')
+      #   end
+      # end
 
       def save_and_display_results(config)
         # Save configuration

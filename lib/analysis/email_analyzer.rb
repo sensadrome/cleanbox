@@ -5,7 +5,7 @@ require 'logger'
 module Analysis
   # Analyse patterns within email folders
   class EmailAnalyzer
-    attr_reader :analysis_results, :imap_connection, :folder_categorizer_class
+    attr_reader :analysis_results, :imap_connection, :folder_categorizer_class, :analysis_mode
     attr_accessor :logger
 
     def initialize(imap_connection, logger: nil, folder_categorizer_class: FolderCategorizer, analysis_mode: :full,

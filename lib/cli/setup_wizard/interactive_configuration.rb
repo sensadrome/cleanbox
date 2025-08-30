@@ -87,6 +87,8 @@ module CLI
         end
 
         retention_policy = prompt_for_retention_policy
+        puts "retention_policy is #{retention_policy}"
+        
         final_config[:retention_policy] = retention_policy
 
         # Configure retention policy specific settings
@@ -117,12 +119,12 @@ module CLI
 
       def configure_retention_policy_settings(final_config, retention_policy)
         case retention_policy
-        when :hold
+        when 'hold'
           puts ''
           puts I18n.t('setup_wizard.retention_policy.hold_days_prompt')
           hold_days_input = gets.chomp.strip
           final_config[:hold_days] = hold_days_input.empty? ? 7 : hold_days_input.to_i
-        when :quarantine
+        when 'quarantine'
           puts ''
           puts I18n.t('setup_wizard.retention_policy.quarantine_folder_prompt')
           quarantine_folder_input = gets.chomp.strip

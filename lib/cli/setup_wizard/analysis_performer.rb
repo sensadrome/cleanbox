@@ -36,12 +36,16 @@ module CLI
         end
 
         folder_results = analyzer.analyze_folders(progress_callback)
-        folders_for_categorization = folder_results[:folders]
+        folders_for_categorization = folder_results[:folders].sort_by do |f|
+          f[:name].downcase
+        end
 
         # Now do interactive categorization (alphabetically sorted)
-        @analysis_results[:folders] = interactive_folder_categorization(folders_for_categorization.sort_by do |f|
-          f[:name].downcase
-        end)
+        @analysis_results[:folders] = if analyzer.analysis_mode == :skip
+                                        folders_for_categorization
+                                      else
+                                        interactive_folder_categorization(folders_for_categorization)
+                                      end
       end
 
       def perform_sent_analysis

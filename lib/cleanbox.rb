@@ -224,7 +224,7 @@ class Cleanbox < CleanboxConnection
       unjunking: unjunking?,
       blacklisted_emails: blacklisted_emails,
       junk_emails: junk_emails,
-      retention_policy: retention_policy,
+      retention_policy: retention_policy.to_sym,
       hold_days: hold_days,
       quarantine_folder: quarantine_folder
     }

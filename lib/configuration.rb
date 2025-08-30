@@ -40,7 +40,7 @@ class Configuration
         list_since_months: 12,
         log_file: nil,
         quarantine_folder: 'Quarantine',
-        retention_policy: :spammy,
+        retention_policy: 'spammy',
         sent_folder: 'Sent Items',
         sent_since_months: 24,
         unjunk: false,

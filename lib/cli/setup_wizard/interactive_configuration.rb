@@ -112,7 +112,7 @@ module CLI
       end
 
       def retention_policy_options
-        %i[spammy hold quarantine paranoid]
+        %w[spammy hold quarantine paranoid]
       end
 
       def configure_retention_policy_settings(final_config, retention_policy)

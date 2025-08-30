@@ -99,18 +99,7 @@ module CLI
       end
 
       def prompt_for_retention_policy
-        choice = prompt_choice(I18n.t('setup_wizard.recommendations.retention_policy_prompt'), retention_policy_choices)
-        case choice
-        when 1
-          :spammy
-        when '2', 'partial'
-          :partial
-        when '3', 'skip'
-          :skip
-        else
-          puts I18n.t('setup_wizard.analysis.invalid_mode_choice')
-          prompt_for_analysis_mode # Recursive call for invalid input
-        end
+        prompt_choice(I18n.t('setup_wizard.recommendations.retention_policy_prompt'), retention_policy_choices)
       end
 
       def retention_policy_choices

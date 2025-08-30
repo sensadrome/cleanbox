@@ -198,7 +198,7 @@ class Cleanbox < CleanboxConnection
 
   def message_action_runner
     @message_action_runner ||= MessageActionRunner.new(
-      imap: imap_connection,
+      imap: self,
       junk_folder: junk_folder,
       pretending: pretending?,
       logger: logger

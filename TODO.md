@@ -91,6 +91,14 @@ This file tracks planned improvements, features, and tasks for the Cleanbox proj
     - Implement storage provider auto-scaling for cloud backends
 
 ### User Experience
+- [ ] **Improve Setup Wizard UX and Clarity**
+  - Rename analysis mode options to better reflect their purpose:
+    - Option 1: "Update existing configuration" instead of "Perform folder analysis"
+    - Option 2: "Partial update" instead of "Partial analysis" 
+    - Option 3: "Skip configuration update" (this one is clear)
+  - In update mode, use existing configuration values as defaults instead of hardcoded defaults
+  - Pre-fill interactive prompts with current values when updating existing config
+  - Make it clear that update mode allows users to modify current settings, not just analyze folders
 - [ ] **Add Interactive Mode**
   - Confirm actions before execution
   - Preview changes with user approval

@@ -104,7 +104,8 @@ RSpec.describe 'SetupWizard Integration' do
         '',                       # Accept default categorization for Sent Items (Y)
         '',                       # No additional whitelist folders
         '',                       # No additional list folders
-        '',                       # No custom domain mappings
+        '',                       # No custom domain mappings,
+        '1',                      # Spammy retention policy
         'n'                       # Don't preview (N)
       )
 
@@ -159,6 +160,7 @@ RSpec.describe 'SetupWizard Integration' do
         '',                       # No additional whitelist folders
         '',                       # No additional list folders
         '',                       # Accept default domain mappings (Enter)
+        '1',                      # Spammy retention policy
         'n'                       # Don't preview (N)
       )
 
@@ -216,6 +218,7 @@ RSpec.describe 'SetupWizard Integration' do
         '',                       # No additional whitelist folders
         '',                       # No additional list folders
         '',                       # Accept default domain mappings (Enter)
+        '1',                      # Spammy retention policy
         'n'                       # Don't preview (N)
       )
 

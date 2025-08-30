@@ -725,7 +725,7 @@ RSpec.describe CLI::ConfigManager do
   describe 'private methods' do
     describe '#get_recognized_keys' do
       it 'returns list of recognized keys' do
-        keys = config_manager.send(:get_recognized_keys)
+        keys = config_manager.send(:recognized_keys)
         expect(keys).to include(:host, :username, :auth_type, :whitelist_folders)
         expect(keys).to be_an(Array)
       end

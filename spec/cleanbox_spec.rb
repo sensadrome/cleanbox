@@ -11,7 +11,7 @@ RSpec.describe Cleanbox do
       whitelist_folders: %w[Family Work],
       list_folders: ['Newsletters'],
       whitelisted_domains: ['trusted.com'],
-      list_domains: ['newsletter.com'],
+
       list_domain_map: { 'newsletter.com' => 'Newsletters' },
       sent_folder: 'Sent',
       sent_since_months: 24,
@@ -124,42 +124,7 @@ RSpec.describe Cleanbox do
     end
   end
 
-  describe '#build_list_domains!' do
-    let(:mock_folder_checker) { double('CleanboxFolderChecker') }
 
-    before do
-      allow(CleanboxFolderChecker).to receive(:new).and_return(mock_folder_checker)
-      allow(mock_folder_checker).to receive(:domains).and_return(['newsletter.com', 'updates.com'])
-    end
-
-    it 'builds list domains from folders and options' do
-      expect(cleanbox.logger).to receive(:info).with('Building list subscriptions....')
-
-      cleanbox.send(:build_list_domains!)
-
-      expect(cleanbox.list_domains).to include('newsletter.com', 'updates.com', 'newsletter.com')
-    end
-
-    it 'updates list_domain_map with folder mappings' do
-      cleanbox.send(:build_list_domains!)
-
-      expect(cleanbox.list_domain_map['newsletter.com']).to eq('Newsletters')
-      expect(cleanbox.list_domain_map['updates.com']).to eq('Newsletters')
-    end
-
-    it 'creates CleanboxFolderChecker for each list folder' do
-      cleanbox.send(:build_list_domains!)
-
-      expect(CleanboxFolderChecker).to have_received(:new).with(
-        mock_imap,
-        hash_including(
-          folder: 'Newsletters',
-          logger: cleanbox.logger,
-          since: anything
-        )
-      )
-    end
-  end
 
   describe '#build_blacklist!' do
     let(:mock_folder_checker) { double('CleanboxFolderChecker') }
@@ -240,7 +205,7 @@ RSpec.describe Cleanbox do
     before do
       allow(cleanbox).to receive(:whitelisted_emails).and_return(['family@example.com'])
       allow(cleanbox).to receive(:whitelisted_domains).and_return(['trusted.com'])
-      allow(cleanbox).to receive(:list_domains).and_return(['newsletter.com'])
+
       allow(cleanbox).to receive(:list_domain_map).and_return({ 'newsletter.com' => 'Newsletters' })
       allow(cleanbox).to receive(:sender_map).and_return({ 'sender@example.com' => 'Work' })
       allow(cleanbox).to receive(:list_folder).and_return('Lists')
@@ -262,7 +227,6 @@ RSpec.describe Cleanbox do
       expect(context).to include(
         :whitelisted_emails,
         :whitelisted_domains,
-        :list_domains,
         :list_domain_map,
         :sender_map,
         :list_folder,
@@ -324,11 +288,9 @@ RSpec.describe Cleanbox do
         'newsletter.com' => 'Newsletters',
         'updates.com' => 'Updates'
       }
-      allow(cleanbox).to receive(:build_list_domains!)
     end
 
-    it 'builds list domains and shows domain mappings' do
-      expect(cleanbox).to receive(:build_list_domains!)
+    it 'shows domain mappings' do
       cleanbox.show_lists!
       expect(output.string).to include("'newsletter.com' => 'Newsletters'")
     end

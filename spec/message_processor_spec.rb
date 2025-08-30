@@ -12,7 +12,8 @@ RSpec.describe MessageProcessor do
       sender_map: { 'sender@example.com' => 'Work' },
       list_folder: 'Lists',
       blacklisted_emails: ['list@list.example.com'],  # User blacklisted (unsubscribe folder)
-      junk_emails: ['spam@example.com', 'unwanted@trusted.com']  # From junk folder
+      junk_emails: ['spam@example.com', 'unwanted@trusted.com'],  # From junk folder
+      retention_policy: :spammy
     }
   end
 
@@ -130,37 +131,137 @@ RSpec.describe MessageProcessor do
     end
   end
 
-  describe 'DKIM validation' do
-    let(:context) do
-      {
-        whitelisted_emails: [],
-        whitelisted_domains: [],
-        list_domains: ['example.com'],
-        list_domain_map: {},
-        sender_map: {},
-        list_folder: 'Lists'
-      }
+  describe 'Retention Policy' do
+    context "when set to 'spammy'" do
+      let(:context) do
+        {
+          whitelisted_emails: [],
+          whitelisted_domains: [],
+          list_domains: [],
+          list_domain_map: {},
+          sender_map: {},
+          list_folder: 'Lists',
+          retention_policy: :spammy
+        }
+      end
+
+      context 'with a valid DKIM message' do
+        let(:message) do
+          build_message_with_headers('unknown@example.com', 'example.com', { 'Authentication-Results' => 'dkim=pass' })
+        end
+
+        it 'treats as valid list email' do
+          decision = processor.decide_for_new_message(message)
+          expect(decision).to eq({ action: :move, folder: 'Lists' })
+        end
+      end
+
+      context 'with an invalid DKIM message' do
+        let(:message) do
+          build_message_with_headers('unknown@example.com', 'example.com', { 'Authentication-Results' => 'dkim=fail' })
+        end
+
+        it 'junks the email' do
+          decision = processor.decide_for_new_message(message)
+          expect(decision).to eq({ action: :junk })
+        end
+      end
+
+      context 'with a message from explicitly mapped domain' do
+        let(:context) do
+          {
+            whitelisted_emails: [],
+            whitelisted_domains: [],
+            list_domain_map: { 'example.com' => 'Lists' },
+            sender_map: {},
+            list_folder: 'Lists',
+            retention_policy: :spammy
+          }
+        end
+
+        let(:message) do
+          build_message_with_headers('list@example.com', 'example.com', { 'Authentication-Results' => 'dkim=fail' })
+        end
+
+        it 'treats as valid list email regardless of DKIM' do
+          decision = processor.decide_for_new_message(message)
+          expect(decision).to eq({ action: :move, folder: 'Lists' })
+        end
+      end
     end
 
-    context 'when message has valid DKIM' do
-      let(:message) do
-        build_message_with_headers('list@example.com', 'example.com', { 'Authentication-Results' => 'dkim=pass' })
+    context "when set to 'paranoid'" do
+      let(:context) do
+        {
+          whitelisted_emails: [],
+          whitelisted_domains: [],
+          list_domains: [],
+          list_domain_map: {},
+          sender_map: {},
+          list_folder: 'Lists',
+          retention_policy: :paranoid
+        }
       end
 
-      it 'treats as valid list email' do
+      let(:message) { build_message('unknown@example.com', 'example.com', date_sent: DateTime.now - 1) }
+
+      it 'junks unknown emails regardless of DKIM status' do
         decision = processor.decide_for_new_message(message)
-        expect(decision).to eq({ action: :move, folder: 'Lists' })
+        expect(decision).to eq({ action: :junk })
       end
     end
 
-    context 'when message has invalid DKIM but domain is in list_domains' do
-      let(:message) do
-        build_message_with_headers('list@example.com', 'example.com', { 'Authentication-Results' => 'dkim=fail' })
+    context "when set to 'hold'" do
+      let(:context) do
+        {
+          whitelisted_emails: [],
+          whitelisted_domains: [],
+          list_domain_map: {},
+          sender_map: {},
+          list_folder: 'Lists',
+          retention_policy: :hold,
+          hold_days: 7
+        }
       end
 
-      it 'still treats as valid list email' do
+      context 'with a recent message' do
+        let(:message) { build_message('recent@example.com', 'example.com', date_sent: DateTime.now - 2) }
+
+        it 'holds the email in inbox' do
+          decision = processor.decide_for_new_message(message)
+          expect(decision).to eq({ action: :keep })
+        end
+      end
+
+      context 'with an old message' do
+        let(:message) { build_message('old@example.com', 'example.com', date_sent: DateTime.now - 10) }
+
+        it 'junks the email' do
+          decision = processor.decide_for_new_message(message)
+          expect(decision).to eq({ action: :junk })
+        end
+      end
+    end
+
+    context "when set to 'quarantine'" do
+      let(:context) do
+        {
+          whitelisted_emails: [],
+          whitelisted_domains: [],
+          list_domains: [],
+          list_domain_map: {},
+          sender_map: {},
+          list_folder: 'Lists',
+          retention_policy: :quarantine,
+          quarantine_folder: 'Quarantine'
+        }
+      end
+
+      let(:message) { build_message('unknown@example.com', 'example.com', date_sent: DateTime.now - 1) }
+
+      it 'files unknown emails to quarantine folder' do
         decision = processor.decide_for_new_message(message)
-        expect(decision).to eq({ action: :move, folder: 'Lists' })
+        expect(decision).to eq({ action: :move, folder: 'Quarantine' })
       end
     end
   end
@@ -173,7 +274,8 @@ RSpec.describe MessageProcessor do
         list_domains: ['example.com'],
         list_domain_map: {},
         sender_map: {},
-        list_folder: 'Lists'
+        list_folder: 'Lists',
+        retention_policy: :spammy
       }
     end
 
@@ -187,15 +289,18 @@ RSpec.describe MessageProcessor do
     end
   end
 
+
+
   private
 
-  def build_message(from_address, from_domain, valid_list_email: true)
+  def build_message(from_address, from_domain, valid_list_email: true, date_sent: DateTime.now)
     # header_fields.detect { |f| f.name == 'Authentication-Results' }
     headers = valid_list_email ? list_email_headers : []
     double('message',
            from_address: from_address,
            from_domain: from_domain,
-           message: double('mail', header_fields: headers))
+           date: date_sent,
+           message: double('mail', header_fields: headers, date: date_sent))
   end
 
   def list_email_headers
@@ -210,11 +315,12 @@ RSpec.describe MessageProcessor do
     ]
   end
 
-  def build_message_with_headers(from_address, from_domain, headers_hash)
+  def build_message_with_headers(from_address, from_domain, headers_hash, date_sent: DateTime.now)
     header_fields = headers_hash.map { |k, v| double('header', name: k, to_s: v) }
     double('message',
            from_address: from_address,
            from_domain: from_domain,
+           date: date_sent,
            message: double('mail', header_fields: header_fields))
   end
 end

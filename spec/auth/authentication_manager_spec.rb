@@ -313,7 +313,7 @@ RSpec.describe Auth::AuthenticationManager do
     end
   end
 
-  describe 'integration scenarios' do
+  describe 'full walkthrough' do
     context 'with typical Microsoft 365 setup' do
       let(:microsoft_options) do
         {

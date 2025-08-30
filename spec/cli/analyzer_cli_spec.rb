@@ -24,14 +24,14 @@ RSpec.describe CLI::AnalyzerCLI do
 
       analyzer_cli.send(:show_help)
 
-      expect(output.string).to include('Cleanbox Analysis Commands')
-      expect(output.string).to include('Usage: ./cleanbox analyze')
-      expect(output.string).to include('folders')
-      expect(output.string).to include('inbox')
-      expect(output.string).to include('senders')
-      expect(output.string).to include('domains')
-      expect(output.string).to include('recommendations')
-      expect(output.string).to include('summary')
+      expect(captured_output.string).to include('Cleanbox Analysis Commands')
+      expect(captured_output.string).to include('Usage: ./cleanbox analyze')
+      expect(captured_output.string).to include('folders')
+      expect(captured_output.string).to include('inbox')
+      expect(captured_output.string).to include('senders')
+      expect(captured_output.string).to include('domains')
+      expect(captured_output.string).to include('recommendations')
+      expect(captured_output.string).to include('summary')
     end
   end
 
@@ -122,11 +122,11 @@ RSpec.describe CLI::AnalyzerCLI do
 
       analyzer_cli.send(:show_brief_folder_analysis, folder_results)
 
-      expect(output.string).to include('📊 Folder Summary:')
-      expect(output.string).to include('Total folders analyzed: 2')
-      expect(output.string).to include('Total messages: 150')
-      expect(output.string).to include('Whitelist folders: 1')
-      expect(output.string).to include('List folders: 1')
+      expect(captured_output.string).to include('📊 Folder Summary:')
+      expect(captured_output.string).to include('Total folders analyzed: 2')
+      expect(captured_output.string).to include('Total messages: 150')
+      expect(captured_output.string).to include('Whitelist folders: 1')
+      expect(captured_output.string).to include('List folders: 1')
     end
 
     it 'shows standard folder analysis' do
@@ -135,11 +135,11 @@ RSpec.describe CLI::AnalyzerCLI do
 
       analyzer_cli.send(:show_standard_folder_analysis, folders)
 
-      expect(output.string).to include('📊 Folder Analysis:')
-      expect(output.string).to include('📁 Work')
-      expect(output.string).to include('📁 Newsletters')
-      expect(output.string).to include('Messages: 100')
-      expect(output.string).to include('Messages: 50')
+      expect(captured_output.string).to include('📊 Folder Analysis:')
+      expect(captured_output.string).to include('📁 Work')
+      expect(captured_output.string).to include('📁 Newsletters')
+      expect(captured_output.string).to include('Messages: 100')
+      expect(captured_output.string).to include('Messages: 50')
     end
   end
 
@@ -157,10 +157,10 @@ RSpec.describe CLI::AnalyzerCLI do
 
       analyzer_cli.send(:show_date_range_impact, folders)
 
-      expect(output.string).to include('📅 Date Range Impact Analysis:')
-      expect(output.string).to include('Current date range: 12 months')
-      expect(output.string).to include('⚠️  Low volume folders that might miss patterns:')
-      expect(output.string).to include('• Low Volume (3 messages)')
+      expect(captured_output.string).to include('📅 Date Range Impact Analysis:')
+      expect(captured_output.string).to include('Current date range: 12 months')
+      expect(captured_output.string).to include('⚠️  Low volume folders that might miss patterns:')
+      expect(captured_output.string).to include('• Low Volume (3 messages)')
     end
   end
 
@@ -199,7 +199,7 @@ RSpec.describe CLI::AnalyzerCLI do
 
       analyzer_cli.send(:analyze_inbox)
 
-      expect(output.string).to include('📧 Inbox Analysis')
+      expect(captured_output.string).to include('📧 Inbox Analysis')
     end
 
     it 'analyzes senders' do
@@ -208,7 +208,7 @@ RSpec.describe CLI::AnalyzerCLI do
 
       analyzer_cli.send(:analyze_senders)
 
-      expect(output.string).to include('👤 Sender Analysis')
+      expect(captured_output.string).to include('👤 Sender Analysis')
     end
 
     it 'analyzes domains' do
@@ -217,7 +217,7 @@ RSpec.describe CLI::AnalyzerCLI do
 
       analyzer_cli.send(:analyze_domains)
 
-      expect(output.string).to include('🌐 Domain Analysis')
+      expect(captured_output.string).to include('🌐 Domain Analysis')
     end
 
     it 'analyzes recommendations' do
@@ -226,7 +226,7 @@ RSpec.describe CLI::AnalyzerCLI do
 
       analyzer_cli.send(:analyze_recommendations)
 
-      expect(output.string).to include('🤖 Configuration Recommendations')
+      expect(captured_output.string).to include('🤖 Configuration Recommendations')
     end
 
     it 'analyzes summary' do
@@ -235,7 +235,7 @@ RSpec.describe CLI::AnalyzerCLI do
 
       analyzer_cli.send(:analyze_summary)
 
-      expect(output.string).to include('📊 Comprehensive Analysis Summary')
+      expect(captured_output.string).to include('📊 Comprehensive Analysis Summary')
     end
   end
 
@@ -269,9 +269,9 @@ RSpec.describe CLI::AnalyzerCLI do
       }
       analyzer_cli.send(:show_brief_inbox_analysis, inbox_data)
 
-      expect(output.string).to include('📧 Inbox Summary:')
-      expect(output.string).to include('150')
-      expect(output.string).to include('25')
+      expect(captured_output.string).to include('📧 Inbox Summary:')
+      expect(captured_output.string).to include('150')
+      expect(captured_output.string).to include('25')
     end
 
     it 'shows brief sender analysis' do
@@ -284,8 +284,8 @@ RSpec.describe CLI::AnalyzerCLI do
       }
       analyzer_cli.send(:show_brief_sender_analysis, sender_analysis)
 
-      expect(output.string).to include('👤 Sender Summary:')
-      expect(output.string).to include('2')
+      expect(captured_output.string).to include('👤 Sender Summary:')
+      expect(captured_output.string).to include('2')
     end
 
     it 'shows brief domain analysis' do
@@ -299,8 +299,8 @@ RSpec.describe CLI::AnalyzerCLI do
       }
       analyzer_cli.send(:show_brief_domain_analysis, domain_analysis_with_folders)
 
-      expect(output.string).to include('🌐 Domain Summary:')
-      expect(output.string).to include('3')
+      expect(captured_output.string).to include('🌐 Domain Summary:')
+      expect(captured_output.string).to include('3')
     end
 
     it 'shows recommendations' do
@@ -320,8 +320,8 @@ RSpec.describe CLI::AnalyzerCLI do
 
       analyzer_cli.send(:show_recommendations, recommendations, folders)
 
-      expect(output.string).to include('✅ Whitelist Folders:')
-      expect(output.string).to include('📬 List Folders:')
+      expect(captured_output.string).to include('✅ Whitelist Folders:')
+      expect(captured_output.string).to include('📬 List Folders:')
     end
 
     it 'shows comprehensive summary' do
@@ -338,7 +338,7 @@ RSpec.describe CLI::AnalyzerCLI do
       }
       analyzer_cli.send(:show_comprehensive_summary, [], sent_items, domain_analysis, recommendations)
 
-      expect(output.string).to include('📊 Overall Statistics:')
+      expect(captured_output.string).to include('📊 Overall Statistics:')
     end
   end
 
@@ -406,9 +406,9 @@ RSpec.describe CLI::AnalyzerCLI do
 
       analyzer_cli.send(:show_detailed_folder_analysis, folders)
 
-      expect(output.string).to include('📊 Folder Analysis:')
-      expect(output.string).to include('Work')
-      expect(output.string).to include('Newsletters')
+      expect(captured_output.string).to include('📊 Folder Analysis:')
+      expect(captured_output.string).to include('Work')
+      expect(captured_output.string).to include('Newsletters')
     end
 
     it 'shows detailed inbox analysis' do
@@ -417,8 +417,8 @@ RSpec.describe CLI::AnalyzerCLI do
 
       analyzer_cli.send(:show_detailed_inbox_analysis, inbox_data)
 
-      expect(output.string).to include('📧 Inbox Summary:')
-      expect(output.string).to include('150')
+      expect(captured_output.string).to include('📧 Inbox Summary:')
+      expect(captured_output.string).to include('150')
     end
 
     it 'shows detailed sender analysis' do
@@ -427,8 +427,8 @@ RSpec.describe CLI::AnalyzerCLI do
 
       analyzer_cli.send(:show_detailed_sender_analysis, sender_analysis)
 
-      expect(output.string).to include('👤 Sender Summary:')
-      expect(output.string).to include('2')
+      expect(captured_output.string).to include('👤 Sender Summary:')
+      expect(captured_output.string).to include('2')
     end
 
     it 'shows detailed domain analysis' do
@@ -437,8 +437,8 @@ RSpec.describe CLI::AnalyzerCLI do
 
       analyzer_cli.send(:show_detailed_domain_analysis, domain_analysis)
 
-      expect(output.string).to include('🌐 Domain Summary:')
-      expect(output.string).to include('2')
+      expect(captured_output.string).to include('🌐 Domain Summary:')
+      expect(captured_output.string).to include('2')
     end
   end
 
@@ -483,9 +483,9 @@ RSpec.describe CLI::AnalyzerCLI do
 
       analyzer_cli.send(:show_standard_folder_analysis, folders)
 
-      expect(output.string).to include('📊 Folder Analysis:')
-      expect(output.string).to include('Work')
-      expect(output.string).to include('Newsletters')
+      expect(captured_output.string).to include('📊 Folder Analysis:')
+      expect(captured_output.string).to include('Work')
+      expect(captured_output.string).to include('Newsletters')
     end
 
     it 'shows standard inbox analysis' do
@@ -494,8 +494,8 @@ RSpec.describe CLI::AnalyzerCLI do
 
       analyzer_cli.send(:show_standard_inbox_analysis, inbox_data)
 
-      expect(output.string).to include('📧 Inbox Summary:')
-      expect(output.string).to include('150')
+      expect(captured_output.string).to include('📧 Inbox Summary:')
+      expect(captured_output.string).to include('150')
     end
 
     it 'shows standard sender analysis' do
@@ -504,8 +504,8 @@ RSpec.describe CLI::AnalyzerCLI do
 
       analyzer_cli.send(:show_standard_sender_analysis, sender_analysis)
 
-      expect(output.string).to include('👤 Sender Summary:')
-      expect(output.string).to include('2')
+      expect(captured_output.string).to include('👤 Sender Summary:')
+      expect(captured_output.string).to include('2')
     end
 
     it 'shows standard domain analysis' do
@@ -514,8 +514,8 @@ RSpec.describe CLI::AnalyzerCLI do
 
       analyzer_cli.send(:show_standard_domain_analysis, domain_analysis)
 
-      expect(output.string).to include('🌐 Domain Summary:')
-      expect(output.string).to include('2')
+      expect(captured_output.string).to include('🌐 Domain Summary:')
+      expect(captured_output.string).to include('2')
     end
   end
 

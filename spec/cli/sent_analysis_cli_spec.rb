@@ -394,32 +394,32 @@ RSpec.describe CLI::SentAnalysisCLI do
   describe '#show_help' do
     it 'displays the help header' do
       cli.send(:show_help)
-      expect(output.string).to include("Sent Analysis CLI - Analyze sent emails vs folder contents")
+      expect(captured_output.string).to include("Sent Analysis CLI - Analyze sent emails vs folder contents")
     end
 
     it 'displays all available commands' do
       cli.send(:show_help)
-      expect(output.string).to include("Commands:")
-      expect(output.string).to include("collect")
-      expect(output.string).to include("analyze")
-      expect(output.string).to include("compare")
-      expect(output.string).to include("help")
+      expect(captured_output.string).to include("Commands:")
+      expect(captured_output.string).to include("collect")
+      expect(captured_output.string).to include("analyze")
+      expect(captured_output.string).to include("compare")
+      expect(captured_output.string).to include("help")
     end
 
     it 'displays command descriptions' do
       cli.send(:show_help)
-      expect(output.string).to include("Collect data from IMAP server")
-      expect(output.string).to include("Analyze collected data")
-      expect(output.string).to include("Compare sent emails with folder contents")
-      expect(output.string).to include("Show this help")
+      expect(captured_output.string).to include("Collect data from IMAP server")
+      expect(captured_output.string).to include("Analyze collected data")
+      expect(captured_output.string).to include("Compare sent emails with folder contents")
+      expect(captured_output.string).to include("Show this help")
     end
 
     it 'displays usage examples' do
       cli.send(:show_help)
-      expect(output.string).to include("Usage:")
-      expect(output.string).to include("cleanbox sent-analysis collect")
-      expect(output.string).to include("cleanbox sent-analysis analyze")
-      expect(output.string).to include("cleanbox sent-analysis compare")
+      expect(captured_output.string).to include("Usage:")
+      expect(captured_output.string).to include("cleanbox sent-analysis collect")
+      expect(captured_output.string).to include("cleanbox sent-analysis analyze")
+      expect(captured_output.string).to include("cleanbox sent-analysis compare")
     end
 
     it 'displays complete help output with proper formatting' do
@@ -439,22 +439,22 @@ RSpec.describe CLI::SentAnalysisCLI do
       EXPECTED
 
       cli.send(:show_help)
-      expect(output.string).to include(expected_output)
+      expect(captured_output.string).to include(expected_output)
     end
 
     it 'includes proper spacing and formatting' do
       cli.send(:show_help)
-      expect(output.string).to include("Sent Analysis CLI - Analyze sent emails vs folder contents")
-      expect(output.string).to include("Commands:")
-      expect(output.string).to include("collect")
-      expect(output.string).to include("Usage:")
-      expect(output.string).to include("cleanbox sent-analysis collect")
+      expect(captured_output.string).to include("Sent Analysis CLI - Analyze sent emails vs folder contents")
+      expect(captured_output.string).to include("Commands:")
+      expect(captured_output.string).to include("collect")
+      expect(captured_output.string).to include("Usage:")
+      expect(captured_output.string).to include("cleanbox sent-analysis collect")
 
       # Check that commands are properly indented
-      expect(output.string).to include("  collect")
-      expect(output.string).to include("  analyze")
-      expect(output.string).to include("  compare")
-      expect(output.string).to include("  help")
+      expect(captured_output.string).to include("  collect")
+      expect(captured_output.string).to include("  analyze")
+      expect(captured_output.string).to include("  compare")
+      expect(captured_output.string).to include("  help")
     end
   end
 end

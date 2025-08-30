@@ -75,7 +75,7 @@ RSpec.describe CLI::SetupWizard do
 
         it 'prompts for update mode choice' do
           wizard.run
-          expect(output.string).to include('Configuration file already exists!')
+          expect(captured_output.string).to include('Configuration file already exists!')
         end
 
         it 'sets update mode and proceeds with setup' do
@@ -92,7 +92,7 @@ RSpec.describe CLI::SetupWizard do
           allow(wizard).to receive(:save_configuration)
           allow(wizard).to receive(:validate_and_preview)
           wizard.run
-          expect(output.string).to include('Using existing connection settings')
+          expect(captured_output.string).to include('Using existing connection settings')
         end
 
         context 'with missing host' do
@@ -106,7 +106,7 @@ RSpec.describe CLI::SetupWizard do
           it 'fails fast when config is incomplete' do
             # Expect the wizard to fail fast when config is missing required fields
             wizard.run
-            expect(output.string).to include('Configuration is incomplete')
+            expect(captured_output.string).to include('Configuration is incomplete')
             expect(wizard.run).to be_nil
           end
         end
@@ -157,8 +157,8 @@ RSpec.describe CLI::SetupWizard do
 
           it 'successfully proceeds with folder analysis using existing credentials' do
             wizard.run
-            expect(output.string).to include('Using existing connection settings')
-            expect(output.string).to include('Setup complete')
+            expect(captured_output.string).to include('Using existing connection settings')
+            expect(captured_output.string).to include('Setup complete')
           end
 
           it 'runs analysis on existing folders' do
@@ -191,10 +191,10 @@ RSpec.describe CLI::SetupWizard do
               it 'uses preconfigured blacklist folder' do
                 wizard.run
                 
-                expect(output.string).to include('Using existing connection settings')
-                expect(output.string).to include('Setup complete')
+                expect(captured_output.string).to include('Using existing connection settings')
+                expect(captured_output.string).to include('Setup complete')
                 # Should not show blacklist folder detection since it's preconfigured
-                expect(output.string).not_to include('🚫 Blacklist Folder Detection')
+                expect(captured_output.string).not_to include('🚫 Blacklist Folder Detection')
               end
             end
 
@@ -212,10 +212,10 @@ RSpec.describe CLI::SetupWizard do
               it 'detects and prompts for blacklist folder choice' do
                 wizard.run
                 
-                expect(output.string).to include('🚫 Blacklist Folder Detection')
-                expect(output.string).to include('Found potential blacklist folders')
-                expect(output.string).to include('Unsubscribe')
-                expect(output.string).to include('Blacklist')
+                expect(captured_output.string).to include('🚫 Blacklist Folder Detection')
+                expect(captured_output.string).to include('Found potential blacklist folders')
+                expect(captured_output.string).to include('Unsubscribe')
+                expect(captured_output.string).to include('Blacklist')
               end
             end
 
@@ -232,9 +232,9 @@ RSpec.describe CLI::SetupWizard do
               it 'prompts to create blacklist folder' do
                 wizard.run
                 
-                expect(output.string).to include('🚫 Blacklist Folder Detection')
-                expect(output.string).to include('No obvious blacklist folders found')
-                expect(output.string).to include('Would you like to create a blacklist folder')
+                expect(captured_output.string).to include('🚫 Blacklist Folder Detection')
+                expect(captured_output.string).to include('No obvious blacklist folders found')
+                expect(captured_output.string).to include('Would you like to create a blacklist folder')
               end
             end
           end
@@ -281,7 +281,7 @@ RSpec.describe CLI::SetupWizard do
 
         it 'outputs cancellation message' do
           wizard.run
-          expect(output.string).to include('Setup cancelled')
+          expect(captured_output.string).to include('Setup cancelled')
         end
       end
 
@@ -296,7 +296,7 @@ RSpec.describe CLI::SetupWizard do
 
         it 'outputs error message' do
           wizard.run
-          expect(output.string).to include('Invalid choice')
+          expect(captured_output.string).to include('Invalid choice')
         end
       end
     end
@@ -349,7 +349,7 @@ RSpec.describe CLI::SetupWizard do
 
       it 'outputs welcome message' do
         wizard.run
-        expect(output.string).to include('Welcome to Cleanbox Setup Wizard!')
+        expect(captured_output.string).to include('Welcome to Cleanbox Setup Wizard!')
       end
     end
 
@@ -373,7 +373,7 @@ RSpec.describe CLI::SetupWizard do
           allow_any_instance_of(CLI::AuthCLI).to receive(:setup_auth)
 
           wizard.run
-          expect(output.string).to include('❌ Connection failed: Connection failed')
+          expect(captured_output.string).to include('❌ Connection failed: Connection failed')
         end
 
         it 'does not proceed with setup' do
@@ -469,12 +469,12 @@ RSpec.describe CLI::SetupWizard do
 
         it 'prompts for authentication setup choice' do
           wizard.run
-          expect(output.string).to include('Authentication not configured!')
+          expect(captured_output.string).to include('Authentication not configured!')
         end
 
         it 'offers to set up authentication' do
           wizard.run
-          expect(output.string).to include('Set up authentication now')
+          expect(captured_output.string).to include('Set up authentication now')
         end
       end
 
@@ -503,7 +503,7 @@ RSpec.describe CLI::SetupWizard do
 
         it 'skips authentication setup and continues' do
           wizard.run
-          expect(output.string).to include('Skipping authentication setup')
+          expect(captured_output.string).to include('Skipping authentication setup')
         end
       end
 
@@ -518,7 +518,7 @@ RSpec.describe CLI::SetupWizard do
 
         it 'outputs cancellation message' do
           wizard.run
-          expect(output.string).to include('Setup cancelled')
+          expect(captured_output.string).to include('Setup cancelled')
         end
       end
     end
@@ -549,7 +549,7 @@ RSpec.describe CLI::SetupWizard do
 
       it 'skips authentication setup and proceeds directly' do
         wizard.run
-        expect(output.string).not_to include('Authentication not configured!')
+        expect(captured_output.string).not_to include('Authentication not configured!')
       end
     end
   end

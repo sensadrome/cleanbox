@@ -238,19 +238,16 @@ end
 RSpec.configure { |c| c.include_context 'default config options' }
 
 RSpec.shared_context 'captures output' do
-  let(:output) { StringIO.new }
+  let(:captured_output) { StringIO.new }
 end
 
 RSpec.configure do |config|
   config.include_context 'captures output'
   config.around(:each) do |ex|
     orig_out = $stdout
-    orig_err = $stderr
-    $stdout = output
-    $stderr = output
+    $stdout = captured_output
     ex.run
   ensure
     $stdout = orig_out
-    $stderr = orig_err
   end
 end

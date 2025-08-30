@@ -377,7 +377,7 @@ RSpec.describe CLI::AuthCLI do
         allow(auth_cli).to receive(:test_connection).and_return(false)
 
         auth_cli.send(:setup_auth)
-        expect(output.string).to include("❌ Connection test failed. Please check your credentials and try again.")
+        expect(captured_output.string).to include("❌ Connection test failed. Please check your credentials and try again.")
 
         expect(auth_cli).to have_received(:connection_details)
         expect(auth_cli).to have_received(:test_connection)
@@ -690,7 +690,7 @@ RSpec.describe CLI::AuthCLI do
   describe '#show_help' do
     it 'displays help information' do
       auth_cli.send(:show_help)
-      expect(output.string).to include("Cleanbox Authentication Commands")
+      expect(captured_output.string).to include("Cleanbox Authentication Commands")
     end
   end
 
@@ -926,12 +926,12 @@ RSpec.describe CLI::AuthCLI do
       it 'displays authorization URL and prompts for code' do
         auth_cli.send(:setup_user_oauth2, details)
 
-        expect(output.string).to include("🔐 Microsoft 365 User-based OAuth2 Setup")
-        expect(output.string).to include("========================================")
-        expect(output.string).to include(auth_url)
-        expect(output.string).to include("Please visit this URL to authorize Cleanbox:")
-        expect(output.string).to include("After you grant permissions, you'll receive an authorization code.")
-        expect(output.string).to include("Please enter the authorization code: ")
+        expect(captured_output.string).to include("🔐 Microsoft 365 User-based OAuth2 Setup")
+        expect(captured_output.string).to include("========================================")
+        expect(captured_output.string).to include(auth_url)
+        expect(captured_output.string).to include("Please visit this URL to authorize Cleanbox:")
+        expect(captured_output.string).to include("After you grant permissions, you'll receive an authorization code.")
+        expect(captured_output.string).to include("Please enter the authorization code: ")
       end
 
       it 'exchanges code for tokens and saves configuration' do
@@ -946,9 +946,9 @@ RSpec.describe CLI::AuthCLI do
       it 'displays success messages' do
         auth_cli.send(:setup_user_oauth2, details)
 
-        expect(output.string).to include("✅ OAuth2 setup successful!")
-        expect(output.string).to include("✅ Tokens saved to: /tmp/test_token.json")
-        expect(output.string).to include(/✅ Configuration saved to: .*\.yml/)
+        expect(captured_output.string).to include("✅ OAuth2 setup successful!")
+        expect(captured_output.string).to include("✅ Tokens saved to: /tmp/test_token.json")
+        expect(captured_output.string).to include(/✅ Configuration saved to: .*\.yml/)
       end
     end
 
@@ -960,7 +960,7 @@ RSpec.describe CLI::AuthCLI do
       it 'cancels setup and displays error message' do
         auth_cli.send(:setup_user_oauth2, details)
 
-        expect(output.string).to include("❌ No authorization code provided. Setup cancelled.")
+        expect(captured_output.string).to include("❌ No authorization code provided. Setup cancelled.")
         expect(user_token).not_to have_received(:exchange_code_for_tokens)
       end
     end
@@ -974,8 +974,8 @@ RSpec.describe CLI::AuthCLI do
       it 'displays error message' do
         auth_cli.send(:setup_user_oauth2, details)
 
-        expect(output.string).to include("❌ Failed to exchange authorization code for tokens.")
-        expect(output.string).to include("Please check the authorization code and try again.")
+        expect(captured_output.string).to include("❌ Failed to exchange authorization code for tokens.")
+        expect(captured_output.string).to include("Please check the authorization code and try again.")
       end
     end
 
@@ -988,8 +988,8 @@ RSpec.describe CLI::AuthCLI do
       it 'displays error message with details' do
         auth_cli.send(:setup_user_oauth2, details)
 
-        expect(output.string).to include("❌ OAuth2 setup failed: Test error")
-        expect(output.string).to include("Please try again or contact support if the problem persists.")
+        expect(captured_output.string).to include("❌ OAuth2 setup failed: Test error")
+        expect(captured_output.string).to include("Please try again or contact support if the problem persists.")
       end
     end
   end

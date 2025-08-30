@@ -10,8 +10,9 @@ gem 'dotenv'
 gem 'gmail_xoauth'
 gem 'i18n'
 gem 'mail'
-gem 'pry'
-gem 'pry-byebug'
+gem 'pry', require: false
+gem 'pry-byebug', require: false
+
 # gem 'selenium-webdriver'
 
 # Testing gems

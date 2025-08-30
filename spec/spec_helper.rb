@@ -5,7 +5,7 @@ require 'securerandom'
 require 'logger'
 require 'yaml'
 require 'tempfile'
-require 'pry'
+require 'pry-byebug'
 
 # Main application entry point
 require_relative '../lib/connection'
@@ -60,33 +60,9 @@ require 'connection'
 require 'cleanbox'
 require 'folder_checker'
 
-class Configuration
-  class << self
-    def reload!
-      load_config_file if @config_file_path
-    end
-
-    def reset!
-      @options = nil
-      @config_file_path = nil
-      @data_dir = nil
-      @config_loaded = false
-      @original_command_line_options = nil
-    end
-  end
-end
-
 # Helper method for creating mock IMAP error responses
 def mock_imap_error_response(text)
   OpenStruct.new(data: OpenStruct.new(text: text))
-end
-
-def test_home_config_dir
-  @@test_home_config_dir ||= Dir.mktmpdir('cleanbox_test_home')
-end
-
-def test_home_config_path
-  @@test_home_config_path ||= File.join(test_home_config_dir, '.cleanbox.yml')
 end
 
 RSpec.configure do |config|
@@ -105,7 +81,7 @@ RSpec.configure do |config|
     end
 
     # Suppress Ruby warnings from gems
-    $VERBOSE = nil
+    # $VERBOSE = nil
   end
 
   # rspec-expectations config goes here. You can use an alternate
@@ -160,7 +136,7 @@ RSpec.configure do |config|
 
   # This setting enables warnings. It's recommended, but in some cases may
   # be too noisy due to issues in dependencies.
-  config.warnings = true
+  config.warnings = false
 
   # Many RSpec users commonly either run the entire suite or an individual
   # file, and it's useful to allow more verbose output when running an
@@ -202,52 +178,6 @@ RSpec.configure do |config|
     # Clean up relative directory created by configuration tests
     FileUtils.rm_rf(File.join(Dir.pwd, 'relative'))
   end
-
-  # Set up test home config file
-  config.before(:suite) do
-    File.write(test_home_config_path, {}.to_yaml)
-  end
-
-  config.after(:suite) do
-    FileUtils.rm_rf(test_home_config_dir)
-  end
-
-  # Configure Configuration for each test
-  config.before(:each) do
-    # Reset Configuration to a clean state for each test
-    Configuration.reset! if Configuration.respond_to?(:reset!)
-
-    # Mock home_config to use our test file
-    allow(Configuration).to receive(:home_config).and_return(test_home_config_path)
-
-    # Configure Configuration with the test options
-    Configuration.configure(config_options)
-  end
 end
 
-# Shared context for default configuration options
-RSpec.shared_context 'default config options' do
-  let(:config_options) do
-    {
-      data_dir: nil
-    }
-  end
-end
-
-# Include the shared context globally
-RSpec.configure { |c| c.include_context 'default config options' }
-
-RSpec.shared_context 'captures output' do
-  let(:captured_output) { StringIO.new }
-end
-
-RSpec.configure do |config|
-  config.include_context 'captures output'
-  config.around(:each) do |ex|
-    orig_out = $stdout
-    $stdout = captured_output
-    ex.run
-  ensure
-    $stdout = orig_out
-  end
-end
+Dir[File.join(__dir__, 'helpers', '*.rb')].sort.each { |file| require file }

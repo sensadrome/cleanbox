@@ -125,6 +125,19 @@ en:
       create_blacklist_folder_prompt: "Would you like to create a blacklist folder? (y/N):"
       blacklist_folder_name_prompt: "What should the blacklist folder be called? (e.g., 'Unsubscribe', 'Blacklist'):"
       domain_mappings: "🔗 Domain Mappings"
+      retention_policy_prompt: "📬 What should cleanbox do with legitimate looking email from new senders"
+      retention_policy_options:
+        spammy: Keep all of them
+        hold: Keep them (in the Inbox) for a specified number of days, then junk them
+        quarantine: File them into a specified folder (e.g. "Quarantine")
+        paranoid: Junk them (send to spam folder)
+
+        Choice (1-4): 
+      invalid_retention_policy_choice: "❌ Invalid choice. Please enter 1, 2, 3 or 4."
+    
+    retention_policy:
+      hold_days_prompt: "📅 How many days should unknown emails be held in inbox before being junked? (default: 7):"
+      quarantine_folder_prompt: "📁 What should the quarantine folder be called? (default: 'Quarantine'):"
     
     domain_mappings:
       explanation: |

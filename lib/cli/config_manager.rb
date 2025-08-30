@@ -21,7 +21,6 @@ module CLI
       config_data = config
       if File.exist?(@config_path)
         puts "Configuration from #{@config_path}:"
-        recognized_keys = get_recognized_keys
         filtered_config = config_data.slice(*recognized_keys)
         puts filtered_config.to_yaml
 
@@ -282,7 +281,7 @@ module CLI
 
     private
 
-    def get_recognized_keys
+    def recognized_keys
       # These are the keys that are currently recognized and used by Cleanbox
       %i[
         host
@@ -302,6 +301,7 @@ module CLI
         unjunk
         unjunk_folders
         file_from_folders
+        hold_days
         sent_since_months
         valid_since_months
         list_since_months
@@ -310,6 +310,9 @@ module CLI
         level
         valid_from
         log_file
+        blacklist_folder
+        quarantine_folder
+        retention_policy
       ]
     end
 
@@ -350,6 +353,11 @@ module CLI
         'sent_since_months' => 24,          # Process sent emails from last X months
         'valid_since_months' => 12,         # Process other folders from last X months
         'list_since_months' => 12,          # Process list folders from last X months
+
+        # Retention Policy Settings
+        'retention_policy' => 'spammy',     # Options: spammy, hold, quarantine, paranoid
+        'quarantine_folder' => 'Quarantine', # Folder for quarantined emails
+        'hold_days' => 7,                   # Days to hold unknown emails in inbox
 
         # Data Directory
         'data_dir' => nil, # Directory for cache, logs, and analysis files (defaults to current directory)

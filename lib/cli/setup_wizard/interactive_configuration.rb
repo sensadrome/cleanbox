@@ -61,9 +61,6 @@ module CLI
                                       else
                                         recommendations[:list_folders]
                                       end
-
-
-
         # Domain mappings
         if recommendations[:domain_mappings].any?
           puts ''
@@ -89,10 +86,59 @@ module CLI
           end
         end
 
+        retention_policy = prompt_for_retention_policy
+        final_config[:retention_policy] = retention_policy
+
+        # Configure retention policy specific settings
+        configure_retention_policy_settings(final_config, retention_policy)
+
         # Add blacklist folder from workflow orchestrator
         final_config[:blacklist_folder] = @blacklist_folder if @blacklist_folder
 
         final_config
+      end
+
+      def prompt_for_retention_policy
+        choice = prompt_choice(I18n.t('setup_wizard.recommendations.retention_policy_prompt'), retention_policy_choices)
+        case choice
+        when 1
+          :spammy
+        when '2', 'partial'
+          :partial
+        when '3', 'skip'
+          :skip
+        else
+          puts I18n.t('setup_wizard.analysis.invalid_mode_choice')
+          prompt_for_analysis_mode # Recursive call for invalid input
+        end
+      end
+
+      def retention_policy_choices
+        retention_policy_options.map do |option|
+          {
+            key: option,
+            label: I18n.t("setup_wizard.recommendations.retention_policy_options.#{option}")
+          }
+        end
+      end
+
+      def retention_policy_options
+        %i[spammy hold quarantine paranoid]
+      end
+
+      def configure_retention_policy_settings(final_config, retention_policy)
+        case retention_policy
+        when :hold
+          puts ''
+          puts I18n.t('setup_wizard.retention_policy.hold_days_prompt')
+          hold_days_input = gets.chomp.strip
+          final_config[:hold_days] = hold_days_input.empty? ? 7 : hold_days_input.to_i
+        when :quarantine
+          puts ''
+          puts I18n.t('setup_wizard.retention_policy.quarantine_folder_prompt')
+          quarantine_folder_input = gets.chomp.strip
+          final_config[:quarantine_folder] = quarantine_folder_input.empty? ? 'Quarantine' : quarantine_folder_input
+        end
       end
     end
   end

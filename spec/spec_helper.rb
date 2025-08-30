@@ -241,15 +241,16 @@ RSpec.shared_context 'captures output' do
   let(:output) { StringIO.new }
 end
 
-# Include the shared context globally
 RSpec.configure do |config|
   config.include_context 'captures output'
-  config.before(:each) do
-    allow($stdout).to receive(:puts) { |msg| output.puts(msg) }
-    allow_any_instance_of(CLI::AuthCLI).to receive(:print) { |msg| output.print(msg) }
-    allow_any_instance_of(CLI::AuthenticationGatherer).to receive(:print) { |msg| output.print(msg) }
-    allow_any_instance_of(CLI::AnalyzerCLI).to receive(:print) { |msg| output.print(msg) }
-    allow($stdout).to receive(:print) { |msg| output.print(msg) }
-    # allow(STDOUT).to receive(:print) { |msg| output.print(msg) }
+  config.around(:each) do |ex|
+    orig_out = $stdout
+    orig_err = $stderr
+    $stdout = output
+    $stderr = output
+    ex.run
+  ensure
+    $stdout = orig_out
+    $stderr = orig_err
   end
 end

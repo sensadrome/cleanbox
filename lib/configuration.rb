@@ -26,30 +26,30 @@ class Configuration
 
     def default_options
       {
-        host: '',
-        username: nil,
         auth_type: nil,
-        whitelist_folders: [],
-        whitelisted_domains: [],
+        blacklist_folder: nil,
+        data_dir: nil,
+        file_from_folders: [],
+        file_unread: false,
+        hold_days: 7,
+        host: '',
+        level: 'info',
+        list_domain_map: {},
         list_domains: [],
         list_folders: [],
-        list_domain_map: {},
+        list_since_months: 12,
+        log_file: nil,
+        quarantine_folder: 'Quarantine',
+        retention_policy: :spammy,
         sent_folder: 'Sent Items',
-        file_unread: false,
+        sent_since_months: 24,
         unjunk: false,
         unjunk_folders: [],
-        file_from_folders: [],
-        sent_since_months: 24,
+        username: nil,
         valid_since_months: 12,
-        list_since_months: 12,
-        data_dir: nil,
-        brief: false,
-        detailed: false,
-        analysis_folder: nil,
         verbose: false,
-        level: 'info',
-        log_file: nil,
-        blacklist_folder: nil
+        whitelist_folders: [],
+        whitelisted_domains: []
       }
     end
 

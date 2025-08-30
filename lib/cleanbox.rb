@@ -7,7 +7,7 @@ require_relative 'message_action_runner'
 # main class
 # rubocop:disable Metrics/ClassLength
 class Cleanbox < CleanboxConnection
-  attr_accessor :blacklisted_emails, :junk_emails, :whitelisted_emails, :list_domains, :list_domain_map, :sender_map
+  attr_accessor :blacklisted_emails, :junk_emails, :whitelisted_emails, :list_domain_map, :sender_map
 
   def initialize(imap_connection, options)
     super
@@ -18,13 +18,12 @@ class Cleanbox < CleanboxConnection
   def clean!
     build_blacklist!
     build_whitelist!
-    build_list_domains!
+    build_sender_map!
     clean_inbox!
     logger.info 'Finished cleaning'
   end
 
   def show_lists!
-    build_list_domains!
     list_domain_map.sort.to_h.each_pair do |domain, folder|
       puts "'#{domain}' => '#{folder}',"
     end
@@ -71,7 +70,6 @@ class Cleanbox < CleanboxConnection
   end
 
   def file_messages!
-    build_list_domains! unless file_from_folders.present?
     build_sender_map!
     context_name = unjunking? ? 'unjunking' : 'filing existing messages'
     process_messages(all_messages, :decide_for_filing, context_name)
@@ -170,22 +168,7 @@ class Cleanbox < CleanboxConnection
     (Date.today << months).strftime('%d-%b-%Y')
   end
 
-  def build_list_domains!
-    logger.info 'Building list subscriptions....'
-    @list_domains = (domains_from_folders + [*options[:list_domains]]).uniq
-  end
 
-  def domains_from_folders
-    list_folders.flat_map do |folder|
-      CleanboxFolderChecker.new(imap_connection,
-                                folder: folder, logger: logger,
-                                since: list_since_date).domains.tap do |domains|
-        domains.each do |domain|
-          list_domain_map[domain] ||= folder
-        end
-      end
-    end
-  end
 
   def list_folders
     [*options[:list_folders] || list_folder]
@@ -235,14 +218,28 @@ class Cleanbox < CleanboxConnection
     {
       whitelisted_emails: whitelisted_emails,
       whitelisted_domains: whitelisted_domains,
-      list_domains: list_domains,
       list_domain_map: list_domain_map,
       sender_map: sender_map,
       list_folder: list_folder,
       unjunking: unjunking?,
       blacklisted_emails: blacklisted_emails,
-      junk_emails: junk_emails
+      junk_emails: junk_emails,
+      retention_policy: retention_policy,
+      hold_days: hold_days,
+      quarantine_folder: quarantine_folder
     }
+  end
+
+  def retention_policy
+    options[:retention_policy] || :spammy
+  end
+
+  def hold_days
+    options[:hold_days] || 7
+  end
+
+  def quarantine_folder
+    options[:quarantine_folder] || 'Quarantine'
   end
 
   def new_messages
@@ -281,7 +278,7 @@ class Cleanbox < CleanboxConnection
                                 folder: folder,
                                 logger: logger,
                                 since: valid_from).email_addresses.each do |email|
-        sender_map[email] ||= folder
+        @sender_map[email] ||= folder
       end
     end
   end

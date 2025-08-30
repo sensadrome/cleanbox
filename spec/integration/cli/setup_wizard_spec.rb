@@ -70,9 +70,9 @@ RSpec.describe 'SetupWizard Integration' do
       wizard.run
 
       # Verify error message is shown
-      expect(output.string).to include('❌ Connection failed')
-      expect(output.string).to include('Invalid credentials')
-      expect(output.string).to include('Please check your credentials and try again')
+      expect(captured_output.string).to include('❌ Connection failed')
+      expect(captured_output.string).to include('Invalid credentials')
+      expect(captured_output.string).to include('Please check your credentials and try again')
     end
   end
 
@@ -112,17 +112,17 @@ RSpec.describe 'SetupWizard Integration' do
       wizard.run
 
       # Verify successful completion
-      expect(output.string).to include('🎉 Setup complete!')
-      expect(output.string).to include('✅ Connected successfully!')
-      expect(output.string).to include('📁 Analyzing your email folders')
-      expect(output.string).to include('✅ Analysis complete!')
-      expect(output.string).to include('💾 Saving configuration')
+      expect(captured_output.string).to include('🎉 Setup complete!')
+      expect(captured_output.string).to include('✅ Connected successfully!')
+      expect(captured_output.string).to include('📁 Analyzing your email folders')
+      expect(captured_output.string).to include('✅ Analysis complete!')
+      expect(captured_output.string).to include('💾 Saving configuration')
 
       # Verify folder analysis output
-      expect(output.string).to include('Analyzing folder "Inbox" (50 messages)')
-      expect(output.string).to include('Analyzing folder "Newsletters" (120 messages)')
-      expect(output.string).to include('Analyzing folder "Family" (30 messages)')
-      expect(output.string).to include('Analyzing folder "Work" (80 messages)')
+      expect(captured_output.string).to include('Analyzing folder "Inbox" (50 messages)')
+      expect(captured_output.string).to include('Analyzing folder "Newsletters" (120 messages)')
+      expect(captured_output.string).to include('Analyzing folder "Family" (30 messages)')
+      expect(captured_output.string).to include('Analyzing folder "Work" (80 messages)')
 
       # Verify configuration was saved
       expect(File.exist?(config_path)).to be true
@@ -167,22 +167,22 @@ RSpec.describe 'SetupWizard Integration' do
       wizard.run
 
       # Verify successful completion
-      expect(output.string).to include('🎉 Setup complete!')
-      expect(output.string).to include('✅ Connected successfully!')
-      expect(output.string).to include('📁 Analyzing your email folders')
-      expect(output.string).to include('✅ Analysis complete!')
-      expect(output.string).to include('💾 Saving configuration')
+      expect(captured_output.string).to include('🎉 Setup complete!')
+      expect(captured_output.string).to include('✅ Connected successfully!')
+      expect(captured_output.string).to include('📁 Analyzing your email folders')
+      expect(captured_output.string).to include('✅ Analysis complete!')
+      expect(captured_output.string).to include('💾 Saving configuration')
 
       # Verify folder analysis output
-      expect(output.string).to include('Analyzing folder "Inbox" (50 messages)')
-      expect(output.string).to include('Analyzing folder "GitHub" (45 messages)')
-      expect(output.string).to include('Analyzing folder "Amazon" (80 messages)')
-      expect(output.string).to include('Analyzing folder "Facebook" (30 messages)')
-      expect(output.string).to include('Analyzing folder "Work" (120 messages)')
+      expect(captured_output.string).to include('Analyzing folder "Inbox" (50 messages)')
+      expect(captured_output.string).to include('Analyzing folder "GitHub" (45 messages)')
+      expect(captured_output.string).to include('Analyzing folder "Amazon" (80 messages)')
+      expect(captured_output.string).to include('Analyzing folder "Facebook" (30 messages)')
+      expect(captured_output.string).to include('Analyzing folder "Work" (120 messages)')
 
       # Verify domain mappings were shown
-      expect(output.string).to include('🔗 Domain Mappings')
-      expect(output.string).to include('Suggested mappings:')
+      expect(captured_output.string).to include('🔗 Domain Mappings')
+      expect(captured_output.string).to include('Suggested mappings:')
 
       # Verify configuration was saved
       expect(File.exist?(config_path)).to be true
@@ -225,18 +225,18 @@ RSpec.describe 'SetupWizard Integration' do
       wizard.run
 
       # Verify successful completion
-      expect(output.string).to include('🎉 Setup complete!')
-      expect(output.string).to include('✅ Connected successfully!')
-      expect(output.string).to include('📁 Analyzing your email folders')
-      expect(output.string).to include('✅ Analysis complete!')
-      expect(output.string).to include('💾 Saving configuration')
+      expect(captured_output.string).to include('🎉 Setup complete!')
+      expect(captured_output.string).to include('✅ Connected successfully!')
+      expect(captured_output.string).to include('📁 Analyzing your email folders')
+      expect(captured_output.string).to include('✅ Analysis complete!')
+      expect(captured_output.string).to include('💾 Saving configuration')
 
       # Verify folder analysis output
-      expect(output.string).to include('Analyzing folder "Inbox" (50 messages)')
-      expect(output.string).to include('Analyzing folder "GitHub" (45 messages)')
-      expect(output.string).to include('Analyzing folder "Amazon" (80 messages)')
-      expect(output.string).to include('Analyzing folder "Facebook" (30 messages)')
-      expect(output.string).to include('Analyzing folder "Work" (120 messages)')
+      expect(captured_output.string).to include('Analyzing folder "Inbox" (50 messages)')
+      expect(captured_output.string).to include('Analyzing folder "GitHub" (45 messages)')
+      expect(captured_output.string).to include('Analyzing folder "Amazon" (80 messages)')
+      expect(captured_output.string).to include('Analyzing folder "Facebook" (30 messages)')
+      expect(captured_output.string).to include('Analyzing folder "Work" (120 messages)')
 
       # Verify configuration was saved
       expect(File.exist?(config_path)).to be true

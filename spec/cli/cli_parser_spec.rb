@@ -100,12 +100,7 @@ RSpec.describe CLI::CLIParser do
         expect(result[:valid_from]).to eq('2023-01-01')
       end
 
-      it 'accumulates unjunk folders' do
-        ARGV.replace(['-J', 'Spam', '-J', 'Junk'])
-        result = parser.parse!
-        expect(result[:unjunk_folders]).to include('Spam', 'Junk')
-        expect(result[:unjunk]).to be true
-      end
+
 
       it 'accumulates file-from folders' do
         ARGV.replace(['-F', 'Receipts', '-F', 'Invoices'])

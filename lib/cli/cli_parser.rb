@@ -92,11 +92,7 @@ module CLI
         @options[:valid_from] = val
       end
 
-      opts.on('-J', '--unjunk FOLDER', 'Unjunk based on mail in FOLDER (can use multiple times)') do |folder|
-        @options[:unjunk_folders] ||= []
-        @options[:unjunk_folders] << folder
-        @options[:unjunk] = true
-      end
+
 
       opts.on('-F', '--file-from FOLDER',
               'File (from the Inbox) based on mail in FOLDER (can use multiple times)') do |folder|
@@ -132,6 +128,9 @@ module CLI
       opts.separator ''
       opts.separator '  file'
       opts.separator '    file any message in the Inbox based on folders (or FOLDER if specified)'
+      opts.separator ''
+      opts.separator '  unjunk'
+      opts.separator '    unjunk based on mail in specified FOLDER'
       opts.separator ''
       opts.separator '  folders'
       opts.separator '    list all folders'

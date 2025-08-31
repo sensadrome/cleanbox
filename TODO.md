@@ -120,13 +120,27 @@ This file tracks planned improvements, features, and tasks for the Cleanbox proj
   - Gives developers control over when pry is loaded
 
 ### User Experience
+- [ ] **Fix Main Help Text Completeness**
+  - Add missing commands to help output:
+    - `sent-analysis` command for analyzing sent vs folder patterns
+    - `clean` as the default action command
+  - Ensure all available options are listed with complete descriptions
+  - Verify help text matches actual implemented functionality
+  - Consider reorganizing help output for better clarity
+
+- [ ] **Refactor Unjunk from Parameter to Command**
+  - Convert `--unjunk FOLDER` to `./cleanbox unjunk [FOLDER]`
+  - Make CLI more consistent with other commands
+  - Update command handling logic and help text
+  - Ensure folder argument is handled properly
+
 - [ ] **Improve Setup Wizard UX and Clarity**
-  - Rename analysis mode options to better reflect their purpose:
-    - Option 1: "Update existing configuration" instead of "Perform folder analysis"
-    - Option 2: "Partial update" instead of "Partial analysis" 
-    - Option 3: "Skip configuration update" (this one is clear)
-  - In update mode, use existing configuration values as defaults instead of hardcoded defaults
-  - Pre-fill interactive prompts with current values when updating existing config
+  - Redesign first menu options for existing config files:
+    - **Option 1**: "Update existing configuration" - Runs through wizard with existing values as defaults, offers folder analysis options
+    - **Option 2**: "Start Over / Overwrite Config" - Runs full wizard from scratch with only coded defaults (wording TBC)
+    - **Option 3**: "Cancel" - Exit without changes
+  - In update mode, pre-fill all interactive prompts with current configuration values
+  - Make it clear what each option does when user already has a config file
   - Make it clear that update mode allows users to modify current settings, not just analyze folders
 - [ ] **Add Interactive Mode**
   - Confirm actions before execution
@@ -159,6 +173,13 @@ This file tracks planned improvements, features, and tasks for the Cleanbox proj
   - Automatic migration between versions
   - Backup existing configuration
   - Handle deprecated options
+- [ ] **Enhance Wildcard Domain Patterns**
+  - Add support for `*domain.com` pattern to match both main domain and subdomains
+  - Current patterns: `domain.com` (exact), `*.domain.com` (subdomains only)
+  - New pattern: `*domain.com` (main domain + subdomains)
+  - This would eliminate need for users to specify both `channel4.com` and `*.channel4.com`
+  - Maintain backward compatibility with existing patterns
+  - Update documentation and examples
 
 ## 📊 Features
 

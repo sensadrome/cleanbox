@@ -409,7 +409,12 @@ module CLI
                                                   '# - facebook.com: Social (Facebook notifications)',
                                                   '# - github.com: Development (GitHub notifications)',
                                                   '# - linkedin.com: Professional (LinkedIn updates)',
-                                                  '# - twitter.com: Social (Twitter notifications)'
+                                                  '# - twitter.com: Social (Twitter notifications)',
+                                                  '#',
+                                                  '# Wildcard patterns for subdomains:',
+                                                  '# - *.channel4.com: TV and Film (matches hi.channel4.com, newsletter.channel4.com, etc.)',
+                                                  '# - *.sub.example.com: Work (matches deep.sub.example.com, api.sub.example.com, etc.)',
+                                                  '# Note: *.domain.com only matches single-level subdomains, not deeper nested ones'
                                                 ]),
         'sent_folder' => '# Name of your sent items folder (varies by email provider)',
         'file_unread' => '# Whether to file unread messages in file mode (default: false = only file read messages)',

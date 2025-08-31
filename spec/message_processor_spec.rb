@@ -103,6 +103,97 @@ RSpec.describe MessageProcessor do
       end
     end
 
+    context 'when domain matches wildcard pattern in list domain map' do
+      let(:context) do
+        {
+          whitelisted_emails: [],
+          whitelisted_domains: [],
+          list_domains: [],
+          list_domain_map: { '*.channel4.com' => 'TV and Film' },
+          sender_map: {},
+          list_folder: 'Lists',
+          retention_policy: :spammy
+        }
+      end
+
+      let(:message) { build_message('newsletter@hi.channel4.com', 'hi.channel4.com') }
+
+      it 'returns move action to mapped folder' do
+        decision = processor.decide_for_filing(message)
+        expect(decision).to eq({ action: :move, folder: 'TV and Film' })
+      end
+    end
+
+    context 'when domain does not match wildcard pattern' do
+      let(:context) do
+        {
+          whitelisted_emails: [],
+          whitelisted_domains: [],
+          list_domains: [],
+          list_domain_map: { '*.channel4.com' => 'TV and Film' },
+          sender_map: {},
+          list_folder: 'Lists',
+          retention_policy: :spammy
+        }
+      end
+
+      let(:message) { build_message('deep@sub.hi.channel4.com', 'sub.hi.channel4.com') }
+
+      it 'does not match and returns keep action' do
+        decision = processor.decide_for_filing(message)
+        expect(decision).to eq({ action: :keep })
+      end
+    end
+
+    context 'when multiple wildcard patterns exist' do
+      let(:context) do
+        {
+          whitelisted_emails: [],
+          whitelisted_domains: [],
+          list_domains: [],
+          list_domain_map: { 
+            '*.channel4.com' => 'TV and Film',
+            '*.example.com' => 'Work',
+            'api.*.com' => 'Development'
+          },
+          sender_map: {},
+          list_folder: 'Lists',
+          retention_policy: :spammy
+        }
+      end
+
+      let(:message) { build_message('newsletter@hi.channel4.com', 'hi.channel4.com') }
+
+      it 'matches the correct wildcard pattern' do
+        decision = processor.decide_for_filing(message)
+        expect(decision).to eq({ action: :move, folder: 'TV and Film' })
+      end
+    end
+
+    context 'when exact match takes precedence over wildcard' do
+      let(:context) do
+        {
+          whitelisted_emails: [],
+          whitelisted_domains: [],
+          list_domains: [],
+          list_domain_map: { 
+            '*.channel4.com' => 'TV and Film',
+            'hi.channel4.com' => 'Specific Channel4'
+          },
+          sender_map: {},
+          list_folder: 'Lists',
+          retention_policy: :spammy
+        }
+      end
+
+      let(:message) { build_message('newsletter@hi.channel4.com', 'hi.channel4.com') }
+
+      it 'uses exact match over wildcard' do
+        decision = processor.decide_for_filing(message)
+        expect(decision).to eq({ action: :move, folder: 'Specific Channel4' })
+      end
+    end
+
     context 'when sender is not mapped' do
       let(:message) { build_message('unknown@example.com', 'example.com') }
 

@@ -83,7 +83,27 @@ class MessageProcessor
   end
 
   def mapped_folder_from_domain(message)
-    list_domain_map[message.from_domain]
+    domain = message.from_domain
+    
+    # First try exact match (current behavior)
+    return list_domain_map[domain] if list_domain_map.key?(domain)
+    
+    # Then try wildcard patterns
+    wildcard_match = find_wildcard_match(domain)
+    return list_domain_map[wildcard_match] if wildcard_match
+    
+    nil
+  end
+
+  def find_wildcard_match(domain)
+    list_domain_map.keys.find do |pattern|
+      next unless pattern.include?('*')
+      
+      # Convert wildcard pattern to regex
+      # *.domain.com becomes ^[^.]+\.domain\.com$
+      regex_pattern = pattern.gsub('*', '[^.]+').gsub('.', '\.')
+      domain.match?(/^#{regex_pattern}$/)
+    end
   end
 
   def list_domain_map

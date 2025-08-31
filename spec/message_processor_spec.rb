@@ -337,22 +337,72 @@ RSpec.describe MessageProcessor do
     context "when set to 'quarantine'" do
       let(:context) do
         {
-          whitelisted_emails: [],
-          whitelisted_domains: [],
-          list_domains: [],
-          list_domain_map: {},
-          sender_map: {},
+          whitelisted_emails: ['trusted@example.com'],
+          whitelisted_domains: ['trusted.com'],
+          list_domains: ['list.example.com'],
+          list_domain_map: { 
+            '*.channel4.com' => 'TV and Film',
+            'blog.com' => 'Blogs'
+          },
+          sender_map: { 'person@blog.com' => 'Blogs' },
           list_folder: 'Lists',
           retention_policy: :quarantine,
           quarantine_folder: 'Quarantine'
         }
       end
 
-      let(:message) { build_message('unknown@example.com', 'example.com', date_sent: DateTime.now - 1) }
+      context 'with unknown email' do
+        let(:message) { build_message('unknown@example.com', 'example.com', date_sent: DateTime.now - 1) }
 
-      it 'files unknown emails to quarantine folder' do
-        decision = processor.decide_for_new_message(message)
-        expect(decision).to eq({ action: :move, folder: 'Quarantine' })
+        it 'files unknown emails to quarantine folder' do
+          decision = processor.decide_for_new_message(message)
+          expect(decision).to eq({ action: :move, folder: 'Quarantine' })
+        end
+      end
+
+      context 'with whitelisted email' do
+        let(:message) { build_message('trusted@example.com', 'example.com') }
+
+        it 'keeps whitelisted email in inbox (whitelist overrides quarantine)' do
+          decision = processor.decide_for_new_message(message)
+          expect(decision).to eq({ action: :keep })
+        end
+      end
+
+      context 'with whitelisted domain' do
+        let(:message) { build_message('someone@trusted.com', 'trusted.com') }
+
+        it 'keeps email from whitelisted domain in inbox (whitelist overrides quarantine)' do
+          decision = processor.decide_for_new_message(message)
+          expect(decision).to eq({ action: :keep })
+        end
+      end
+
+      context 'with known sender in sender_map' do
+        let(:message) { build_message('person@blog.com', 'blog.com') }
+
+        it 'moves email to mapped folder (sender_map overrides quarantine)' do
+          decision = processor.decide_for_new_message(message)
+          expect(decision).to eq({ action: :move, folder: 'Blogs' })
+        end
+      end
+
+      context 'with known domain in list_domain_map' do
+        let(:message) { build_message('newsletter@blog.com', 'blog.com') }
+
+        it 'moves email to mapped folder (list_domain_map overrides quarantine)' do
+          decision = processor.decide_for_new_message(message)
+          expect(decision).to eq({ action: :move, folder: 'Blogs' })
+        end
+      end
+
+      context 'with wildcard domain match' do
+        let(:message) { build_message('newsletter@hi.channel4.com', 'hi.channel4.com') }
+
+        it 'moves email to mapped folder (wildcard pattern overrides quarantine)' do
+          decision = processor.decide_for_new_message(message)
+          expect(decision).to eq({ action: :move, folder: 'TV and Film' })
+        end
       end
     end
   end

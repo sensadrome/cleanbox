@@ -2,7 +2,7 @@
 
 require 'mail'
 require 'date'
-
+require 'pry-byebug'
 # Handles message decision making based on context
 class MessageProcessor
   def initialize(context)
@@ -150,9 +150,15 @@ class MessageProcessor
   end
 
   def list_folder_for(message)
+    # First check if we know where this message should go
+    known_destination = destination_folder_for(message)
+    return known_destination if known_destination.present?
+    
+    # Only quarantine if we don't know where it should go
     return quarantine_folder if quarantine?
-
-    destination_folder_for(message) || @context[:list_folder]
+    
+    # Fallback to default list folder
+    @context[:list_folder]
   end
 
   def quarantine_folder

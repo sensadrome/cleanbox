@@ -36,7 +36,6 @@ class Configuration
         host: '',
         level: 'info',
         list_domain_map: {},
-        list_domains: [],
         list_folders: [],
         list_since_months: 12,
         log_file: nil,

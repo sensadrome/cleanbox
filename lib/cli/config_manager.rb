@@ -283,7 +283,6 @@ module CLI
         auth_type
         whitelist_folders
         whitelisted_domains
-        list_domains
         list_folders
         list_domain_map
         sent_folder
@@ -326,7 +325,6 @@ module CLI
         # Processing Options
         'whitelist_folders' => %w[Family Work Clients], # Important folders - new emails from these senders stay in Inbox
         'whitelisted_domains' => ['example.com'], # Domains to keep (not delete)
-        'list_domains' => ['lists.example.com'],  # Domains to move to list folders
         'list_folders' => %w[Newsletters Notifications], # List folders - new emails from these senders get moved to the list folder
         'list_domain_map' => {              # Map domains to specific list folders (e.g., facebook.com → Social)
           'facebook.com' => 'Social',
@@ -391,7 +389,6 @@ module CLI
                                                     '# - Clients: Keep client emails in Inbox'
                                                   ]),
         'whitelisted_domains' => '# Domains to keep in inbox (not moved or deleted)',
-        'list_domains' => '# Domains to move to list folders (newsletters, notifications, etc.)',
         'list_folders' => multi_line_comment([
                                                '# List folders - Cleanbox learns from these folders to whitelist sender addresses,',
                                                '# but new emails from these senders get moved to the list folder',

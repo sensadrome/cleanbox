@@ -7,7 +7,6 @@ RSpec.describe MessageProcessor do
     {
       whitelisted_emails: ['whitelist@example.com'],
       whitelisted_domains: ['trusted.com'],
-      list_domains: ['list.example.com'],
       list_domain_map: { 'list.example.com' => 'Lists' },
       sender_map: { 'sender@example.com' => 'Work' },
       list_folder: 'Lists',
@@ -108,7 +107,6 @@ RSpec.describe MessageProcessor do
         {
           whitelisted_emails: [],
           whitelisted_domains: [],
-          list_domains: [],
           list_domain_map: { '*.channel4.com' => 'TV and Film' },
           sender_map: {},
           list_folder: 'Lists',
@@ -129,7 +127,6 @@ RSpec.describe MessageProcessor do
         {
           whitelisted_emails: [],
           whitelisted_domains: [],
-          list_domains: [],
           list_domain_map: { '*.channel4.com' => 'TV and Film' },
           sender_map: {},
           list_folder: 'Lists',
@@ -150,7 +147,6 @@ RSpec.describe MessageProcessor do
         {
           whitelisted_emails: [],
           whitelisted_domains: [],
-          list_domains: [],
           list_domain_map: { 
             '*.channel4.com' => 'TV and Film',
             '*.example.com' => 'Work',
@@ -175,7 +171,6 @@ RSpec.describe MessageProcessor do
         {
           whitelisted_emails: [],
           whitelisted_domains: [],
-          list_domains: [],
           list_domain_map: { 
             '*.channel4.com' => 'TV and Film',
             'hi.channel4.com' => 'Specific Channel4'
@@ -228,7 +223,6 @@ RSpec.describe MessageProcessor do
         {
           whitelisted_emails: [],
           whitelisted_domains: [],
-          list_domains: [],
           list_domain_map: {},
           sender_map: {},
           list_folder: 'Lists',
@@ -286,7 +280,6 @@ RSpec.describe MessageProcessor do
         {
           whitelisted_emails: [],
           whitelisted_domains: [],
-          list_domains: [],
           list_domain_map: {},
           sender_map: {},
           list_folder: 'Lists',
@@ -339,7 +332,6 @@ RSpec.describe MessageProcessor do
         {
           whitelisted_emails: ['trusted@example.com'],
           whitelisted_domains: ['trusted.com'],
-          list_domains: ['list.example.com'],
           list_domain_map: { 
             '*.channel4.com' => 'TV and Film',
             'blog.com' => 'Blogs'
@@ -412,8 +404,7 @@ RSpec.describe MessageProcessor do
       {
         whitelisted_emails: [],
         whitelisted_domains: [],
-        list_domains: ['example.com'],
-        list_domain_map: {},
+        list_domain_map: { 'example.com' => 'News' },
         sender_map: {},
         list_folder: 'Lists',
         retention_policy: :spammy
@@ -423,14 +414,12 @@ RSpec.describe MessageProcessor do
     context 'when message has fake headers' do
       let(:message) { build_message_with_headers('list@example.com', 'example.com', { 'X-Antiabuse' => 'fake' }) }
 
-      it 'treats as junk even if domain is in list_domains' do
+      it 'treats as junk even if domain is in list_domain_maps' do
         decision = processor.decide_for_new_message(message)
         expect(decision).to eq({ action: :junk })
       end
     end
   end
-
-
 
   private
 

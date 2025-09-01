@@ -74,7 +74,7 @@ def cleanbox
 end
 
 # Show help for available methods
-def help
+def show_help
   puts <<~HELP
     Cleanbox Console - Available Commands:
 

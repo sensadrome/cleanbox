@@ -58,6 +58,23 @@ This file tracks planned improvements, features, and tasks for the Cleanbox proj
   - Implement smarter cache invalidation
   - Add cache size management
   - Optimize folder analysis caching
+- [ ] **Investigate and Fix Cache Staleness Issues**
+  - Debug why folder caches become stale after message moves
+  - Investigate message count mismatch between stored cache and actual folder state
+  - Check if CleanboxFolderChecker sampling strategy affects cache accuracy
+  - Verify cache invalidation logic is working correctly
+  - Ensure cache refresh after message moves is effective
+- [ ] **Implement Time Bucket Caching Strategy**
+  - Replace full folder scans with time-based bucket updates
+  - Store email counts by time periods (e.g., last 7 days, 30 days, 90 days)
+  - Use smart cache validation (UIDNEXT, UIDVALIDITY, message count) before adopting time bucket strategy
+  - Only refresh "dirty" time buckets instead of entire folders
+  - Handle edge case: older messages moved into folders for learning purposes
+- [ ] **Add Configurable Whitelist Folder Message Scanning**
+  - Add config option to control whether whitelist folders scan all messages or use date limiting
+  - Pass appropriate options to CleanboxFolderChecker from email_addresses_from_whitelist_folders method
+  - Keep CleanboxFolderChecker focused on folder checking without folder type logic
+  - Allow users to choose between comprehensive whitelist building vs. performance optimization
 - [ ] **Abstract Data Storage and Caching**
   - **Phase 1: Core Infrastructure**
     - Create `Storage::Provider` interface with methods: `read_config`, `write_config`, `read_cache`, `write_cache`, `list_cache_keys`, `delete_cache`, `cache_exists?`

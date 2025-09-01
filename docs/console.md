@@ -47,7 +47,6 @@ CleanboxConsole.help
 - `message_counts` - Show message counts per folder
 - `whitelisted_emails` - Show whitelisted email addresses
 - `blacklisted_emails` - Show blacklisted email addresses
-- `list_domains_list` - Show list domains
 
 ### Actions
 

@@ -27,6 +27,10 @@ RSpec.describe CLI::CleanboxCLI do
     allow_any_instance_of(CLI::CLIParser).to receive(:parse!).and_return({})
   end
 
+  after do
+    ARGV.clear
+  end
+
   describe '#initialize' do
     before do
       # Override the global mock to return our test config options for these tests
@@ -52,8 +56,6 @@ RSpec.describe CLI::CleanboxCLI do
         # Mock the help display to avoid actual execution
         allow(cli).to receive(:show_help)
         allow(cli).to receive(:exit)
-        # Mock the execute_action to prevent network calls
-        allow(cli).to receive(:execute_action)
         # Mock ARGV to be empty
         allow(ARGV).to receive(:empty?).and_return(true)
         allow(ARGV).to receive(:include?).and_return(false)
@@ -141,7 +143,7 @@ RSpec.describe CLI::CleanboxCLI do
 
     it 'returns clean! as default action' do
       ARGV.clear
-      expect(cli.send(:determine_action)).to eq('clean!')
+      expect(cli.send(:determine_action)).to be_nil
     end
   end
 
@@ -189,39 +191,7 @@ RSpec.describe CLI::CleanboxCLI do
     end
   end
 
-  describe '#handle_unjunk_command' do
-    let(:mock_imap) { double('IMAP') }
-    let(:mock_cleanbox) { double('Cleanbox') }
-
-    before do
-      allow(cli).to receive(:exit)
-      allow(cli).to receive(:create_imap_connection).and_return(mock_imap)
-      allow(Cleanbox).to receive(:new).and_return(mock_cleanbox)
-      allow(mock_cleanbox).to receive(:unjunk!)
-    end
-
-    it 'runs unjunk when unjunk command is present' do
-      ARGV.replace(['unjunk', 'Family'])
-      cli.send(:handle_unjunk_command)
-      expect(Cleanbox).to have_received(:new).with(mock_imap, cli.options)
-      expect(mock_cleanbox).to have_received(:unjunk!)
-      expect(cli.options[:unjunk_folders]).to eq(['Family'])
-    end
-
-    it 'handles multiple unjunk folders' do
-      ARGV.replace(['unjunk', 'Family', 'Work'])
-      cli.send(:handle_unjunk_command)
-      expect(cli.options[:unjunk_folders]).to eq(['Family', 'Work'])
-    end
-
-    it 'does nothing when unjunk command is not present' do
-      ARGV.replace(%w[other command])
-      cli.send(:handle_unjunk_command)
-      expect(Cleanbox).not_to have_received(:new)
-    end
-  end
-
-  describe '#handle_no_args_help' do
+  describe 'no args passed' do
     before do
       allow(cli).to receive(:show_help)
       allow(cli).to receive(:exit)
@@ -229,14 +199,8 @@ RSpec.describe CLI::CleanboxCLI do
 
     it 'shows help when no arguments are present' do
       ARGV.clear
-      cli.send(:handle_no_args_help)
+      cli.send(:run)
       expect(cli).to have_received(:show_help)
-    end
-
-    it 'does not show help when arguments are present' do
-      ARGV.replace(%w[some args])
-      cli.send(:handle_no_args_help)
-      expect(cli).not_to have_received(:show_help)
     end
   end
 
@@ -298,7 +262,7 @@ RSpec.describe CLI::CleanboxCLI do
       allow(cli).to receive(:create_imap_connection).and_return(mock_imap)
       allow(Cleanbox).to receive(:new).and_return(mock_cleanbox)
       allow(mock_cleanbox).to receive(:send)
-      allow(ARGV).to receive(:last).and_return('list')
+      allow(ARGV).to receive(:first).and_return('list')
     end
 
     it 'creates Cleanbox instance with IMAP connection and options' do

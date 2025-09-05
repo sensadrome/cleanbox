@@ -12,6 +12,7 @@ require_relative 'auth_cli'
 require_relative '../auth/authentication_manager'
 
 module CLI
+  # Cleanbox CLI Runner
   class CleanboxCLI
     attr_reader :options, :config_manager
 
@@ -28,8 +29,6 @@ module CLI
       handle_analyze_command
       handle_sent_analysis_command
       handle_config_command
-      handle_unjunk_command
-      handle_no_args_help
       validate_options
       execute_action
     end
@@ -100,28 +99,6 @@ module CLI
       exit 0
     end
 
-    def handle_unjunk_command
-      return unless ARGV.first == 'unjunk'
-
-      ARGV.delete('unjunk') # Remove 'unjunk' from ARGV
-      folders = ARGV # Remaining args are the folders
-
-      # Set the unjunk_folders option
-      @options[:unjunk_folders] = folders
-
-      # Execute the unjunk action
-      imap = create_imap_connection
-      Cleanbox.new(imap, @options).unjunk!
-      exit 0
-    end
-
-    def handle_no_args_help
-      return unless ARGV.empty?
-
-      show_help
-      exit 0
-    end
-
     def validate_options
       # For now, skip validation - we'll handle this properly when integrated
       nil
@@ -129,19 +106,23 @@ module CLI
 
     def execute_action
       action = determine_action
-      imap = create_imap_connection
-
-      Cleanbox.new(imap, @options).send(action)
+      if action.present?
+        imap = create_imap_connection
+        Cleanbox.new(imap, @options).send(action)
+      else
+        show_help
+      end
     end
 
-  def determine_action
-    return 'show_lists!' if ARGV.last == 'list'
-    return 'file_messages!' if %w[file filing].include?(ARGV.last)
-    return 'show_folders!' if ARGV.last == 'folders'
-    return 'show_blacklist!' if ARGV.last == 'blacklist'
+    def determine_action
+      return 'unjunk!' if ARGV.first == 'unjunk'
+      return 'show_lists!' if ARGV.first == 'list'
+      return 'file_messages!' if %w[file filing].include?(ARGV.first)
+      return 'show_folders!' if ARGV.first == 'folders'
+      return 'show_blacklist!' if ARGV.first == 'blacklist'
 
-    'clean!' # default action
-  end
+      'clean!' if ARGV.first == 'clean'
+    end
 
     def create_imap_connection
       host = @options.delete(:host)
@@ -159,8 +140,8 @@ module CLI
       puts ''
       puts 'Quick Start:'
       puts '  ./cleanbox setup          # Interactive setup wizard'
+      puts '  ./cleanbox --pretend      # Preview what would happen'
       puts '  ./cleanbox clean          # Clean your inbox'
-      puts '  ./cleanbox clean --pretend # Preview what would happen'
       puts ''
       puts 'Common Commands:'
       puts '  ./cleanbox --help         # Show detailed help'
@@ -170,9 +151,9 @@ module CLI
       puts '  ./cleanbox analyze        # Analyze email patterns'
       puts '  ./cleanbox sent-analysis  # Analyze sent vs folder patterns'
       puts '  ./cleanbox config show    # Show current configuration'
+      puts '  ./cleanbox --pretend      # Preview without making changes'
       puts '  ./cleanbox clean          # Clean your inbox'
       puts '  ./cleanbox file           # File existing inbox messages'
-      puts '  ./cleanbox unjunk [FOLDER] # Unjunk based on mail in FOLDER'
       puts '  ./cleanbox list           # Show email-to-folder mappings'
       puts '  ./cleanbox folders        # List all folders'
       puts '  ./cleanbox blacklist      # Show blacklisted email addresses'

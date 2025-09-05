@@ -92,10 +92,8 @@ module CLI
         @options[:valid_from] = val
       end
 
-
-
       opts.on('-F', '--file-from FOLDER',
-              'File (from the Inbox) based on mail in FOLDER (can use multiple times)') do |folder|
+              'Limit sender map to addresses found in FOLDER (can use multiple times)') do |folder|
         @options[:file_from_folders] ||= []
         @options[:file_from_folders] << folder
       end

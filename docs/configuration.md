@@ -40,7 +40,6 @@ hold_days: 7                      # Days to hold unknown emails in inbox
 
 # Unjunk Options
 unjunk: false
-unjunk_folders: ['Inbox']  # Use these folders as reference for unjunking
 ```
 
 **Sensitive Credentials (`.env` file)**:

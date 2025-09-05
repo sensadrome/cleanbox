@@ -253,26 +253,6 @@ RSpec.describe Cleanbox do
     end
   end
 
-  describe '#unjunk!' do
-    let(:mock_processor) { double('processor') }
-
-    before do
-      allow(cleanbox).to receive(:junk_messages).and_return([])
-      allow(cleanbox).to receive(:clear_deleted_messages!)
-      allow(cleanbox).to receive(:message_processing_context).and_return({})
-      allow(cleanbox).to receive(:unjunk_folders).and_return(['CleanFolder'])
-      allow(MessageProcessor).to receive(:new).and_return(mock_processor)
-      allow(cleanbox).to receive(:execute_decision)
-      allow(mock_processor).to receive(:decide_for_filing).and_return({ action: :keep })
-    end
-
-    it 'processes junk messages with filing logic' do
-      expect(cleanbox).to receive(:clear_deleted_messages!)
-
-      cleanbox.unjunk!
-    end
-  end
-
   describe '#show_lists!' do
     before do
       cleanbox.list_domain_map = {
@@ -359,15 +339,6 @@ RSpec.describe Cleanbox do
     before do
       allow(CleanboxFolderChecker).to receive(:new).and_return(mock_folder_checker)
       allow(mock_folder_checker).to receive(:email_addresses).and_return(['clean@example.com'])
-      allow(cleanbox).to receive(:unjunk_folders).and_return(['CleanFolder'])
-    end
-
-    it 'builds sender map from unjunk folders' do
-      expect(cleanbox.logger).to receive(:info).with('Building sender maps for folder CleanFolder')
-
-      cleanbox.send(:build_clean_sender_map!)
-
-      expect(cleanbox.sender_map['clean@example.com']).to eq('CleanFolder')
     end
   end
 

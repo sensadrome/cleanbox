@@ -292,7 +292,6 @@ module CLI
         tenant_id
         password
         unjunk
-        unjunk_folders
         file_from_folders
         hold_days
         sent_since_months
@@ -335,7 +334,6 @@ module CLI
 
         # Unjunk Options
         'unjunk' => false,                  # Enable unjunk functionality
-        'unjunk_folders' => [],             # Folders to use for unjunking
 
         # Filing Options
         'file_from_folders' => [], # Folders to use as reference when filing Inbox messages (file mode)
@@ -416,13 +414,6 @@ module CLI
         'sent_folder' => '# Name of your sent items folder (varies by email provider)',
         'file_unread' => '# Whether to file unread messages in file mode (default: false = only file read messages)',
         'unjunk' => '# Enable unjunk functionality to restore emails from junk/spam',
-        'unjunk_folders' => multi_line_comment([
-                                                 '# Folders to use as reference for unjunking',
-                                                 '#',
-                                                 '# Examples:',
-                                                 '# - ["Inbox"]: Use Inbox as reference for what should not be junk',
-                                                 '# - ["Family", "Work"]: Use Family and Work folders as reference'
-                                               ]),
         'file_from_folders' => multi_line_comment([
                                                     '# Folders to use as reference when filing Inbox messages (file mode)',
                                                     '# Defaults to whitelist_folders if not specified. Can also be set via -F/--file-from',
@@ -509,7 +500,7 @@ module CLI
 
     def should_show_empty?(key)
       # Show empty with helpful comments for "optional but useful" options
-      %w[client_id client_secret tenant_id password file_from_folders unjunk_folders valid_from log_file].include?(key)
+      %w[client_id client_secret tenant_id password file_from_folders valid_from log_file].include?(key)
     end
 
     def exit_with_error(error)

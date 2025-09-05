@@ -71,12 +71,11 @@ class Cleanbox < CleanboxConnection
 
   def file_messages!
     build_sender_map!
-    context_name = unjunking? ? 'unjunking' : 'filing existing messages'
-    process_messages(all_messages, :decide_for_filing, context_name)
+    process_messages(all_messages, :decide_for_filing, 'filing existing messages')
   end
 
   def unjunk!
-    build_clean_sender_map!
+    build_sender_map!
     process_messages(junk_messages, :decide_for_filing, 'unjunking')
   end
 
@@ -302,22 +301,6 @@ class Cleanbox < CleanboxConnection
         @sender_map[email] ||= folder
       end
     end
-  end
-
-  def build_clean_sender_map!
-    unjunk_folders.each do |folder|
-      logger.info "Building sender maps for folder #{folder}"
-      CleanboxFolderChecker.new(imap_connection,
-                                folder: folder,
-                                logger: logger,
-                                since: valid_from(folder)).email_addresses.each do |email|
-        sender_map[email] ||= folder
-      end
-    end
-  end
-
-  def unjunk_folders
-    options[:unjunk_folders]
   end
 
   def valid_from(folder = nil)

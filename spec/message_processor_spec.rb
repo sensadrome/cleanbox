@@ -208,15 +208,6 @@ RSpec.describe MessageProcessor do
     end
   end
 
-  describe '#decide_for_unjunking' do
-    let(:message) { build_message('sender@example.com', 'example.com') }
-
-    it 'uses filing logic' do
-      decision = processor.decide_for_unjunking(message)
-      expect(decision).to eq({ action: :move, folder: 'Work' })
-    end
-  end
-
   describe 'Retention Policy' do
     context "when set to 'spammy'" do
       let(:context) do

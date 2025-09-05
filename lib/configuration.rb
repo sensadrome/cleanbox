@@ -42,7 +42,6 @@ class Configuration
         sent_folder: 'Sent Items',
         sent_since_months: 24,
         unjunk: false,
-        unjunk_folders: [],
         username: nil,
         valid_since_months: 12,
         verbose: false,

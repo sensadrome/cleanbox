@@ -19,15 +19,11 @@ class MessageProcessor
   end
 
   def decide_for_filing(message)
+    # folder = destination_folder_for(message, use_list_maps: false)
     folder = destination_folder_for(message)
     return { action: :move, folder: folder } if folder
 
     { action: :keep }
-  end
-
-  def decide_for_unjunking(message)
-    # Same as filing but with clean sender map
-    decide_for_filing(message)
   end
 
   private
@@ -70,8 +66,9 @@ class MessageProcessor
     cutoff < date_sent                      # => true means "hold"
   end
 
-  def destination_folder_for(message)
-    mapped_folder_from_address(message) || mapped_folder_from_domain(message)
+  def destination_folder_for(message, use_list_maps: true)
+    mapped_folder_from_address(message) ||
+      (use_list_maps && mapped_folder_from_domain(message))
   end
 
   def mapped_folder_from_address(message)
@@ -84,21 +81,21 @@ class MessageProcessor
 
   def mapped_folder_from_domain(message)
     domain = message.from_domain
-    
+
     # First try exact match (current behavior)
     return list_domain_map[domain] if list_domain_map.key?(domain)
-    
+
     # Then try wildcard patterns
     wildcard_match = find_wildcard_match(domain)
     return list_domain_map[wildcard_match] if wildcard_match
-    
+
     nil
   end
 
   def find_wildcard_match(domain)
     list_domain_map.keys.find do |pattern|
       next unless pattern.include?('*')
-      
+
       # Convert wildcard pattern to regex
       # *.domain.com becomes ^[^.]+\.domain\.com$
       regex_pattern = pattern.gsub('*', '[^.]+').gsub('.', '\.')
@@ -153,10 +150,10 @@ class MessageProcessor
     # First check if we know where this message should go
     known_destination = destination_folder_for(message)
     return known_destination if known_destination.present?
-    
+
     # Only quarantine if we don't know where it should go
     return quarantine_folder if quarantine?
-    
+
     # Fallback to default list folder
     @context[:list_folder]
   end

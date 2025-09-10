@@ -50,7 +50,7 @@ require_relative '../lib/console'
 
 # Welcome message
 puts 'Welcome to Cleanbox Console!'
-puts "Type 'help' to see available commands"
+puts "Type 'show_help' to see available commands"
 puts "Use 'cb' or 'cleanbox' to access the main instance"
 puts ''
 

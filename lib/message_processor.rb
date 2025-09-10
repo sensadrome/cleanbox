@@ -20,6 +20,8 @@ class MessageProcessor
 
   def decide_for_filing(message)
     # folder = destination_folder_for(message, use_list_maps: false)
+    return { action: :keep } if blacklisted?(message) && unjunking?
+
     folder = destination_folder_for(message)
     return { action: :move, folder: folder } if folder
 
@@ -28,16 +30,20 @@ class MessageProcessor
 
   private
 
+  def unjunking?
+    @context[:unjunking]
+  end
+
   def blacklisted?(message)
-    return false if @context[:unjunking]
     return true if @context[:blacklisted_emails]&.include?(message.from_address) # User blacklist always wins
+    return false if unjunking?
     return false if whitelisted?(message) # Whitelist protects against junk folder false positives
 
     @context[:junk_emails]&.include?(message.from_address) # Junk folder as fallback
   end
 
   def whitelisted?(message)
-    return false if @context[:unjunking]
+    return false if unjunking?
 
     @context[:whitelisted_emails].include?(message.from_address) ||
       @context[:whitelisted_domains].include?(message.from_domain)

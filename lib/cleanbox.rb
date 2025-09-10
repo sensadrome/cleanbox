@@ -289,11 +289,6 @@ class Cleanbox < CleanboxConnection
     imap_connection.expunge
   end
 
-  def list_since_date
-    months = options[:list_since_months] || 12
-    (Date.today << months).strftime('%d-%b-%Y')
-  end
-
   def build_sender_map!(folders_to_map)
     logger.info 'Building sender maps....'
     folders_to_map.each do |folder|
@@ -324,6 +319,11 @@ class Cleanbox < CleanboxConnection
     Date.parse(options[:valid_from]).strftime('%d-%b-%Y')
   rescue StandardError
     nil
+  end
+
+  def list_since_date
+    months = options[:list_since_months] || 12
+    (Date.today << months).strftime('%d-%b-%Y')
   end
 
   def all_messages

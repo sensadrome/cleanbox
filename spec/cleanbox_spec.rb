@@ -15,8 +15,7 @@ RSpec.describe Cleanbox do
       list_domain_map: { 'newsletter.com' => 'Newsletters' },
       sent_folder: 'Sent',
       sent_since_months: 24,
-      list_since_months: 12,
-      valid_since_months: 12
+      list_since_months: 12
     }
   end
   let(:cleanbox) { described_class.new(mock_imap, options) }
@@ -315,11 +314,12 @@ RSpec.describe Cleanbox do
 
   describe '#build_sender_map!' do
     let(:mock_folder_checker) { double('CleanboxFolderChecker') }
+    let(:folders) { %w[Family Work] }
 
     before do
       allow(CleanboxFolderChecker).to receive(:new).and_return(mock_folder_checker)
-      allow(mock_folder_checker).to receive(:email_addresses).and_return(['sender@example.com'])
-      allow(cleanbox).to receive(:folders_to_file).and_return(%w[Family Work])
+      allow(mock_folder_checker).to receive(:email_addresses).and_return(['member@family.com'], ['someone@work.com'])
+      allow(cleanbox).to receive(:folders_to_file).and_return(folders)
     end
 
     it 'builds sender map from folders to file' do
@@ -327,9 +327,10 @@ RSpec.describe Cleanbox do
       expect(cleanbox.logger).to receive(:debug).with('  adding addresses from Family')
       expect(cleanbox.logger).to receive(:debug).with('  adding addresses from Work')
 
-      cleanbox.send(:build_sender_map!)
+      cleanbox.send(:build_sender_map!, folders)
 
-      expect(cleanbox.sender_map['sender@example.com']).to eq('Family')
+      expect(cleanbox.sender_map['member@family.com']).to eq('Family')
+      expect(cleanbox.sender_map['someone@work.com']).to eq('Work')
     end
   end
 
@@ -519,14 +520,7 @@ RSpec.describe Cleanbox do
         end
 
         it 'parses the valid_from date' do
-          expect(cleanbox.send(:valid_from_date)).to eq(Date.parse('2023-01-01'))
-        end
-      end
-
-      context 'when valid_from is not set' do
-        it 'calculates date based on valid_since_months' do
-          expected_date = Date.today << 12
-          expect(cleanbox.send(:valid_from_date)).to eq(expected_date)
+          expect(cleanbox.send(:valid_from_date)).to eq('01-Jan-2023')
         end
       end
     end

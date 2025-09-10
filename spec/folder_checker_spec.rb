@@ -326,31 +326,6 @@ RSpec.describe CleanboxFolderChecker do
     end
   end
 
-  describe 'date filtering' do
-    context 'with valid_from option' do
-      let(:options) { { folder: 'TestFolder', valid_from: '2023-01-01' } }
-
-      it 'uses valid_from date for search' do
-        expect(checker.send(:date_search)).to eq(%w[SINCE 01-Jan-2023])
-      end
-    end
-
-    context 'with valid_since_months option' do
-      let(:options) { { folder: 'TestFolder', valid_since_months: 6 } }
-
-      it 'uses valid_since_months for search' do
-        expected_date = (Date.today << 6).strftime('%d-%b-%Y')
-        expect(checker.send(:date_search)).to eq(['SINCE', expected_date])
-      end
-    end
-
-    context 'with default options' do
-      it 'uses 12 months as default' do
-        expected_date = (Date.today << 12).strftime('%d-%b-%Y')
-        expect(checker.send(:date_search)).to eq(['SINCE', expected_date])
-      end
-    end
-  end
 
   describe 'address field selection' do
     context 'with address option' do

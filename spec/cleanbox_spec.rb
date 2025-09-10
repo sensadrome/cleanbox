@@ -212,14 +212,14 @@ RSpec.describe Cleanbox do
 
     it 'includes blacklisted emails and junk emails in the context' do
       context = cleanbox.send(:message_processing_context)
-      
+
       expect(context[:blacklisted_emails]).to eq([])  # No unsubscribe folder configured
       expect(context[:junk_emails]).to eq([])  # Not built yet
     end
 
     it 'includes all required context keys' do
       context = cleanbox.send(:message_processing_context)
-      
+
       expect(context).to include(
         :whitelisted_emails,
         :whitelisted_domains,

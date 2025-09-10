@@ -60,7 +60,6 @@ class CleanboxFolderChecker < CleanboxConnection
 
   def fetch_and_cache_email_addresses
     logger.debug "Fetching email addresses for folder #{folder}"
-
     emails = found_addresses.map { |a| [a.mailbox, a.host].join('@').downcase }.sort.uniq
 
     # Cache the results
@@ -116,15 +115,9 @@ class CleanboxFolderChecker < CleanboxConnection
 
   def date_search
     return [] if all_messages?
+    return [] unless since.present?
 
-    # Use valid_from if present, otherwise use valid_since_months (default 12 months)
-    date = if options[:valid_from].present?
-             Date.parse(options[:valid_from])
-           else
-             months = options[:valid_since_months] || 12
-             Date.today << months
-           end
-    ['SINCE', date.strftime('%d-%b-%Y')]
+    ['SINCE', since]
   end
 
   def all_messages?
@@ -164,7 +157,7 @@ class CleanboxFolderChecker < CleanboxConnection
       return nil unless File.exist?(cache_file)
 
       YAML.load_file(cache_file)
-    rescue Psych::SyntaxError, StandardError
+    rescue Psych::SyntaxError
       nil
     end
 

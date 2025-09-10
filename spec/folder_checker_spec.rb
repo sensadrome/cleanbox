@@ -326,7 +326,6 @@ RSpec.describe CleanboxFolderChecker do
     end
   end
 
-
   describe 'address field selection' do
     context 'with address option' do
       let(:options) { { folder: 'TestFolder', address: :to } }

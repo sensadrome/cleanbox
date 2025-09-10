@@ -42,7 +42,6 @@ module CleanboxConsole
 
       # Create IMAP connection
       imap = Net::IMAP.new(Configuration.options[:host], ssl: true)
-
       # Authenticate
       Auth::AuthenticationManager.authenticate_imap(imap, Configuration.options)
 

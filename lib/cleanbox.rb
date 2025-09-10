@@ -9,8 +9,9 @@ require_relative 'message_processor'
 class Cleanbox < CleanboxConnection
   attr_accessor :blacklisted_emails, :junk_emails, :whitelisted_emails, :list_domain_map, :sender_map
 
-  def initialize(imap_connection, options)
+  def initialize(imap_connection, initial_options)
     super
+    @options = initial_options.dup
     @list_domain_map = options.delete(:list_domain_map) || {}
     @sender_map = options.delete(:sender_map) || {}
   end

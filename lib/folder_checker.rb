@@ -64,18 +64,20 @@ class CleanboxFolderChecker < CleanboxConnection
     emails = found_addresses.map { |a| [a.mailbox, a.host].join('@').downcase }.sort.uniq
 
     # Cache the results
-    if cache_enabled?
-      current_stats = folder_stats
-      cache_data = {
-        'emails' => emails,
-        'stats' => current_stats,
-        'cached_at' => Time.now.iso8601
-      }
-      self.class.save_folder_cache(folder, cache_data)
-      logger.debug "Cached #{emails.length} email addresses for folder #{folder}"
-    end
+    cache_results(emails) if cache_enabled?
 
     emails
+  end
+
+  def cache_results(emails)
+    current_stats = folder_stats
+    cache_data = {
+      'emails' => emails,
+      'stats' => current_stats,
+      'cached_at' => Time.now.iso8601
+    }
+    self.class.save_folder_cache(folder, cache_data)
+    logger.debug "Cached #{emails.length} email addresses for folder #{folder}"
   end
 
   def folder_stats

@@ -295,7 +295,6 @@ module CLI
         file_from_folders
         hold_days
         sent_since_months
-        valid_since_months
         list_since_months
         data_dir
         verbose
@@ -341,7 +340,6 @@ module CLI
         # Processing Filters
         'valid_from' => nil,                # Use addresses found since this date (default: 1 year ago)
         'sent_since_months' => 24,          # Process sent emails from last X months
-        'valid_since_months' => 12,         # Process other folders from last X months
         'list_since_months' => 12,          # Process list folders from last X months
 
         # Retention Policy Settings
@@ -424,7 +422,6 @@ module CLI
                                                   ]),
         'valid_from' => '# Use addresses found since this date for domain mapping',
         'sent_since_months' => '# Process sent emails from last X months',
-        'valid_since_months' => '# Process other folders from last X months',
         'list_since_months' => '# Process list folders from last X months',
 
         'verbose' => '# Run with detailed output',
@@ -490,7 +487,7 @@ module CLI
 
     def should_comment_default?(key, _value)
       # Comment out defaults for "set it and forget it" options
-      %w[file_unread verbose level sent_since_months valid_since_months list_since_months].include?(key)
+      %w[file_unread verbose level sent_since_months list_since_months].include?(key)
     end
 
     def should_show_example?(key)

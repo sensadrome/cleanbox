@@ -43,7 +43,6 @@ class Configuration
         sent_since_months: 24,
         unjunk: false,
         username: nil,
-        valid_since_months: 12,
         verbose: false,
         whitelist_folders: [],
         whitelisted_domains: []

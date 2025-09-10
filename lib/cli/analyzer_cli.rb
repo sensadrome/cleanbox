@@ -378,10 +378,10 @@ module CLI
       puts ''
 
       # Show current date range settings
-      valid_since_months = @options[:valid_since_months] || 12
-      cutoff_date = Date.today << valid_since_months
+      list_since_months = @options[:list_since_months] || 12
+      cutoff_date = Date.today << list_since_months
 
-      puts "  Current date range: #{valid_since_months} months (since #{cutoff_date.strftime('%Y-%m-%d')})"
+      puts "  Current date range: #{list_since_months} months (since #{cutoff_date.strftime('%Y-%m-%d')})"
       puts ''
 
       # Identify potential issues
@@ -394,7 +394,7 @@ module CLI
         puts ''
       end
 
-      puts '  💡 Consider adjusting --valid-since-months for better pattern detection'
+      puts '  💡 Consider adjusting --list-since-months for better pattern detection'
       puts ''
     end
 

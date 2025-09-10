@@ -275,7 +275,6 @@ docker run -v /host/path/to/data:/app/data cleanbox --data-dir /app/data
 ```yaml
 # Time-based processing
 sent_since_months: 24      # Analyze sent emails from last 24 months
-valid_since_months: 12     # Consider emails valid from last 12 months
 list_since_months: 12      # Analyze list folders from last 12 months
 
 # Folder options

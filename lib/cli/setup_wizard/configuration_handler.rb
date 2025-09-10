@@ -131,7 +131,6 @@ module CLI
           sent_folder: detect_sent_folder || 'Sent Items',
           file_unread: false,
           sent_since_months: 24,
-          valid_since_months: 12,
           list_since_months: 12,
           verbose: false,
           level: 'info',

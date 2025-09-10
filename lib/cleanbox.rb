@@ -19,7 +19,7 @@ class Cleanbox < CleanboxConnection
   def clean!
     build_blacklist!
     build_whitelist!
-    build_sender_map!
+    build_sender_map!(list_folders)
     clean_inbox!
     logger.info 'Finished cleaning'
   end
@@ -71,12 +71,15 @@ class Cleanbox < CleanboxConnection
   end
 
   def file_messages!
-    build_sender_map!
+    build_blacklist!
+    build_sender_map!(folders_to_file)
     process_messages(all_messages, :decide_for_filing, 'filing existing messages')
   end
 
   def unjunk!
-    build_sender_map!
+    @options[:unjunk] = true
+    build_blacklist!
+    build_sender_map!(folders_to_file)
     process_messages(junk_messages, :decide_for_filing, 'unjunking')
   end
 
@@ -237,7 +240,7 @@ class Cleanbox < CleanboxConnection
 
   def message_processing_context
     {
-      whitelisted_emails: whitelisted_emails,
+      whitelisted_emails: whitelisted_emails || [],
       whitelisted_domains: whitelisted_domains,
       list_domain_map: list_domain_map,
       sender_map: sender_map,
@@ -291,42 +294,36 @@ class Cleanbox < CleanboxConnection
     (Date.today << months).strftime('%d-%b-%Y')
   end
 
-  def build_sender_map!
+  def build_sender_map!(folders_to_map)
     logger.info 'Building sender maps....'
-    folders_to_file.each do |folder|
+    folders_to_map.each do |folder|
       logger.debug "  adding addresses from #{folder}"
-      CleanboxFolderChecker.new(imap_connection,
-                                folder: folder,
-                                logger: logger,
-                                since: valid_from).email_addresses.each do |email|
+      CleanboxFolderChecker.new(imap_connection, sender_map_options(folder)).email_addresses.each do |email|
         @sender_map[email] ||= folder
       end
     end
   end
 
-  def valid_from(folder = nil)
-    return if whitelist_folders.include?(folder)
-
-    valid_from_date.strftime('%d-%b-%Y')
-  end
-
-  def valid_from_date
-    Date.parse(options[:valid_from])
-  rescue StandardError
-    months = options[:valid_since_months] || 12
-    Date.today << months
-  end
-
   def folders_to_file
-    file_from_folders || all_folders
+    file_from_folders || (list_folders + whitelist_folders)
   end
 
   def file_from_folders
     options[:file_from_folders].presence
   end
 
-  def all_folders
-    whitelist_folders + list_folders
+  def sender_map_options(folder)
+    {
+      folder: folder,
+      logger: logger,
+      since: valid_from_date || list_since_date
+    }
+  end
+
+  def valid_from_date
+    Date.parse(options[:valid_from]).strftime('%d-%b-%Y')
+  rescue StandardError
+    nil
   end
 
   def all_messages
@@ -347,7 +344,20 @@ class Cleanbox < CleanboxConnection
   end
 
   def date_search
-    ['SINCE', list_since_date]
+    return [] if operate_on_all_messages?
+
+    ['SINCE', since_date.strftime('%d-%b-%Y')]
+  end
+
+  def operate_on_all_messages?
+    options[:all_messages]
+  end
+
+  def since_date
+    Date.parse(options[:since])
+  rescue StandardError
+    months = options[:since_months] || 24
+    Date.today << months
   end
 
   def junk_messages

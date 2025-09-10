@@ -92,6 +92,21 @@ module CLI
         @options[:valid_from] = val
       end
 
+      since_help = 'Operate on emails found since this date (default 1 year ago)'
+      opts.on('-s', '--since DATE', since_help) do |val|
+        @options[:since] = val
+      end
+
+      since_help = 'Operate on emails found less than MONTHS old'
+      opts.on('-m', '--since-months MONTHS', since_help) do |val|
+        @options[:since_months] = val
+      end
+
+      since_help = 'Operate on ALL emails (for filing, unjunking commands)'
+      opts.on('-A', '--all', since_help) do
+        @options[:all_messages] = true
+      end
+
       opts.on('-F', '--file-from FOLDER',
               'Limit sender map to addresses found in FOLDER (can use multiple times)') do |folder|
         @options[:file_from_folders] ||= []

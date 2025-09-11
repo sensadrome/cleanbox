@@ -19,8 +19,11 @@ class MessageProcessor
   end
 
   def decide_for_filing(message)
-    # folder = destination_folder_for(message, use_list_maps: false)
-    return { action: :keep } if blacklisted?(message) && unjunking?
+    if explicitly_blacklisted?(message)
+      return { action: :keep } if unjunking? || permissive_blacklist?
+
+      return { action: :move, folder: 'Junk' }
+    end
 
     folder = destination_folder_for(message)
     return { action: :move, folder: folder } if folder
@@ -34,12 +37,19 @@ class MessageProcessor
     @context[:unjunking]
   end
 
+  def permissive_blacklist?
+    @context[:blacklist_policy] == :permissive
+  end
+
   def blacklisted?(message)
-    return true if @context[:blacklisted_emails]&.include?(message.from_address) # User blacklist always wins
-    return false if unjunking?
+    return true if explicitly_blacklisted?(message) # User blacklist always wins
     return false if whitelisted?(message) # Whitelist protects against junk folder false positives
 
     @context[:junk_emails]&.include?(message.from_address) # Junk folder as fallback
+  end
+
+  def explicitly_blacklisted?(message)
+    @context[:blacklisted_emails]&.include?(message.from_address)
   end
 
   def whitelisted?(message)
@@ -72,9 +82,8 @@ class MessageProcessor
     cutoff < date_sent                      # => true means "hold"
   end
 
-  def destination_folder_for(message, use_list_maps: true)
-    mapped_folder_from_address(message) ||
-      (use_list_maps && mapped_folder_from_domain(message))
+  def destination_folder_for(message)
+    mapped_folder_from_address(message) || mapped_folder_from_domain(message)
   end
 
   def mapped_folder_from_address(message)

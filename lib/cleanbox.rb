@@ -44,6 +44,20 @@ class Cleanbox < CleanboxConnection
     cleanbox_folders.each { |folder| puts folder }
   end
 
+  def file_messages!
+    @options[:filing] = true
+    build_blacklist!
+    build_sender_map!(folders_to_file)
+    process_messages(all_messages, :decide_for_filing, 'filing existing messages')
+  end
+
+  def unjunk!
+    @options[:unjunk] = true
+    build_blacklist!
+    build_sender_map!(folders_to_file)
+    process_messages(junk_messages, :decide_for_filing, 'unjunking')
+  end
+
   def list_folder
     options[:list_folder] || 'Lists'
   end
@@ -68,19 +82,6 @@ class Cleanbox < CleanboxConnection
 
   def unjunking?
     !!options[:unjunk]
-  end
-
-  def file_messages!
-    build_blacklist!
-    build_sender_map!(folders_to_file)
-    process_messages(all_messages, :decide_for_filing, 'filing existing messages')
-  end
-
-  def unjunk!
-    @options[:unjunk] = true
-    build_blacklist!
-    build_sender_map!(folders_to_file)
-    process_messages(junk_messages, :decide_for_filing, 'unjunking')
   end
 
   private
@@ -123,9 +124,9 @@ class Cleanbox < CleanboxConnection
   def fetch_blacklisted_emails
     return [] unless options[:blacklist_folder].present?
 
-    CleanboxFolderChecker.new(imap_connection, all_messages: true,
-                                               folder: options[:blacklist_folder],
-                                               logger: logger).email_addresses
+    opts = { all_messages: true, folder: options[:blacklist_folder], logger: logger, cache: options[:cache] }
+
+    CleanboxFolderChecker.new(imap_connection, opts).email_addresses
   rescue StandardError => e
     logger.warn "Blacklist folder '#{options[:blacklist_folder]}' not found or inaccessible: #{e.message}"
     []
@@ -134,7 +135,8 @@ class Cleanbox < CleanboxConnection
   def fetch_junk_emails
     return [] unless junk_folder
 
-    CleanboxFolderChecker.new(imap_connection, folder: junk_folder, logger: logger).email_addresses
+    opts = { folder: junk_folder, logger: logger, cache: options[:cache] }
+    CleanboxFolderChecker.new(imap_connection, opts).email_addresses
   end
 
   def build_whitelist!
@@ -146,7 +148,8 @@ class Cleanbox < CleanboxConnection
 
   def email_addresses_from_whitelist_folders
     whitelist_folders.flat_map do |folder|
-      CleanboxFolderChecker.new(imap_connection, folder: folder, logger: logger).email_addresses
+      opts = { folder: folder, logger: logger, cache: options[:cache] }
+      CleanboxFolderChecker.new(imap_connection, opts).email_addresses
     end.uniq
   end
 
@@ -155,11 +158,14 @@ class Cleanbox < CleanboxConnection
   end
 
   def sent_emails
-    CleanboxFolderChecker.new(imap_connection,
-                              folder: sent_folder,
-                              logger: logger,
-                              address: :to,
-                              since: sent_since_date).email_addresses
+    opts = {
+      folder: sent_folder,
+      logger: logger,
+      address: :to,
+      since: sent_since_date,
+      cache: options[:cache]
+    }
+    CleanboxFolderChecker.new(imap_connection, opts).email_addresses
   end
 
   def sent_folder
@@ -180,7 +186,6 @@ class Cleanbox < CleanboxConnection
     logger.info "Processing #{messages.length} messages for #{context_name}"
 
     changed_folders = Set.new
-
     messages.each do |message|
       decision = message_processor.send(decision_method, message)
       execute_decision(decision, message, changed_folders)
@@ -242,7 +247,7 @@ class Cleanbox < CleanboxConnection
     {
       whitelisted_emails: whitelisted_emails || [],
       whitelisted_domains: whitelisted_domains,
-      list_domain_map: list_domain_map,
+      list_domain_map: filtered_list_domain_map,
       sender_map: sender_map,
       list_folder: list_folder,
       unjunking: unjunking?,
@@ -250,8 +255,20 @@ class Cleanbox < CleanboxConnection
       junk_emails: junk_emails,
       retention_policy: retention_policy.to_sym,
       hold_days: hold_days,
-      quarantine_folder: quarantine_folder
+      quarantine_folder: quarantine_folder,
+      blacklist_policy: blacklist_policy
     }
+  end
+
+  def filtered_list_domain_map
+    return list_domain_map unless filing?
+
+    valid_folders = folders_to_file
+    list_domain_map.select { |_domain, folder| valid_folders.include?(folder) }
+  end
+
+  def filing?
+    @options[:filing]
   end
 
   def retention_policy
@@ -264,6 +281,10 @@ class Cleanbox < CleanboxConnection
 
   def quarantine_folder
     options[:quarantine_folder] || 'Quarantine'
+  end
+
+  def blacklist_policy
+    options[:blacklist_policy] || :permissive
   end
 
   def new_messages
@@ -311,8 +332,9 @@ class Cleanbox < CleanboxConnection
     {
       folder: folder,
       logger: logger,
-      since: valid_from_date || list_since_date
-    }
+      since: valid_from_date || list_since_date,
+      cache: options[:cache]
+    }.compact
   end
 
   def valid_from_date

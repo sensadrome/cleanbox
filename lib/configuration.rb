@@ -29,6 +29,7 @@ class Configuration
       {
         auth_type: nil,
         blacklist_folder: nil,
+        blacklist_policy: :permissive,
         data_dir: nil,
         file_from_folders: [],
         file_unread: false,

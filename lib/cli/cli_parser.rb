@@ -121,6 +121,10 @@ module CLI
       opts.on('--detailed', 'Show detailed analysis with examples (for analysis commands)') do
         @options[:detailed] = true
       end
+
+      opts.on('--junk-blacklisted', 'Move ALL messages from blacklisted senders to Junk (default: only affect new messages)') do
+        @options[:blacklist_policy] = :hardcore
+      end
     end
 
     def setup_commands_help(opts)

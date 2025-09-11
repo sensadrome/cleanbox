@@ -13,6 +13,7 @@ RSpec.describe 'Cleanbox Message Commands - End to End' do
 
   let(:test_imap) { mock_imap_with_fixture('message_commands_e2e') }
   let(:blacklist_policy) { :permissive }
+  let(:file_from_folders) { nil }
   let(:cleanbox) { Cleanbox.new(test_imap, options) }
   let(:options) do
     {
@@ -22,8 +23,9 @@ RSpec.describe 'Cleanbox Message Commands - End to End' do
       cache: false,
       junk_folder: 'Junk',
       blacklist_folder: 'Blacklist',
-      blacklist_policy: blacklist_policy
-    }
+      blacklist_policy: blacklist_policy,
+      file_from_folders: file_from_folders
+    }.compact
   end
 
   def messages_in_folder(folder_name)
@@ -193,6 +195,54 @@ RSpec.describe 'Cleanbox Message Commands - End to End' do
 
     it 'calls IMAP methods' do
       cleanbox.unjunk!
+      
+      expect(test_imap).to have_received(:copy).at_least(1).times
+      expect(test_imap).to have_received(:store).at_least(1).times
+      expect(test_imap).to have_received(:expunge).at_least(1).times
+    end
+  end
+
+  describe 'file_messages! with --file-from option' do
+    let(:file_from_folders) { %w[Family] } # Only source from Family folder
+
+    it 'only files messages based on Family folder email addresses' do
+      expect { cleanbox.file_messages! }.to change { messages_in_folder('INBOX').length }.by(-2)
+    end
+
+    it 'moves family messages to Family folder' do
+      expect { cleanbox.file_messages! }.to change { messages_in_folder('Family').length }.by(2)
+    end
+
+    it 'does not move work messages to Work folder' do
+      expect { cleanbox.file_messages! }.not_to change { messages_in_folder('Work').length }
+    end
+
+    it 'does not move newsletter messages to Newsletters folder' do
+      expect { cleanbox.file_messages! }.not_to change { messages_in_folder('Newsletters').length }
+    end
+
+    it 'keeps non-family messages in INBOX' do
+      cleanbox.file_messages!
+      
+      inbox_senders = messages_in_folder('INBOX').map { |m| m['sender'] }
+      expect(inbox_senders).to include('boss@work.com')      # Work sender stays in INBOX
+      expect(inbox_senders).to include('colleague@work.com') # Work sender stays in INBOX
+      expect(inbox_senders).to include('newsletter@techcrunch.com') # Newsletter stays in INBOX
+      expect(inbox_senders).to include('newsletter@wired.com')      # Newsletter stays in INBOX
+      expect(inbox_senders).to include('spam@fakebank.com')   # Blacklisted stays in INBOX (permissive)
+      expect(inbox_senders).to include('phishing@scam.com')   # Blacklisted stays in INBOX (permissive)
+      expect(inbox_senders).to include('unknown@example.com') # Unknown stays in INBOX
+    end
+
+    it 'moves only family messages from INBOX' do
+      cleanbox.file_messages!
+      
+      inbox_senders = messages_in_folder('INBOX').map { |m| m['sender'] }
+      expect(inbox_senders).not_to include('sister@family.com') # Should be moved to Family
+    end
+
+    it 'calls IMAP methods' do
+      cleanbox.file_messages!
       
       expect(test_imap).to have_received(:copy).at_least(1).times
       expect(test_imap).to have_received(:store).at_least(1).times

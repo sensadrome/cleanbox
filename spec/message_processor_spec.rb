@@ -94,7 +94,7 @@ RSpec.describe MessageProcessor do
     end
 
     context 'when domain is in list domain map' do
-      let(:message) { build_message('list@list.example.com', 'list.example.com') }
+      let(:message) { build_message('newsletter@list.example.com', 'list.example.com') }
 
       it 'returns move action to list folder' do
         decision = processor.decide_for_filing(message)

@@ -61,7 +61,6 @@ class CleanboxFolderChecker < CleanboxConnection
   def fetch_and_cache_email_addresses
     logger.debug "Fetching email addresses for folder #{folder}"
     emails = found_addresses.map { |a| [a.mailbox, a.host].join('@').downcase }.sort.uniq
-
     # Cache the results
     cache_results(emails) if cache_enabled?
 

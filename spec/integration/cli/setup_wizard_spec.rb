@@ -1,9 +1,11 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
+require_relative '../../helpers/imap_fixture_helper'
 require_relative '../../test_imap_service'
 
 RSpec.describe 'SetupWizard Integration' do
+  include ImapFixtureHelper
   let(:temp_dir) { Dir.mktmpdir('cleanbox_test') }
   let(:config_path) { File.join(temp_dir, 'config.yml') }
   let(:env_path) { File.join(temp_dir, '.env') }
@@ -246,24 +248,6 @@ RSpec.describe 'SetupWizard Integration' do
 
   private
 
-  def mock_imap_with_fixture(fixture_name)
-    # Create the test IMAP service
-    test_imap = TestImapService.new(fixture_name)
-
-    # Mock Net::IMAP.new to return our test service
-    allow(Net::IMAP).to receive(:new).and_return(test_imap)
-
-    # Mock the authentication manager to use our test service's auth methods
-    allow(Auth::AuthenticationManager).to receive(:authenticate_imap) do |_imap, _options|
-      raise Net::IMAP::NoResponseError, test_imap.auth_error unless test_imap.auth_success?
-
-      # Simulate successful authentication by calling authenticate on the test service
-      test_imap.authenticate('oauth2', 'test@example.com', 'token')
-      true
-
-      # Simulate authentication failure
-    end
-  end
 
   def mock_user_input
     # This will be overridden in specific tests

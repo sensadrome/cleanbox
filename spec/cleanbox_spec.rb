@@ -11,7 +11,6 @@ RSpec.describe Cleanbox do
       whitelist_folders: %w[Family Work],
       list_folders: ['Newsletters'],
       whitelisted_domains: ['trusted.com'],
-
       list_domain_map: { 'newsletter.com' => 'Newsletters' },
       sent_folder: 'Sent',
       sent_since_months: 24,
@@ -46,8 +45,9 @@ RSpec.describe Cleanbox do
 
   describe '#initialize' do
     it 'initializes with imap connection and options' do
+      options_without_list_domain_map = options.reject { |k, _v| k == :list_domain_map }
       expect(cleanbox.imap_connection).to eq(mock_imap)
-      expect(cleanbox.options).to eq(options)
+      expect(cleanbox.options).to eq(options_without_list_domain_map)
     end
 
     it 'sets up list_domain_map and sender_map' do

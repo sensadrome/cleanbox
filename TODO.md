@@ -4,6 +4,22 @@ This file tracks planned improvements, features, and tasks for the Cleanbox proj
 
 ## 🚀 High Priority
 
+### Current Session Work (2025-01-15)
+- [ ] **Fix Blacklist Functionality in MessageProcessor** 🚧 **IN PROGRESS**
+  - **Issue**: `decide_for_filing` method incorrectly keeps blacklisted messages in INBOX instead of moving to Junk
+  - **Root Cause**: Logic `return { action: :keep } if blacklisted?(message) && unjunking?` is backwards
+  - **Solution**: Update logic to move blacklisted messages to Junk during `file_messages!`
+- [ ] **Implement Blacklist Policy System** 🚧 **IN PROGRESS**
+  - **Design Decision**: Add `blacklist_policy` option with two modes:
+    - `:permissive` - Only affect new messages from blacklisted senders (safer default)
+    - `:hardcore` - Move ALL messages from blacklisted senders to Junk (retroactive)
+  - **Integration**: Connect with existing retention policy system
+  - **Configuration**: Add to setup wizard and configuration management
+- [ ] **Complete Bulk Operations Test Suite** 🚧 **IN PROGRESS**
+  - **Status**: Basic `file_messages!` and `unjunk!` tests passing
+  - **Remaining**: Fix blacklist functionality test (currently failing as expected in TDD)
+  - **Next**: Implement bulk operations optimization after tests are complete
+
 ### Authentication Improvements
 - [x] **Add Classic OAuth2 Token Exchange for Microsoft 365** ✅
   - Implement refresh token handling
@@ -50,10 +66,12 @@ This file tracks planned improvements, features, and tasks for the Cleanbox proj
   - Better test output and debugging capabilities
 
 ### Performance Optimizations
-- [ ] **Optimize Email Processing**
+- [ ] **Optimize Email Processing** 🚧 **IN PROGRESS**
   - Profile current performance bottlenecks
   - Implement batch processing for large mailboxes
   - Add progress indicators for long operations
+  - **Current Focus**: Build comprehensive tests for bulk operations (`file_messages!` and `unjunk!`) using `TestImapService`
+  - **Goal**: Optimize `file_messages` to use bulk IMAP search and move operations instead of message-by-message processing
 - [x] **Improve Caching Strategy** ✅
   - Implement smarter cache invalidation
   - Add cache size management

@@ -350,15 +350,30 @@ class Cleanbox < CleanboxConnection
   end
 
   def all_messages
-    all_message_ids.each_slice(800).flat_map do |slice|
+    fetch_all_messages.tap { puts }
+  end
+
+  def fetch_all_messages
+    all_message_ids.each_slice_with_progress(100).flat_map do |slice, total, done, percent|
+      show_progress "  Fetching: #{done}/#{total} (#{percent}%)"
       imap_connection.fetch(slice, 'BODY.PEEK[HEADER]').map do |m|
         CleanboxMessage.new(m)
       end
     end
   end
 
+  def show_progress(message)
+    # Clear the line first, then show new message
+    print "\r\033[K#{message}"
+    $stdout.flush
+  end
+
+  def filing_folder
+    # Will change when we are able to specify the folder to file from...
+    'INBOX'
+  end
+
   def all_message_ids
-    logger.debug date_search.inspect
     imap_connection.select 'INBOX'
     search_terms = %w[NOT DELETED] + date_search
     # If file_unread is false (default), only file read messages (add 'SEEN')

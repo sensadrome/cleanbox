@@ -22,7 +22,7 @@ class MessageProcessor
     if explicitly_blacklisted?(message)
       return { action: :keep } if unjunking? || permissive_blacklist?
 
-      return { action: :move, folder: 'Junk' }
+      return { action: :move, folder: @context[:junk_folder] }
     end
 
     folder = destination_folder_for(message)

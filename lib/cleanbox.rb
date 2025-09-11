@@ -256,7 +256,8 @@ class Cleanbox < CleanboxConnection
       retention_policy: retention_policy.to_sym,
       hold_days: hold_days,
       quarantine_folder: quarantine_folder,
-      blacklist_policy: blacklist_policy
+      blacklist_policy: blacklist_policy,
+      junk_folder: junk_folder
     }
   end
 

@@ -1,8 +1,5 @@
 # Cursor Rules for Cleanbox Project
 
-## 🎯 **Project Overview**
-Cleanbox is an intelligent email management tool that learns from existing organization patterns to automatically clean inboxes. It's a Ruby application with a CLI interface, focusing on pattern-based spam detection and smart email filing.
-
 ## 🚀 **How We Work Together**
 
 ### **Before Writing Code**
@@ -10,25 +7,6 @@ Cleanbox is an intelligent email management tool that learns from existing organ
 2. **Ask clarifying questions** - Understand the scope and requirements
 3. **Check existing code** - Look at how similar functionality is implemented
 4. **Consider the user's preferences** - They prefer atomic commits and clean code
-
-### **Code Quality Standards**
-- **RuboCop compliant** - Follow Ruby style guidelines consistently
-- **Single quotes** for strings (unless interpolation needed)
-- **Proper Ruby idioms** - Use `attr_accessor`, `||` operators, etc.
-- **Clean, readable code** - Follow existing patterns in the codebase
-- **No over-engineering** - Don't add features unless specifically requested
-
-### **Git Workflow**
-- **Atomic commits** - Each commit should contain one logical change
-- **Conventional commit messages** - Use `feat:`, `fix:`, `style:`, `docs:` prefixes
-- **Never use `git add .`** - Be specific about what files to commit
-- **Group related changes** - Multiple files for same feature in one commit
-
-### **Architecture Principles**
-- **Leverage existing code** - Don't recreate what already exists
-- **Follow established patterns** - Look at how similar features are implemented
-- **Minimal changes** - Make the smallest change that accomplishes the goal
-- **Check dependencies** - Ensure proper require statements and file paths
 
 ### **Communication Style**
 - **Ask before implementing** - Discuss approach, don't just write code
@@ -41,12 +19,22 @@ Cleanbox is an intelligent email management tool that learns from existing organ
 - **Stick to facts** - Describe the changes made, files affected, and technical reasons
 - **Avoid AI-generated language patterns** - Don't use phrases like "X files modified", "Y additions, Z deletions", or other statistical summaries that sound robotic
 
+### **Development Principles**
+- **Atomic commits** - Each commit should contain one logical change
+- **Conventional commit messages** - Use `feat:`, `fix:`, `style:`, `docs:` prefixes
+- **Never use `git add .`** - Be specific about what files to commit
+- **Group related changes** - Multiple files for same feature in one commit
+- **Leverage existing code** - Don't recreate what already exists
+- **Follow established patterns** - Look at how similar features are implemented
+- **Minimal changes** - Make the smallest change that accomplishes the goal
+- **No over-engineering** - Don't add features unless specifically requested
+
 ### **Common Pitfalls to Avoid**
 - **Over-engineering** - Don't add features beyond what's requested
 - **Ignoring existing patterns** - Check how similar functionality works
 - **Poor error handling** - Let existing error handling do its job
-- **Inconsistent style** - Follow RuboCop and project conventions
 - **Wrong file paths** - Use correct relative paths from script locations
+- **Code without understanding** - This is the #1 mistake that leads to rework
 
 ### **When in Doubt**
 1. **Ask questions** - Clarify requirements and approach
@@ -54,18 +42,11 @@ Cleanbox is an intelligent email management tool that learns from existing organ
 3. **Start small** - Begin with minimal implementation and iterate
 4. **Check existing code** - Look for patterns and examples in the codebase
 
-## 📚 **Key Files to Reference**
-- `cleanbox` - Main script showing require structure and entry point
-- `lib/cleanbox.rb` - Core Cleanbox class with main functionality
-- `lib/configuration.rb` - Configuration management
-- `lib/connection.rb` - Base connection class
-- `TODO.md` - Comprehensive project roadmap and priorities
-
-## 🔧 **Development Environment**
-- Ruby 2.7+ with Bundler
-- Uses `Bundler.require(:default, bundler_env)` for gem loading
-- Supports both IRB and Pry for console sessions
-- RuboCop for code style enforcement
+## 📚 **Essential Reading Order**
+1. **`.cursorrules`** - Workflow, communication style, and development principles (this file)
+2. **`CONTEXT.md`** - Project overview, technical details, and current status
+3. **`SESSION_LOG.md`** - Recent session documentation and learnings
+4. **`TODO.md`** - Current priorities and completed features
 
 Remember: **Discuss first, implement second, and always follow the user's preferences for code organization and style.**
 

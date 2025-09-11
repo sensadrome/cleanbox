@@ -1,0 +1,217 @@
+# frozen_string_literal: true
+
+auth:
+  success: true
+
+folders:
+  - name: 'INBOX'
+    attributes: ['\HasNoChildren']
+    messages:
+      - id: 1
+        sender: 'sister@family.com'
+        recipient: 'me@example.com'
+        subject: 'Family dinner this weekend'
+        date: '2025-01-15T10:00:00Z'
+        body: 'Hey! Are you coming to dinner this weekend?'
+        flags: ['\Seen']
+      - id: 2
+        sender: 'boss@work.com'
+        recipient: 'me@example.com'
+        subject: 'Project update needed'
+        date: '2025-01-15T11:00:00Z'
+        body: 'Please send me the project status by EOD.'
+        flags: ['\Seen']
+      - id: 3
+        sender: 'newsletter@techcrunch.com'
+        recipient: 'me@example.com'
+        subject: 'Weekly Tech News'
+        date: '2025-01-15T12:00:00Z'
+        body: 'This week in tech: AI breakthroughs, startup funding...'
+        flags: ['\Seen']
+      - id: 4
+        sender: 'spam@fakebank.com'
+        recipient: 'me@example.com'
+        subject: 'URGENT: Verify your account'
+        date: '2025-01-15T13:00:00Z'
+        body: 'Click here to verify your bank account immediately!'
+        flags: ['\Seen']
+      - id: 5
+        sender: 'sister@family.com'
+        recipient: 'me@example.com'
+        subject: 'Mom''s birthday reminder'
+        date: '2025-01-15T14:00:00Z'
+        body: 'Don''t forget Mom''s birthday is next week!'
+        flags: ['\Seen']
+      - id: 6
+        sender: 'colleague@work.com'
+        recipient: 'me@example.com'
+        subject: 'Meeting notes from yesterday'
+        date: '2025-01-15T15:00:00Z'
+        body: 'Here are the notes from our team meeting...'
+        flags: ['\Seen']
+      - id: 7
+        sender: 'newsletter@wired.com'
+        recipient: 'me@example.com'
+        subject: 'The Future of AI'
+        date: '2025-01-15T16:00:00Z'
+        body: 'Exploring the latest developments in artificial intelligence...'
+        flags: ['\Seen']
+      - id: 8
+        sender: 'phishing@scam.com'
+        recipient: 'me@example.com'
+        subject: 'Your account has been compromised'
+        date: '2025-01-15T17:00:00Z'
+        body: 'Immediate action required to secure your account!'
+        flags: ['\Seen']
+      - id: 9
+        sender: 'unknown@example.com'
+        recipient: 'me@example.com'
+        subject: 'Random message from unknown sender'
+        date: '2025-01-15T18:00:00Z'
+        body: 'This is a message from someone not in any lists or blacklists'
+        flags: ['\Seen']
+      - id: 10
+        sender: 'mom@family.com'
+        recipient: 'me@example.com'
+        subject: 'New family message (unread)'
+        date: '2025-01-15T19:00:00Z'
+        body: 'This is an unread message from family'
+        flags: []
+      - id: 11
+        sender: 'newsletter@arstechnica.com'
+        recipient: 'me@example.com'
+        subject: 'New newsletter (unread)'
+        date: '2025-01-15T20:00:00Z'
+        body: 'This is an unread newsletter message'
+        flags: []
+      - id: 12
+        sender: 'spam@fakebank.com'
+        recipient: 'me@example.com'
+        subject: 'New spam message (unread)'
+        date: '2025-01-15T21:00:00Z'
+        body: 'This is an unread spam message from blacklisted sender'
+        flags: []
+      - id: 13
+        sender: 'recentlyjunked@spam.com'
+        recipient: 'me@example.com'
+        subject: 'Recently junked sender (unread)'
+        date: '2025-01-15T22:00:00Z'
+        body: 'This is from a sender that was recently moved to junk'
+        flags: []
+
+  - name: 'Family'
+    attributes: ['\HasNoChildren']
+    messages:
+      - id: 101
+        sender: 'sister@family.com'
+        recipient: 'me@example.com'
+        subject: 'Old family message'
+        date: '2024-01-01T10:00:00Z'
+        body: 'This is an old message already in Family folder'
+        flags: ['\Seen']
+
+  - name: 'Work'
+    attributes: ['\HasNoChildren']
+    messages:
+      - id: 201
+        sender: 'boss@work.com'
+        recipient: 'me@example.com'
+        subject: 'Old work message'
+        date: '2024-01-01T11:00:00Z'
+        body: 'This is an old message already in Work folder'
+        flags: ['\Seen']
+      - id: 202
+        sender: 'colleague@work.com'
+        recipient: 'me@example.com'
+        subject: 'Another old work message'
+        date: '2024-01-01T12:00:00Z'
+        body: 'This is another old message already in Work folder'
+        flags: ['\Seen']
+
+  - name: 'Newsletters'
+    attributes: ['\HasNoChildren']
+    messages:
+      - id: 301
+        sender: 'newsletter@techcrunch.com'
+        recipient: 'me@example.com'
+        subject: 'Old newsletter'
+        date: '2024-01-01T13:00:00Z'
+        body: 'This is an old newsletter already in Newsletters folder'
+        flags: ['\Seen']
+      - id: 302
+        sender: 'newsletter@wired.com'
+        recipient: 'me@example.com'
+        subject: 'Another old newsletter'
+        date: '2024-01-01T14:00:00Z'
+        body: 'This is another old newsletter already in Newsletters folder'
+        flags: ['\Seen']
+
+  - name: 'Blacklist'
+    attributes: ['\HasNoChildren']
+    messages:
+      - id: 500
+        sender: 'spam@fakebank.com'
+        recipient: 'me@example.com'
+        subject: 'Blacklist spam message'
+        date: '2024-01-01T14:00:00Z'
+        body: 'This is a spam message in the blacklist folder'
+        flags: ['\Seen']
+
+  - name: 'Sent Items'
+    attributes: ['\HasNoChildren']
+    messages:
+      - id: 501
+        sender: 'me@example.com'
+        recipient: 'mom@family.com'
+        subject: 'Re: New family message (unread)'
+        date: '2025-01-15T19:30:00Z'
+        body: 'This is a sent message to mom@family.com'
+        flags: ['\Seen']
+      - id: 502
+        sender: 'me@example.com'
+        recipient: 'newsletter@arstechnica.com'
+        subject: 'Re: New newsletter (unread)'
+        date: '2025-01-15T20:30:00Z'
+        body: 'This is a sent message to newsletter@arstechnica.com'
+        flags: ['\Seen']
+
+  - name: 'Junk'
+    attributes: 
+      - '\HasNoChildren'
+      - :Junk
+    messages:
+      - id: 401
+        sender: 'spam@fakebank.com'
+        recipient: 'me@example.com'
+        subject: 'Old spam message'
+        date: '2024-01-01T15:00:00Z'
+        body: 'This is an old spam message already in junk folder'
+        flags: ['\Seen']
+      - id: 402
+        sender: 'phishing@scam.com'
+        recipient: 'me@example.com'
+        subject: 'Another old spam message'
+        date: '2024-01-01T16:00:00Z'
+        body: 'This is another old spam message already in junk folder'
+        flags: ['\Seen']
+      - id: 403
+        sender: 'sister@family.com'
+        recipient: 'me@example.com'
+        subject: 'Legitimate message in junk'
+        date: '2024-01-15T18:00:00Z'
+        body: 'This is a legitimate family message that got misclassified as junk'
+        flags: ['\Seen']
+      - id: 404
+        sender: 'boss@work.com'
+        recipient: 'me@example.com'
+        subject: 'Work message in junk'
+        date: '2024-01-15T19:00:00Z'
+        body: 'This is a legitimate work message that got misclassified as junk'
+        flags: ['\Seen']
+      - id: 405
+        sender: 'recentlyjunked@spam.com'
+        recipient: 'me@example.com'
+        subject: 'Recently junked message'
+        date: '2025-01-15T18:30:00Z'
+        body: 'This message was recently moved to junk'
+        flags: ['\Seen']

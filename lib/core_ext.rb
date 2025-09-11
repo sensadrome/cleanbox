@@ -167,3 +167,22 @@ class Time # :nodoc:
     false
   end
 end
+
+# Adds a progress enabled enumerable method
+module Enumerable
+  def each_slice_with_progress(size)
+    # Prefer O(1) if available; fall back to count
+    total = respond_to?(:length) ? length : count
+
+    # If no block, return an enumerator that will yield [slice, total, done, percent]
+    return enum_for(:each_slice_with_progress, size) { (total.to_f / size).ceil } unless block_given?
+
+    i = 0
+    each_slice(size) do |slice|
+      i += 1
+      done    = [i * size, total].min
+      percent = total.zero? ? 100 : ((done.to_f / total) * 100).round
+      yield(slice, total, done, percent)
+    end
+  end
+end

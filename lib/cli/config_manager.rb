@@ -27,7 +27,7 @@ module CLI
         puts filtered_config.to_yaml
 
         # Deprecated keys: present in config, not recognized
-        deprecated_keys = config_data.keys - recognized_keys
+        deprecated_keys = config_data.keys - recognized_keys - command_line_config
         if deprecated_keys.any?
           puts ''
           puts 'Note: Found deprecated keys in your config:'
@@ -291,7 +291,6 @@ module CLI
         client_secret
         tenant_id
         password
-        unjunk
         file_from_folders
         hold_days
         sent_since_months
@@ -304,6 +303,13 @@ module CLI
         blacklist_folder
         quarantine_folder
         retention_policy
+      ]
+    end
+
+    # Keys set by using command line switches
+    def command_line_config
+      %i[
+        blacklist_policy
       ]
     end
 
@@ -330,9 +336,6 @@ module CLI
         },
         'sent_folder' => 'Sent Items',      # Name of sent items folder
         'file_unread' => false,             # Whether to file unread messages in file mode
-
-        # Unjunk Options
-        'unjunk' => false,                  # Enable unjunk functionality
 
         # Filing Options
         'file_from_folders' => [], # Folders to use as reference when filing Inbox messages (file mode)
@@ -409,9 +412,8 @@ module CLI
                                                   '# - *.sub.example.com: Work (matches deep.sub.example.com, api.sub.example.com, etc.)',
                                                   '# Note: *.domain.com only matches single-level subdomains, not deeper nested ones'
                                                 ]),
-        'sent_folder' => '# Name of your sent items folder (varies by email provider)',
+        'sent_folder' => '# Name of your sent items folder (varies by email provider) will be detected if not specified',
         'file_unread' => '# Whether to file unread messages in file mode (default: false = only file read messages)',
-        'unjunk' => '# Enable unjunk functionality to restore emails from junk/spam',
         'file_from_folders' => multi_line_comment([
                                                     '# Folders to use as reference when filing Inbox messages (file mode)',
                                                     '# Defaults to whitelist_folders if not specified. Can also be set via -F/--file-from',

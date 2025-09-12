@@ -291,7 +291,6 @@ module CLI
         client_secret
         tenant_id
         password
-        file_from_folders
         hold_days
         sent_since_months
         list_since_months
@@ -336,9 +335,6 @@ module CLI
         },
         'sent_folder' => 'Sent Items',      # Name of sent items folder
         'file_unread' => false,             # Whether to file unread messages in file mode
-
-        # Filing Options
-        'file_from_folders' => [], # Folders to use as reference when filing Inbox messages (file mode)
 
         # Processing Filters
         'valid_from' => nil,                # Use addresses found since this date (default: 1 year ago)
@@ -414,14 +410,6 @@ module CLI
                                                 ]),
         'sent_folder' => '# Name of your sent items folder (varies by email provider) will be detected if not specified',
         'file_unread' => '# Whether to file unread messages in file mode (default: false = only file read messages)',
-        'file_from_folders' => multi_line_comment([
-                                                    '# Folders to use as reference when filing Inbox messages (file mode)',
-                                                    '# Defaults to whitelist_folders if not specified. Can also be set via -F/--file-from',
-                                                    '#',
-                                                    '# Example:',
-                                                    '# whitelist_folders: [Family, Friends, Work]',
-                                                    '# file_from_folders: [Family, Friends]  # Only file from Family/Friends, not Work'
-                                                  ]),
         'valid_from' => '# Use addresses found since this date for domain mapping',
         'sent_since_months' => '# Process sent emails from last X months',
         'list_since_months' => '# Process list folders from last X months',
@@ -499,7 +487,7 @@ module CLI
 
     def should_show_empty?(key)
       # Show empty with helpful comments for "optional but useful" options
-      %w[client_id client_secret tenant_id password file_from_folders valid_from log_file].include?(key)
+      %w[client_id client_secret tenant_id password valid_from log_file].include?(key)
     end
 
     def exit_with_error(error)

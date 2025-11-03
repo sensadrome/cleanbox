@@ -84,7 +84,11 @@ module Auth
         # Try to load existing tokens
         token_file = options[:token_file] || default_token_file(options[:username])
         if user_token.load_tokens_from_file(token_file)
-          access_token = user_token.token
+          access_token = begin
+            user_token.token
+          rescue Microsoft365UserToken::RefreshTokenExpiredError => e
+            raise e.message
+          end
           if access_token
             imap.authenticate('XOAUTH2', options[:username], access_token)
             return

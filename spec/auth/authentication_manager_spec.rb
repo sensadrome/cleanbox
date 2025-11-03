@@ -155,6 +155,14 @@ RSpec.describe Auth::AuthenticationManager do
         expect { described_class.authenticate_imap(mock_imap, user_oauth_options) }
           .to raise_error('No valid tokens found. Please run \'cleanbox auth setup\' to authenticate.')
       end
+
+      it 'raises friendly guidance when refresh token expired' do
+        expired_error = Microsoft365UserToken::RefreshTokenExpiredError.new('Stored Microsoft 365 refresh token has expired. Run "./cleanbox auth setup" to re-authorize.')
+        allow(mock_user_token).to receive(:token).and_raise(expired_error)
+
+        expect { described_class.authenticate_imap(mock_imap, user_oauth_options) }
+          .to raise_error(expired_error.message)
+      end
     end
 
     describe '.data_dir' do

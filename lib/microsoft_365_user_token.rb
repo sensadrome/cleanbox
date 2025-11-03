@@ -5,16 +5,32 @@ require 'uri'
 require 'securerandom'
 require 'logger'
 require 'time'
+require 'fileutils'
 
+# class for OAUTH2 user token based auth
 class Microsoft365UserToken
   DEFAULT_CLIENT_ID = 'b3fc8598-3357-4f5d-ac0a-969016f6bb24'
-  # DEFAULT_REDIRECT_URI = 'https://login.microsoftonline.com/common/oauth2/nativeclient'
-  DEFAULT_REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob'
+  DEFAULT_REDIRECT_URI = 'http://localhost:4567/m365/callback'
+  NATIVE_CLIENT_REDIRECT_URI = 'https://login.microsoftonline.com/common/oauth2/nativeclient'
   DEFAULT_SCOPE = 'https://outlook.office365.com/IMAP.AccessAsUser.All offline_access openid'
   TOKEN_ENDPOINT = 'https://login.microsoftonline.com/common/oauth2/v2.0/token'
 
+  class TokenError < StandardError
+    attr_reader :status, :details
+
+    def initialize(message = nil, status: nil, details: nil)
+      super(message)
+      @status = status
+      @details = details
+    end
+  end
+
+  class TokenExchangeError < TokenError; end
+  class TokenRefreshError < TokenError; end
+  class RefreshTokenExpiredError < TokenRefreshError; end
+
   attr_accessor :client_id, :redirect_uri, :scope
-  attr_reader :logger, :access_token, :refresh_token, :expires_at
+  attr_reader :last_state, :logger, :access_token, :refresh_token, :expires_at
 
   def initialize(client_id: nil, redirect_uri: nil, scope: nil, logger: nil)
     @client_id = client_id || DEFAULT_CLIENT_ID
@@ -36,6 +52,8 @@ class Microsoft365UserToken
       scope: @scope,
       state: state
     }
+
+    @last_state = state
 
     query_string = URI.encode_www_form(params)
     "https://login.microsoftonline.com/common/oauth2/v2.0/authorize?#{query_string}"
@@ -70,7 +88,7 @@ class Microsoft365UserToken
     @expires_at < Time.now
   end
 
-  def has_valid_tokens?
+  def valid_tokens?
     # Try to get a valid token (this will refresh if needed)
     return false if @refresh_token.nil?
 
@@ -82,6 +100,9 @@ class Microsoft365UserToken
       begin
         refresh_access_token
         return @access_token && !token_expired?
+      rescue RefreshTokenExpiredError => e
+        @logger&.warn(e.message)
+        return false
       rescue StandardError => e
         @logger&.error "Failed to refresh token: #{e.message}"
         return false
@@ -131,14 +152,18 @@ class Microsoft365UserToken
 
     response = https.request(request)
     @response_code = response.code
+    response_body = response.read_body
 
     if response.code != '200'
-      @logger.error "Token exchange failed with status #{response.code}"
-      @logger.error "Response: #{response.read_body}"
-      raise "Token exchange failed: #{response.code}"
+      log_error('Token exchange failed', response.code, response_body)
+      raise TokenExchangeError.new(
+        "Token exchange failed: #{response.code}",
+        status: response.code,
+        details: parse_error_body(response_body)
+      )
     end
 
-    response.read_body
+    response_body
   end
 
   def refresh_token_request
@@ -152,14 +177,29 @@ class Microsoft365UserToken
 
     response = https.request(request)
     @response_code = response.code
+    response_body = response.read_body
 
     if response.code != '200'
-      @logger.error "Token refresh failed with status #{response.code}"
-      @logger.error "Response: #{response.read_body}"
-      raise "Token refresh failed: #{response.code}"
+      log_error('Token refresh failed', response.code, response_body)
+      error_details = parse_error_body(response_body)
+
+      if refresh_token_expired?(error_details)
+        message = refresh_token_expired_message(error_details)
+        raise RefreshTokenExpiredError.new(
+          message,
+          status: response.code,
+          details: error_details
+        )
+      end
+
+      raise TokenRefreshError.new(
+        "Token refresh failed: #{response.code}",
+        status: response.code,
+        details: error_details
+      )
     end
 
-    response.read_body
+    response_body
   end
 
   def token_exchange_params(authorization_code)
@@ -196,5 +236,31 @@ class Microsoft365UserToken
       @logger.error "Response body: #{response_body}"
       raise "Invalid token response: #{e.message}"
     end
+  end
+
+  def parse_error_body(body)
+    JSON.parse(body)
+  rescue JSON::ParserError
+    {}
+  end
+
+  def refresh_token_expired?(error_details)
+    return false unless error_details.is_a?(Hash)
+
+    error = error_details['error']
+    description = error_details['error_description']
+
+    error == 'invalid_grant' && description&.match?(/refresh token has expired/i)
+  end
+
+  def refresh_token_expired_message(error_details)
+    description = error_details['error_description']
+    base_message = 'Stored Microsoft 365 refresh token has expired. Run "./cleanbox auth setup" to re-authorize.'
+    description ? "#{base_message} (#{description})" : base_message
+  end
+
+  def log_error(prefix, status, body)
+    @logger.error "#{prefix} with status #{status}"
+    @logger.error "Response: #{body}"
   end
 end

@@ -196,7 +196,7 @@ RSpec.describe CLI::SecretsManager do
         before do
           # Mock Microsoft365UserToken to avoid HTTP requests
           allow(Microsoft365UserToken).to receive(:new).and_return(
-            double('Microsoft365UserToken', has_valid_tokens?: false, load_tokens_from_file: true)
+            double('Microsoft365UserToken', valid_tokens?: false, load_tokens_from_file: true)
           )
         end
 
@@ -211,7 +211,7 @@ RSpec.describe CLI::SecretsManager do
         before do
           # Mock Microsoft365UserToken to avoid HTTP requests
           allow(Microsoft365UserToken).to receive(:new).and_return(
-            double('Microsoft365UserToken', has_valid_tokens?: false, load_tokens_from_file: true)
+            double('Microsoft365UserToken', valid_tokens?: false, load_tokens_from_file: true)
           )
         end
 
@@ -230,7 +230,7 @@ RSpec.describe CLI::SecretsManager do
 
           # Mock Microsoft365UserToken to avoid HTTP requests
           allow(Microsoft365UserToken).to receive(:new).and_return(
-            double('Microsoft365UserToken', has_valid_tokens?: false, load_tokens_from_file: true)
+            double('Microsoft365UserToken', valid_tokens?: false, load_tokens_from_file: true)
           )
         end
 
@@ -253,7 +253,7 @@ RSpec.describe CLI::SecretsManager do
 
           # Mock Microsoft365UserToken to avoid HTTP requests
           allow(Microsoft365UserToken).to receive(:new).and_return(
-            double('Microsoft365UserToken', has_valid_tokens?: true, load_tokens_from_file: true)
+            double('Microsoft365UserToken', valid_tokens?: true, load_tokens_from_file: true)
           )
         end
 
@@ -401,7 +401,7 @@ RSpec.describe CLI::SecretsManager do
 
           # Mock Microsoft365UserToken to avoid HTTP requests
           allow(Microsoft365UserToken).to receive(:new).and_return(
-            double('Microsoft365UserToken', has_valid_tokens?: false, load_tokens_from_file: true)
+            double('Microsoft365UserToken', valid_tokens?: false, load_tokens_from_file: true)
           )
         end
 
@@ -427,7 +427,7 @@ RSpec.describe CLI::SecretsManager do
 
           # Mock Microsoft365UserToken to avoid HTTP requests
           allow(Microsoft365UserToken).to receive(:new).and_return(
-            double('Microsoft365UserToken', has_valid_tokens?: true, load_tokens_from_file: true)
+            double('Microsoft365UserToken', valid_tokens?: true, load_tokens_from_file: true)
           )
         end
 

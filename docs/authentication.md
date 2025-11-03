@@ -54,6 +54,13 @@ Cleanbox supports OAuth2 authentication with Microsoft 365, which is more secure
    - **Directory (tenant) ID** - This is your `tenant_id`
 2. Use the client secret you created in step 3
 
+### 4b. Configure Redirect URIs
+
+1. In the app registration, open **Authentication**
+2. Under **Web**, add `http://localhost:4567/m365/callback`
+3. Optional: under **Mobile and desktop applications**, add `https://login.microsoftonline.com/common/oauth2/nativeclient` for manual fallback
+4. Enable **Allow public client flows** so that native redirects are accepted
+
 ### 5. Configure Cleanbox
 
 **Option A: Interactive Setup (Recommended)**
@@ -76,6 +83,25 @@ This will analyze your email structure and create both configuration files autom
 # Reset authentication configuration
 ./cleanbox auth reset
 ```
+
+#### Automatic callback (default)
+
+1. Run `./cleanbox auth setup`
+2. Choose **Microsoft 365 user-based OAuth**
+3. Select **Automatic callback** when prompted (or leave default)
+4. Open the authorization URL in a browser
+5. After consent, the CLI captures the response from `http://localhost:4567/m365/callback`
+
+> **Container or SSH sessions:** forward the callback port to your workstation, e.g. `docker run -p 4567:4567 ...`.
+
+#### Manual code entry fallback
+
+Use this when the browser cannot reach your localhost (no GUI, restrictive firewall, etc.).
+
+1. Set `CLEANBOX_AUTH_MANUAL=1` or choose **Manual code entry** when prompted
+2. Run through the authorization URL in your browser
+3. Copy the `code` parameter from the address bar when consent completes
+4. Paste the code back into the CLI when asked
 
 **Option C: Manual Configuration**
 

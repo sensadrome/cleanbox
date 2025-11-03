@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'net/imap'
+require 'securerandom'
 require_relative '../configuration'
 require_relative 'config_manager'
 require_relative 'secrets_manager'
@@ -325,27 +326,33 @@ module CLI
 
     def setup_user_oauth2(details)
       require_relative '../microsoft_365_user_token'
+      require_relative '../oauth/local_callback_server'
 
       puts '🔐 Microsoft 365 User-based OAuth2 Setup'
       puts '========================================'
       puts ''
 
-      user_token = Microsoft365UserToken.new(logger: @logger)
+      flow = select_user_oauth_flow
+      redirect_uri = user_oauth_redirect_uri(flow)
 
-      # Generate authorization URL
-      auth_url = user_token.authorization_url
+      user_token = Microsoft365UserToken.new(logger: @logger, redirect_uri: redirect_uri)
+
+      state = SecureRandom.hex(16)
+      auth_url = user_token.authorization_url(state: state)
 
       puts 'Please visit this URL to authorize Cleanbox:'
       puts ''
       puts auth_url
       puts ''
-      puts "After you grant permissions, you'll receive an authorization code."
-      puts 'Please enter the authorization code: '
 
-      authorization_code = gets.chomp.strip
+      authorization_code = if flow == :automatic
+                              obtain_authorization_code_via_callback(redirect_uri, state)
+                            else
+                              obtain_authorization_code_manually
+                            end
 
-      if authorization_code.empty?
-        puts '❌ No authorization code provided. Setup cancelled.'
+      unless authorization_code
+        puts '❌ OAuth2 setup cancelled. No authorization code received.'
         return
       end
 
@@ -354,11 +361,9 @@ module CLI
 
       begin
         if user_token.exchange_code_for_tokens(authorization_code)
-          # Save tokens
           token_file = default_token_file(details[:username])
           user_token.save_tokens_to_file(token_file)
 
-          # Save configuration (without secrets)
           config = begin
             config_manager.load_config
           rescue StandardError
@@ -389,6 +394,85 @@ module CLI
       # Sanitize username for filename
       safe_username = username.gsub(/[^a-zA-Z0-9]/, '_')
       File.join(Dir.home, '.cleanbox', 'tokens', "#{safe_username}.json")
+    end
+
+    def select_user_oauth_flow
+      env_value = ENV['CLEANBOX_AUTH_MANUAL']
+      return :manual if truthy?(env_value)
+      return :automatic if falsey?(env_value)
+
+      puts 'Select authorization flow:'
+      puts '  1. Automatic callback (requires access to http://localhost:4567)'
+      puts '  2. Manual code entry (use when browser cannot reach localhost)'
+      print 'Choice (1-2): '
+
+      choice = gets&.chomp&.strip
+      choice == '2' ? :manual : :automatic
+    end
+
+    def user_oauth_redirect_uri(flow)
+      if flow == :manual
+        Microsoft365UserToken::NATIVE_CLIENT_REDIRECT_URI
+      else
+        ENV.fetch('CLEANBOX_OAUTH_REDIRECT_URI', Microsoft365UserToken::DEFAULT_REDIRECT_URI)
+      end
+    end
+
+    def obtain_authorization_code_manually
+      puts "After you grant permissions, copy the 'code' parameter from the browser's address bar."
+      print 'Authorization code: '
+      authorization_code = gets&.chomp&.strip
+
+      if authorization_code.to_s.empty?
+        puts '❌ No authorization code provided.'
+        nil
+      else
+        authorization_code
+      end
+    end
+
+    def obtain_authorization_code_via_callback(redirect_uri, state)
+      puts "After you grant permissions, Cleanbox will listen on #{redirect_uri} to receive the authorization response."
+      puts 'If you are running inside a container or over SSH, ensure the port is forwarded.'
+      puts ''
+      puts 'Waiting for authorization callback (Ctrl+C to cancel)...'
+
+      callback_server = OAuth::LocalCallbackServer.new(
+        redirect_uri: redirect_uri,
+        expected_state: state,
+        logger: @logger,
+        timeout: oauth_callback_timeout
+      )
+
+      callback_server.wait_for_authorization_code
+    rescue OAuth::LocalCallbackServer::CallbackTimeoutError => e
+      puts "❌ #{e.message}"
+      nil
+    rescue OAuth::LocalCallbackServer::CallbackServerError => e
+      puts "❌ Authorization callback failed: #{e.message}"
+      nil
+    rescue Interrupt
+      puts "\n❌ Authorization cancelled by user."
+      nil
+    end
+
+    def oauth_callback_timeout
+      timeout_env = ENV['CLEANBOX_OAUTH_CALLBACK_TIMEOUT']
+      return OAuth::LocalCallbackServer::DEFAULT_TIMEOUT unless timeout_env
+
+      Integer(timeout_env)
+    rescue ArgumentError
+      @logger&.warn("Invalid CLEANBOX_OAUTH_CALLBACK_TIMEOUT value '#{timeout_env}', using default.")
+      OAuth::LocalCallbackServer::DEFAULT_TIMEOUT
+    end
+
+    def truthy?(value)
+      %w[1 true yes y].include?(value.to_s.strip.downcase)
+    end
+
+    def falsey?(value)
+      return false unless value
+      %w[0 false no n automatic auto].include?(value.to_s.strip.downcase)
     end
   end
 end

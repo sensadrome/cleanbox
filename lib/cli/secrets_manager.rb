@@ -85,7 +85,7 @@ module CLI
           # Try to load tokens to verify they're valid
           user_token = Microsoft365UserToken.new
           user_token.load_tokens_from_file(token_file)
-          user_token.has_valid_tokens?
+          user_token.valid_tokens?
         when 'password'
           !!ENV['CLEANBOX_PASSWORD']
         else
@@ -135,7 +135,7 @@ module CLI
 
             if File.exist?(token_file)
               user_token = Microsoft365UserToken.new
-              if user_token.load_tokens_from_file(token_file) && user_token.has_valid_tokens?
+              if user_token.load_tokens_from_file(token_file) && user_token.valid_tokens?
                 {
                   configured: true,
                   missing: [],

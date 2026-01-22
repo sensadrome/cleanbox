@@ -143,6 +143,11 @@ class String
         false
       end
   end
+
+  def parameterize
+    # Remove all non-alphanumeric characters and convert to lowercase removing trailing underscores
+    downcase.gsub(/[^a-z0-9]+/, '_').gsub(/_$/, '') 
+  end
 end
 
 class Numeric # :nodoc:

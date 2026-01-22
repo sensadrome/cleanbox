@@ -12,8 +12,16 @@ class CleanboxMessage < SimpleDelegator
     from_address.split('@').last
   end
 
+  def subject
+    message.subject
+  end
+
   def message
-    @message ||= Mail.read_from_string(attr['BODY[HEADER]'])
+    @message ||= Mail.read_from_string(raw_source)
+  end
+
+  def raw_source
+    attr['BODY[]'] || attr['BODY[HEADER]']
   end
 
   def date

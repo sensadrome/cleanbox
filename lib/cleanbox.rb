@@ -8,6 +8,7 @@ require_relative 'message_processor'
 # rubocop:disable Metrics/ClassLength
 class Cleanbox < CleanboxConnection
   attr_accessor :blacklisted_emails, :junk_emails, :whitelisted_emails, :list_domain_map, :sender_map
+  attr_accessor :curr
 
   def initialize(imap_connection, initial_options)
     super
@@ -41,7 +42,10 @@ class Cleanbox < CleanboxConnection
   end
 
   def show_folders!
-    cleanbox_folders.each { |folder| puts folder }
+    folders = cleanbox_folders
+    tree = build_folder_tree(folders)
+    print_folder_tree(tree)
+    nil # Don't return the tree to avoid echo in console
   end
 
   def file_messages!
@@ -82,6 +86,15 @@ class Cleanbox < CleanboxConnection
 
   def unjunking?
     !!options[:unjunk]
+  end
+
+  def current_folder
+    @current_folder || 'INBOX'
+  end
+
+  def select_folder(folder)
+    @current_folder = folder
+    imap_connection.select(folder)
   end
 
   private
@@ -298,16 +311,14 @@ class Cleanbox < CleanboxConnection
 
   def new_message_ids
     @new_message_ids ||= begin
-      imap_connection.select 'INBOX'
+      select_folder('INBOX')
       imap_connection.search(%w[UNSEEN NOT DELETED])
     end
   end
 
   def clear_deleted_messages!(folder = nil)
     return if pretending?
-
-    imap_connection.select(folder) if folder.present?
-
+    select_folder(folder) if folder.present?
     imap_connection.expunge
   end
 
@@ -374,7 +385,7 @@ class Cleanbox < CleanboxConnection
   end
 
   def all_message_ids
-    imap_connection.select 'INBOX'
+    select_folder('INBOX')
     search_terms = %w[NOT DELETED] + date_search
     # If file_unread is false (default), only file read messages (add 'SEEN')
     search_terms << 'SEEN' unless options[:file_unread]
@@ -405,7 +416,7 @@ class Cleanbox < CleanboxConnection
   end
 
   def junk_message_ids
-    imap_connection.select imap_junk_folder
+    select_folder(imap_junk_folder)
     imap_connection.search(%w[NOT DELETED] + date_search)
   end
 
@@ -415,6 +426,86 @@ class Cleanbox < CleanboxConnection
 
   def imap_sent_folder
     imap_folders.detect { |f| f.attr.include?(:Sent) }&.name
+  end
+
+  # Build a hierarchical tree structure from flat folder list
+  def build_folder_tree(folders)
+    tree = {}
+
+    folders.each do |folder|
+      parts = folder.name.split(folder.delim || '/')
+      current = tree
+
+      parts.each_with_index do |part, idx|
+        current[part] ||= {
+          _folder: (idx == parts.length - 1 ? folder : nil),
+          _children: {}
+        }
+        current = current[part][:_children]
+      end
+    end
+
+    tree
+  end
+
+  # Print the folder tree with proper indentation and tree characters
+  def print_folder_tree(tree, prefix = '', is_last = true, is_root = true)
+    tree.each_with_index do |(name, data), idx|
+      is_last_child = (idx == tree.size - 1)
+      folder = data[:_folder]
+
+      # Build the display line
+      if is_root
+        # Root level - no prefix
+        line = name
+      else
+        # Use tree characters
+        connector = is_last_child ? '└──' : '├──'
+        line = "#{prefix}#{connector} #{name}"
+      end
+
+      # Add folder info (counts and attributes) if this is a real folder
+      if folder
+        line += folder_info(folder)
+      end
+
+      puts line
+
+      # Recurse for children
+      unless data[:_children].empty?
+        # Determine the prefix for children
+        if is_root
+          child_prefix = ''
+        else
+          extension = is_last_child ? '    ' : '│   '
+          child_prefix = prefix + extension
+        end
+
+        print_folder_tree(data[:_children], child_prefix, is_last_child, false)
+      end
+    end
+  end
+
+  # Format folder information (counts and attributes)
+  def folder_info(folder)
+    info = ''
+
+    # Add attributes if present (like [Junk], [Sent], etc.)
+    if folder.attrs.present?
+      info += " [#{folder.attrs.join(', ')}]"
+    end
+
+    # Add message counts
+    total = folder.status['MESSAGES'].to_i
+    unseen = folder.status['UNSEEN'].to_i
+
+    if unseen.positive?
+      info += " (#{total} total, #{unseen} unread)"
+    elsif total.positive?
+      info += " (#{total} total)"
+    end
+
+    info
   end
 end
 # rubocop:enable Metrics/ClassLength

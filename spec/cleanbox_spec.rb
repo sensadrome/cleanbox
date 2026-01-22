@@ -267,15 +267,78 @@ RSpec.describe Cleanbox do
   end
 
   describe '#show_folders!' do
-    let(:mock_folder) { double('folder', to_s: 'TestFolder (Total: 10, 2 new)') }
+    let(:mock_imap_folder) do
+      double('imap_folder',
+             name: 'TestFolder',
+             delim: '/',
+             attr: [:Hasnochildren])
+    end
+    let(:mock_status) { { 'MESSAGES' => 10, 'UNSEEN' => 2 } }
+    let(:mock_folder) { CleanboxFolder.new(mock_imap_folder, mock_status) }
 
     before do
       allow(cleanbox).to receive(:cleanbox_folders).and_return([mock_folder])
     end
 
-    it 'shows all cleanbox folders' do
+    it 'shows all cleanbox folders with counts' do
       cleanbox.show_folders!
-      expect(captured_output.string).to include("TestFolder (Total: 10, 2 new)")
+      output = captured_output.string
+      expect(output).to include('TestFolder')
+      expect(output).to include('10 total')
+      expect(output).to include('2 unread')
+    end
+
+    context 'with nested folders' do
+      let(:inbox_folder) do
+        CleanboxFolder.new(
+          double('imap_folder', name: 'INBOX', delim: '/', attr: [:Haschildren]),
+          { 'MESSAGES' => 100, 'UNSEEN' => 10 }
+        )
+      end
+      let(:work_folder) do
+        CleanboxFolder.new(
+          double('imap_folder', name: 'INBOX/Work', delim: '/', attr: [:Haschildren]),
+          { 'MESSAGES' => 50, 'UNSEEN' => 5 }
+        )
+      end
+      let(:projects_folder) do
+        CleanboxFolder.new(
+          double('imap_folder', name: 'INBOX/Work/Projects', delim: '/', attr: [:Hasnochildren]),
+          { 'MESSAGES' => 20, 'UNSEEN' => 0 }
+        )
+      end
+      let(:lists_folder) do
+        CleanboxFolder.new(
+          double('imap_folder', name: 'Lists', delim: '/', attr: [:Hasnochildren]),
+          { 'MESSAGES' => 500, 'UNSEEN' => 100 }
+        )
+      end
+
+      before do
+        allow(cleanbox).to receive(:cleanbox_folders)
+          .and_return([inbox_folder, work_folder, projects_folder, lists_folder])
+      end
+
+      it 'displays folders in a tree structure' do
+        cleanbox.show_folders!
+        output = captured_output.string
+
+        # Check folder names appear
+        expect(output).to include('INBOX')
+        expect(output).to include('Work')
+        expect(output).to include('Projects')
+        expect(output).to include('Lists')
+
+        # Check counts appear
+        expect(output).to include('100 total, 10 unread')
+        expect(output).to include('50 total, 5 unread')
+        expect(output).to include('20 total')
+        expect(output).to include('500 total, 100 unread')
+
+        # Check tree structure characters appear for nested items
+        expect(output).to match(/[├└]──.*Work/)
+        expect(output).to match(/[├└]──.*Projects/)
+      end
     end
   end
 

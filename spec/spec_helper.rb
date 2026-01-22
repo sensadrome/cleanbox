@@ -58,6 +58,7 @@ require 'message_processor'
 
 require 'connection'
 require 'cleanbox'
+require 'cleanbox_folder'
 require 'folder_checker'
 
 # Helper method for creating mock IMAP error responses

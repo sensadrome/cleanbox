@@ -13,6 +13,12 @@ gem 'mail'
 gem 'pry', require: false
 gem 'pry-byebug', require: false
 
+# Console-only tools
+group :console do
+  gem 'html2markdown'
+  gem 'awesome_print'
+end
+
 # gem 'selenium-webdriver'
 
 # Testing gems

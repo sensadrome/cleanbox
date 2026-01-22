@@ -33,7 +33,15 @@ ENV['RACK_ENV'] ||= 'development'
 config_env = ENV.fetch('RACK_ENV', nil)
 
 bundler_env = ENV['BUNDLER_ENV'] || config_env
-Bundler.require(:default, bundler_env)
+
+# Load default gems plus console-specific gems
+Bundler.require(:default, :console, bundler_env)
+
+# Automatically enable awesome_print if available
+if defined?(AwesomePrint)
+  AwesomePrint.irb!
+  AwesomePrint.pry!
+end
 
 # Load the required libraries (same as main cleanbox script)
 require 'net/imap'
@@ -80,6 +88,9 @@ end
 
 puts ''
 puts 'Starting console session...'
+
+# Enable DSL delegation
+extend CleanboxConsole::DSL
 
 # Try Pry first, fall back to IRB
 begin

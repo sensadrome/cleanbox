@@ -209,6 +209,9 @@ module CLI
     end
 
     def save_config(config)
+      # Safety check: prevent overwriting real config during tests
+      check_test_safety!
+
       safe_config = config.slice(*recognized_keys)
       FileUtils.mkdir_p(File.dirname(@config_path))
       File.write(@config_path, safe_config.to_yaml)
@@ -358,6 +361,9 @@ module CLI
     end
 
     def save_config_with_comments(config)
+      # Safety check: prevent overwriting real config during tests
+      check_test_safety!
+
       FileUtils.mkdir_p(File.dirname(@config_path))
 
       # Create YAML with comments
@@ -488,6 +494,24 @@ module CLI
     def should_show_empty?(key)
       # Show empty with helpful comments for "optional but useful" options
       %w[client_id client_secret tenant_id password valid_from log_file].include?(key)
+    end
+
+    def check_test_safety!
+      # During tests, prevent writing to real user config files
+      return unless defined?(RSpec) && RSpec.respond_to?(:configuration)
+
+      real_home_config = File.expand_path('~/.cleanbox.yml')
+      real_home_dir = File.expand_path('~/.cleanbox')
+
+      if @config_path == real_home_config || @config_path.start_with?(real_home_dir)
+        raise <<~ERROR
+          ⚠️  TEST SAFETY VIOLATION ⚠️
+          Attempted to write to real config file during tests: #{@config_path}
+
+          This should NEVER happen. Tests must use temporary directories.
+          Check your test setup in spec/helpers/config_helpers.rb
+        ERROR
+      end
     end
 
     def exit_with_error(error)

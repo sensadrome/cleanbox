@@ -34,6 +34,6 @@ analyze_sent_vs_folders.rb
 .xplane
 
 # Project context file (AI assistant guidance)
-CONTEXT.md
+AGENTS.md
 .cursorrules
 *SESSION*.md

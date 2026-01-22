@@ -891,15 +891,16 @@ RSpec.describe CLI::AuthCLI do
       allow(user_token).to receive(:authorization_url).and_return(auth_url)
       allow(user_token).to receive(:exchange_code_for_tokens).and_return(true)
       allow(user_token).to receive(:save_tokens_to_file)
-      allow(auth_cli).to receive(:gets)
       allow(auth_cli).to receive(:default_token_file).and_return('/tmp/test_token.json')
-      # allow_any_instance_of(CLI::ConfigManager).to receive(:load_config).and_return({})
+      # Stub flow selection to avoid gets call
+      allow(auth_cli).to receive(:select_user_oauth_flow).and_return(:manual)
+      # Stub save_config to prevent writing to real config file
       allow_any_instance_of(CLI::ConfigManager).to receive(:save_config)
     end
 
     context 'when authorization code is provided' do
       before do
-        allow(auth_cli).to receive(:gets).and_return('test_auth_code')
+        allow(auth_cli).to receive(:obtain_authorization_code_manually).and_return('test_auth_code')
       end
 
       it 'displays authorization URL and prompts for code' do
@@ -909,8 +910,6 @@ RSpec.describe CLI::AuthCLI do
         expect(captured_output.string).to include("========================================")
         expect(captured_output.string).to include(auth_url)
         expect(captured_output.string).to include("Please visit this URL to authorize Cleanbox:")
-        expect(captured_output.string).to include("After you grant permissions, you'll receive an authorization code.")
-        expect(captured_output.string).to include("Please enter the authorization code: ")
       end
 
       it 'exchanges code for tokens and saves configuration' do
@@ -933,20 +932,20 @@ RSpec.describe CLI::AuthCLI do
 
     context 'when no authorization code is provided' do
       before do
-        allow(auth_cli).to receive(:gets).and_return('')
+        allow(auth_cli).to receive(:obtain_authorization_code_manually).and_return(nil)
       end
 
       it 'cancels setup and displays error message' do
         auth_cli.send(:setup_user_oauth2, details)
 
-        expect(captured_output.string).to include("❌ No authorization code provided. Setup cancelled.")
+        expect(captured_output.string).to include("❌ OAuth2 setup cancelled. No authorization code received.")
         expect(user_token).not_to have_received(:exchange_code_for_tokens)
       end
     end
 
     context 'when token exchange fails' do
       before do
-        allow(auth_cli).to receive(:gets).and_return('test_auth_code')
+        allow(auth_cli).to receive(:obtain_authorization_code_manually).and_return('test_auth_code')
         allow(user_token).to receive(:exchange_code_for_tokens).and_return(false)
       end
 

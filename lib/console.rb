@@ -148,10 +148,13 @@ class Cleanbox
     remove_flags(ids, [:Flagged], folder: folder)
   end
 
-  # Summarize folder status and unread messages by sender
+  # Summarize folder status and messages by sender
   # @param folder [String] Folder to analyze (default: current_folder)
   # @param limit [Integer] Number of top senders to show (default: 20)
-  def summarize(folder: current_folder, limit: 20)
+  # @param all [Boolean] Analyze all messages (true) or only unseen (false, default)
+  # @param since [Date] Only analyze messages since this date (optional)
+  # @param last_days [Integer] Only analyze messages from last N days (optional)
+  def summarize(folder: current_folder, limit: 20, all: false, since: nil, last_days: nil)
     # 1. Folder Stats
     status = imap_connection.status(folder, %w[MESSAGES UNSEEN])
     puts "Folder: #{folder}"
@@ -159,9 +162,67 @@ class Cleanbox
     puts "Unseen messages: #{status['UNSEEN']}"
     puts "-" * 40
 
+    if all
+      summarize_all_messages(folder, limit, since, last_days)
+    else
+      summarize_unseen_messages(folder, limit, status)
+    end
+  end
+
+  private
+
+  def summarize_all_messages(folder, limit, since, last_days)
+    # Use CleanboxFolderChecker with cached counts
+    opts = {
+      folder: folder,
+      logger: logger,
+      cache: true,  # Enable caching for counts!
+      all_messages: true
+    }
+
+    # Add date filtering if requested
+    if last_days
+      opts[:since] = (Date.today - last_days).strftime('%d-%b-%Y')
+    elsif since
+      opts[:since] = since.strftime('%d-%b-%Y')
+    end
+
+    checker = CleanboxFolderChecker.new(imap_connection, opts)
+    counts = checker.email_address_counts
+
+    if counts.empty?
+      puts "No messages found."
+      return
+    end
+
+    # Calculate total messages
+    total_messages = counts.values.sum
+
+    date_info = if last_days
+                  " (last #{last_days} days)"
+                elsif since
+                  " (since #{since})"
+                else
+                  ""
+                end
+
+    puts "Analyzed #{total_messages} messages from #{counts.size} unique senders#{date_info}:\n\n"
+
+    # Sort by count descending
+    sorted = counts.sort_by { |_, c| -c }
+
+    sorted.take(limit).each do |email, count|
+      puts format("  (%d) %s", count, email)
+    end
+
+    remaining = sorted.size - limit
+    puts "\n... and #{remaining} more senders." if remaining.positive?
+  end
+
+  def summarize_unseen_messages(folder, limit, status)
+    # Direct IMAP search - no caching (changes too frequently)
     return if status['UNSEEN'].to_i.zero?
 
-    # 2. Unread Analysis
     imap_connection.select(folder)
     ids = imap_connection.search(['UNSEEN'])
 
@@ -194,6 +255,8 @@ class Cleanbox
     remaining = sorted.size - limit
     puts "\n... and #{remaining} more senders." if remaining.positive?
   end
+
+  public
 
   # List messages in a table format
   # @param folder [String] Folder to search in (default: current_folder)
@@ -462,7 +525,9 @@ def show_help
     cleanbox             - Same as cb
 
     # Cleanbox methods (use with cb.method_name):
-    cb.show_folders!     - Show folder tree with message counts
+    cb.show_folders!     - Show folder tree with colors, symbols & counts
+                           ⭐ Whitelist (green) 📋 Lists (blue) 🚫 Junk (red)
+                           📬 Sent (magenta) ⚠️ Quarantine (yellow)
     cb.show_lists!       - Show list domain mappings
     cb.clean!            - Process new messages in inbox
     cb.file_messages!    - File existing messages
@@ -498,10 +563,14 @@ def show_help
     cb.unflag(ids)       - Unstar/Unflag messages
 
     # Analysis
-    cb.summarize         - Show folder stats & unread counts
+    cb.summarize         - Show folder stats & sender counts
+                           all: true (all messages, cached) or false (unseen only, default)
+                           e.g. cb.summarize(all: true, limit: 50)
+                           e.g. cb.summarize(all: true, last_days: 30)
+                           e.g. cb.summarize(all: true, since: Date.new(2024,1,1))
     cb.list_messages     - List messages table (accepts search criteria)
                            e.g. cb.list_messages(from: 'amazon', limit: 10)
-    cb.read_message(id) - Read a message (strips links by default)
+    cb.read_message(id)  - Read a message (strips links by default)
                            e.g. cb.read_message(123, show_links: true)
 
     # Help

@@ -81,6 +81,28 @@ RSpec.configure do |config|
       end
     end
 
+    # CRITICAL: Prevent any writes to real config files during tests
+    File.singleton_class.class_eval do
+      alias_method :original_write, :write
+
+      def write(path, *args, &block)
+        real_home_config = File.expand_path('~/.cleanbox.yml')
+        real_home_dir = File.expand_path('~/.cleanbox')
+
+        if path == real_home_config || path.to_s.start_with?(real_home_dir)
+          raise <<~ERROR
+            ⚠️  TEST SAFETY VIOLATION ⚠️
+            Attempted to write to real config file during tests: #{path}
+
+            This should NEVER happen. Tests must use temporary directories.
+            Check the calling test and ensure it uses test_home_config_path or temp paths.
+          ERROR
+        end
+
+        original_write(path, *args, &block)
+      end
+    end
+
     # Suppress Ruby warnings from gems
     # $VERBOSE = nil
   end

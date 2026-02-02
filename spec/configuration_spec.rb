@@ -130,15 +130,17 @@ RSpec.describe 'Configuration Integration' do
         ENV.delete('CLEANBOX_DATA_DIR')
         ENV.delete('CLEANBOX_CONFIG')
 
-        # Temporarily allow the real home_config for this test
-        allow(Configuration).to receive(:home_config).and_call_original
+        # Use test home config path (from shared context) instead of real home
+        test_home_file = File.join(test_home_config_dir, '.cleanbox.yml')
+        File.write(test_home_file, "host: home.example.com\n")
 
-        home_config = File.expand_path('~/.cleanbox.yml')
-        File.write(home_config, "host: home.example.com\n") if File.exist?(home_config)
+        # Mock home_config to return our test path
+        allow(Configuration).to receive(:home_config).and_return(test_home_file)
 
         Configuration.configure({})
 
-        expect(Configuration.config_file_path).to eq(home_config)
+        expect(Configuration.config_file_path).to eq(test_home_file)
+        expect(Configuration.options[:host]).to eq('home.example.com')
       end
     end
   end

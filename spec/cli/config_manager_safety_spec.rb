@@ -47,4 +47,33 @@ RSpec.describe CLI::ConfigManager, 'safety checks' do
       end
     end
   end
+
+  describe 'File.write safeguard' do
+    it 'prevents direct File.write to ~/.cleanbox.yml' do
+      real_home_config = File.expand_path('~/.cleanbox.yml')
+
+      expect do
+        File.write(real_home_config, 'test data')
+      end.to raise_error(/TEST SAFETY VIOLATION/)
+    end
+
+    it 'prevents direct File.write to ~/.cleanbox/ directory' do
+      real_home_path = File.expand_path('~/.cleanbox/test.txt')
+
+      expect do
+        File.write(real_home_path, 'test data')
+      end.to raise_error(/TEST SAFETY VIOLATION/)
+    end
+
+    it 'allows File.write to temporary paths' do
+      temp_path = File.join(Dir.tmpdir, 'test_file.txt')
+
+      expect do
+        File.write(temp_path, 'test data')
+      end.not_to raise_error
+
+      # Clean up
+      FileUtils.rm_f(temp_path)
+    end
+  end
 end

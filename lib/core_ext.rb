@@ -146,7 +146,41 @@ class String
 
   def parameterize
     # Remove all non-alphanumeric characters and convert to lowercase removing trailing underscores
-    downcase.gsub(/[^a-z0-9]+/, '_').gsub(/_$/, '') 
+    downcase.gsub(/[^a-z0-9]+/, '_').gsub(/_$/, '')
+  end
+
+  # ANSI color codes for terminal output
+  def colorize(color_code)
+    return self unless $stdout.tty?
+    "\e[#{color_code}m#{self}\e[0m"
+  end
+
+  def red
+    colorize(31)
+  end
+
+  def green
+    colorize(32)
+  end
+
+  def yellow
+    colorize(33)
+  end
+
+  def blue
+    colorize(34)
+  end
+
+  def magenta
+    colorize(35)
+  end
+
+  def cyan
+    colorize(36)
+  end
+
+  def bold
+    colorize(1)
   end
 end
 

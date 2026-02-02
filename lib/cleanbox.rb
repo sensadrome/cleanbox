@@ -464,8 +464,23 @@ class Cleanbox < CleanboxConnection
         line = "#{prefix}#{connector} #{name}"
       end
 
-      # Add folder info (counts and attributes) if this is a real folder
+      # Colorize and add symbol for special folders
       if folder
+        folder_type = determine_folder_type(folder)
+        symbol = folder_symbol(folder_type)
+        color = folder_color(folder_type)
+
+        # Apply color to the folder name if we have a color
+        if color && is_root
+          line = line.send(color)
+        elsif color
+          # For non-root, only colorize the name part after the connector
+          parts = line.split(' ', 2)
+          line = parts[0] + ' ' + parts[1].send(color) if parts.size == 2
+        end
+
+        # Add symbol and folder info
+        line += " #{symbol}" if symbol
         line += folder_info(folder)
       end
 
@@ -506,6 +521,55 @@ class Cleanbox < CleanboxConnection
     end
 
     info
+  end
+
+  # Determine the type of folder based on configuration
+  def determine_folder_type(folder)
+    name = folder.name
+
+    # Check IMAP attributes first
+    return :junk if folder.attrs.include?(:Junk)
+    return :sent if folder.attrs.include?(:Sent)
+
+    # Check configuration
+    return :blacklist if options[:blacklist_folder] == name
+    return :quarantine if quarantine_folder == name
+    return :whitelist if whitelist_folders.include?(name)
+    return :list if list_folders.include?(name)
+
+    nil
+  end
+
+  # Get symbol for folder type
+  def folder_symbol(folder_type)
+    case folder_type
+    when :whitelist
+      '⭐'
+    when :list
+      '📋'
+    when :blacklist, :junk
+      '🚫'
+    when :sent
+      '📬'
+    when :quarantine
+      '⚠️'
+    end
+  end
+
+  # Get color for folder type
+  def folder_color(folder_type)
+    case folder_type
+    when :whitelist
+      :green
+    when :list
+      :blue
+    when :blacklist, :junk
+      :red
+    when :sent
+      :magenta
+    when :quarantine
+      :yellow
+    end
   end
 end
 # rubocop:enable Metrics/ClassLength

@@ -19,6 +19,26 @@ class CleanboxFolderChecker < CleanboxConnection
       fetch_and_cache_email_addresses
   end
 
+  # Get email addresses with duplicates for counting message frequency
+  # Unlike email_addresses, this returns one entry per message
+  def email_addresses_with_counts
+    return [] unless folder_exists?
+
+    logger.debug "Fetching email addresses with counts for folder #{folder}"
+    found_addresses.map { |a| [a.mailbox, a.host].join('@').downcase }
+  end
+
+  # Get pre-counted email addresses (returns hash of email => count)
+  # Uses caching for performance
+  def email_address_counts
+    return {} unless folder_exists?
+
+    # Try to use cache first
+    cached_email_address_counts ||
+      # Cache miss - fetch, count, and cache
+      fetch_and_cache_email_address_counts
+  end
+
   def domains
     return [] unless folder_exists?
 
@@ -48,6 +68,9 @@ class CleanboxFolderChecker < CleanboxConnection
   def cached_email_addresses
     return nil unless cache_enabled?
 
+    # Never cache UNSEEN queries - they change too frequently as users read emails
+    return nil if searching_unseen_only?
+
     cache = self.class.load_folder_cache(folder)
     return nil unless cache
 
@@ -56,6 +79,22 @@ class CleanboxFolderChecker < CleanboxConnection
 
     logger.debug "Using cached email addresses for folder #{folder}"
     cache['emails']
+  end
+
+  def cached_email_address_counts
+    return nil unless cache_enabled?
+
+    # Never cache UNSEEN queries
+    return nil if searching_unseen_only?
+
+    cache = self.class.load_folder_counts_cache(folder)
+    return nil unless cache
+
+    current_stats = folder_stats
+    return nil unless self.class.cache_valid_for_counts?(folder, current_stats)
+
+    logger.debug "Using cached email address counts for folder #{folder}"
+    cache['counts']
   end
 
   def fetch_and_cache_email_addresses
@@ -67,6 +106,19 @@ class CleanboxFolderChecker < CleanboxConnection
     emails
   end
 
+  def fetch_and_cache_email_address_counts
+    logger.debug "Fetching and counting email addresses for folder #{folder}"
+    emails = found_addresses.map { |a| [a.mailbox, a.host].join('@').downcase }
+
+    # Count occurrences
+    counts = emails.each_with_object(Hash.new(0)) { |email, hash| hash[email] += 1 }
+
+    # Cache the counts
+    cache_counts(counts) if cache_enabled?
+
+    counts
+  end
+
   def cache_results(emails)
     current_stats = folder_stats
     cache_data = {
@@ -76,6 +128,17 @@ class CleanboxFolderChecker < CleanboxConnection
     }
     self.class.save_folder_cache(folder, cache_data)
     logger.debug "Cached #{emails.length} email addresses for folder #{folder}"
+  end
+
+  def cache_counts(counts)
+    current_stats = folder_stats
+    cache_data = {
+      'counts' => counts,
+      'stats' => current_stats,
+      'cached_at' => Time.now.iso8601
+    }
+    self.class.save_folder_counts_cache(folder, cache_data)
+    logger.debug "Cached counts for #{counts.size} unique senders for folder #{folder}"
   end
 
   def folder_stats
@@ -109,7 +172,7 @@ class CleanboxFolderChecker < CleanboxConnection
   end
 
   def search_terms
-    %w[NOT DELETED] + date_search
+    %w[NOT DELETED] + date_search + unseen_search
   end
 
   def date_search
@@ -117,6 +180,14 @@ class CleanboxFolderChecker < CleanboxConnection
     return [] unless since.present?
 
     ['SINCE', since]
+  end
+
+  def unseen_search
+    options[:unseen_only] ? ['UNSEEN'] : []
+  end
+
+  def searching_unseen_only?
+    options[:unseen_only] == true
   end
 
   def all_messages?
@@ -151,8 +222,21 @@ class CleanboxFolderChecker < CleanboxConnection
       File.join(cache_dir, "#{folder_name}.yml")
     end
 
+    def counts_cache_file_for_folder(folder_name)
+      File.join(cache_dir, "#{folder_name}_counts.yml")
+    end
+
     def load_folder_cache(folder_name)
       cache_file = cache_file_for_folder(folder_name)
+      return nil unless File.exist?(cache_file)
+
+      YAML.load_file(cache_file)
+    rescue Psych::SyntaxError
+      nil
+    end
+
+    def load_folder_counts_cache(folder_name)
+      cache_file = counts_cache_file_for_folder(folder_name)
       return nil unless File.exist?(cache_file)
 
       YAML.load_file(cache_file)
@@ -166,8 +250,29 @@ class CleanboxFolderChecker < CleanboxConnection
       File.write(cache_file, cache_data.to_yaml)
     end
 
+    def save_folder_counts_cache(folder_name, cache_data)
+      FileUtils.mkdir_p(cache_dir)
+      cache_file = counts_cache_file_for_folder(folder_name)
+      File.write(cache_file, cache_data.to_yaml)
+    end
+
     def cache_valid?(folder_name, current_stats)
       cache = load_folder_cache(folder_name)
+      return false unless cache
+
+      cached_stats = cache['stats']
+      return false unless cached_stats
+
+      # Check if any of the IMAP status values have changed
+      return false unless cached_stats[:messages] == current_stats[:messages]
+      return false unless cached_stats[:uidnext] == current_stats[:uidnext]
+      return false unless cached_stats[:uidvalidity] == current_stats[:uidvalidity]
+
+      true
+    end
+
+    def cache_valid_for_counts?(folder_name, current_stats)
+      cache = load_folder_counts_cache(folder_name)
       return false unless cache
 
       cached_stats = cache['stats']

@@ -204,7 +204,32 @@ Use the `cb` utility for interactive commands:
 
 # Run setup wizard
 ~/cb setup
+
+# Show the deployed commit/build info
+~/cb version
 ```
+
+## Verifying a Deployment
+
+Since the container image is always tagged `cleanbox:latest` with no other version
+tracking, use these to confirm what's actually running after a push:
+
+```bash
+# What is the deployed image built from?
+~/cb version
+# or, without relying on the wrapper script:
+podman run --rm cleanbox:latest cat .cleanbox_version
+
+# Did the working tree update, and does it match what you expect?
+cd ~/cleanbox && git log -1 --format="%H %cI %s"
+
+# Did the last build actually succeed? (post-receive tees deploy/after_push's
+# output here on every push, even if the build fails)
+tail -60 ~/cleanbox/log/deploy.log
+```
+
+A failed build never overwrites the previous image, so `~/cb version` can look
+correct while stale — always check `log/deploy.log` too if in doubt.
 
 ## Troubleshooting
 

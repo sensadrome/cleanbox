@@ -14,6 +14,8 @@ require_relative '../auth/authentication_manager'
 module CLI
   # Cleanbox CLI Runner
   class CleanboxCLI
+    VERSION_FILE = File.join(__dir__, '..', '..', '.cleanbox_version')
+
     attr_reader :options, :config_manager
 
     def initialize
@@ -29,6 +31,7 @@ module CLI
       handle_analyze_command
       handle_sent_analysis_command
       handle_config_command
+      handle_version_command
       validate_options
       execute_action
     end
@@ -71,6 +74,30 @@ module CLI
       ARGV.delete('setup') # Remove 'setup' from ARGV so it doesn't interfere with STDIN
       CLI::SetupWizard.new(verbose: @options[:verbose]).run
       exit 0
+    end
+
+    def handle_version_command
+      return unless ARGV.first == 'version'
+
+      show_version
+      exit 0
+    end
+
+    def show_version
+      unless File.exist?(VERSION_FILE)
+        puts 'Cleanbox version: unknown (local development checkout, not a built container image)'
+        return
+      end
+
+      info = File.readlines(VERSION_FILE).each_with_object({}) do |line, hash|
+        key, value = line.strip.split('=', 2)
+        hash[key] = value if key
+      end
+
+      puts "Commit:   #{info['short_sha']} (#{info['sha']})"
+      puts "Date:     #{info['commit_date']}"
+      puts "Subject:  #{info['commit_subject']}"
+      puts "Built at: #{info['built_at']}"
     end
 
     def handle_analyze_command
@@ -151,6 +178,7 @@ module CLI
       puts '  ./cleanbox analyze        # Analyze email patterns'
       puts '  ./cleanbox sent-analysis  # Analyze sent vs folder patterns'
       puts '  ./cleanbox config show    # Show current configuration'
+      puts '  ./cleanbox version        # Show deployed build/commit info'
       puts '  ./cleanbox --pretend      # Preview without making changes'
       puts '  ./cleanbox clean          # Clean your inbox'
       puts '  ./cleanbox file           # File existing inbox messages'

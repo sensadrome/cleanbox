@@ -19,6 +19,7 @@ cb
 .DS_Store
 .cleanbox.yml
 cleanbox.yml
+.cleanbox_version
 .secret
 cache/
 coverage/

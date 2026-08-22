@@ -361,7 +361,7 @@ module CLI
 
       begin
         if user_token.exchange_code_for_tokens(authorization_code)
-          token_file = default_token_file(details[:username])
+          token_file = Auth::AuthenticationManager.default_token_file(details[:username])
           user_token.save_tokens_to_file(token_file)
 
           config = begin
@@ -388,12 +388,6 @@ module CLI
         puts "❌ OAuth2 setup failed: #{e.message}"
         puts 'Please try again or contact support if the problem persists.'
       end
-    end
-
-    def default_token_file(username)
-      # Sanitize username for filename
-      safe_username = username.gsub(/[^a-zA-Z0-9]/, '_')
-      File.join(Dir.home, '.cleanbox', 'tokens', "#{safe_username}.json")
     end
 
     def select_user_oauth_flow

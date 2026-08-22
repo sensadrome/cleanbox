@@ -891,7 +891,7 @@ RSpec.describe CLI::AuthCLI do
       allow(user_token).to receive(:authorization_url).and_return(auth_url)
       allow(user_token).to receive(:exchange_code_for_tokens).and_return(true)
       allow(user_token).to receive(:save_tokens_to_file)
-      allow(auth_cli).to receive(:default_token_file).and_return('/tmp/test_token.json')
+      allow(Auth::AuthenticationManager).to receive(:default_token_file).and_return('/tmp/test_token.json')
       # Stub flow selection to avoid gets call
       allow(auth_cli).to receive(:select_user_oauth_flow).and_return(:manual)
       # Stub save_config to prevent writing to real config file
@@ -972,17 +972,4 @@ RSpec.describe CLI::AuthCLI do
     end
   end
 
-  describe '#default_token_file' do
-    it 'sanitizes username and returns correct path' do
-      result = auth_cli.send(:default_token_file, 'test@example.com')
-
-      expect(result).to eq(File.join(Dir.home, '.cleanbox', 'tokens', 'test_example_com.json'))
-    end
-
-    it 'handles special characters in username' do
-      result = auth_cli.send(:default_token_file, 'test+user@example.com')
-
-      expect(result).to eq(File.join(Dir.home, '.cleanbox', 'tokens', 'test_user_example_com.json'))
-    end
-  end
 end

@@ -26,6 +26,12 @@ RUN_CMD="${RUN_CMD} -v \"${DATA_HOST_PATH}:${DATA_CONTAINER_PATH}:Z\""
 # Add user namespace for podman (not needed for docker)
 if [ "${CONTAINER_ENGINE}" = "podman" ]; then
     RUN_CMD="${RUN_CMD} --userns=keep-id"
+    # Cap the rootless network MTU to match the host interface. slirp4netns
+    # defaults to 65520; a mismatch with the host's real MTU (commonly 1500)
+    # can silently black-hole larger requests due to broken PMTUD inside the
+    # userspace network stack (seen with OAuth callbacks carrying long
+    # authorization codes).
+    RUN_CMD="${RUN_CMD} --network slirp4netns:mtu=${CLEANBOX_PODMAN_MTU:-1500}"
 fi
 
 # Add user specification

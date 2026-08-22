@@ -158,6 +158,9 @@ module CLI
       opts.separator '  config'
       opts.separator '    manage configuration file'
       opts.separator ''
+      opts.separator '  version'
+      opts.separator '    show the deployed git commit / build info'
+      opts.separator ''
     end
   end
 end

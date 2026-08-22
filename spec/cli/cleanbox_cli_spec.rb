@@ -276,6 +276,61 @@ RSpec.describe CLI::CleanboxCLI do
     end
   end
 
+  describe '#handle_version_command' do
+    before do
+      allow(cli).to receive(:exit)
+      allow(cli).to receive(:show_version)
+    end
+
+    it 'shows version when version command is present' do
+      ARGV.replace(['version'])
+      cli.send(:handle_version_command)
+      expect(cli).to have_received(:show_version)
+    end
+
+    it 'does nothing when version command is not present' do
+      ARGV.replace(%w[other command])
+      cli.send(:handle_version_command)
+      expect(cli).not_to have_received(:show_version)
+    end
+  end
+
+  describe '#show_version' do
+    context 'when the version file exists' do
+      before do
+        allow(File).to receive(:exist?).and_call_original
+        allow(File).to receive(:exist?).with(described_class::VERSION_FILE).and_return(true)
+        allow(File).to receive(:readlines).with(described_class::VERSION_FILE).and_return(
+          [
+            "sha=abc123def456\n",
+            "short_sha=abc123d\n",
+            "commit_date=2026-08-22T07:00:00Z\n",
+            "commit_subject=fix: example commit\n",
+            "built_at=2026-08-22T07:05:00Z\n"
+          ]
+        )
+      end
+
+      it 'prints the parsed build info' do
+        cli.send(:show_version)
+        expect(captured_output.string).to include('abc123d (abc123def456)')
+        expect(captured_output.string).to include('fix: example commit')
+      end
+    end
+
+    context 'when the version file does not exist' do
+      before do
+        allow(File).to receive(:exist?).and_call_original
+        allow(File).to receive(:exist?).with(described_class::VERSION_FILE).and_return(false)
+      end
+
+      it 'prints a local development message' do
+        cli.send(:show_version)
+        expect(captured_output.string).to include('local development checkout')
+      end
+    end
+  end
+
   describe '#handle_analyze_command' do
     let(:mock_imap) { double('IMAP') }
     let(:mock_analyzer_cli) { double('AnalyzerCLI') }

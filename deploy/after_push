@@ -10,8 +10,19 @@ umask 002
 
 git submodule sync && git submodule update --init --recursive
 
+GIT_SHA="$newrev"
+GIT_SHA_SHORT="$(git rev-parse --short "$newrev")"
+GIT_COMMIT_DATE="$(git show -s --format=%cI "$newrev")"
+# Strip characters that would break out of the Containerfile's RUN shell line
+GIT_COMMIT_SUBJECT="$(git show -s --format=%s "$newrev" | tr -d '"`$\\')"
+
 echo "Building cleanbox container image..."
-podman build -t cleanbox:latest .
+podman build \
+  --build-arg GIT_SHA="$GIT_SHA" \
+  --build-arg GIT_SHA_SHORT="$GIT_SHA_SHORT" \
+  --build-arg GIT_COMMIT_DATE="$GIT_COMMIT_DATE" \
+  --build-arg GIT_COMMIT_SUBJECT="$GIT_COMMIT_SUBJECT" \
+  -t cleanbox:latest .
 
 if [ $? -eq 0 ]; then
     echo "✅ Container image updated successfully"

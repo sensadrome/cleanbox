@@ -68,24 +68,16 @@ module CLI
           !!(ENV.fetch('CLEANBOX_CLIENT_ID',
                        nil) && ENV.fetch('CLEANBOX_CLIENT_SECRET', nil) && ENV.fetch('CLEANBOX_TENANT_ID', nil))
         when 'oauth2_microsoft_user'
-          # For user-based OAuth2, we check if tokens exist instead of secrets
-          require_relative '../microsoft_365_user_token'
+          # For user-based OAuth2, we only check that a token file exists.
+          # We do not validate tokens here so that "auth reset" can run when
+          # tokens are expired and clear config for re-auth.
           require_relative '../auth/authentication_manager'
 
-          # Get the username from config to check for token file
           username = config[:username]
-
           return false unless username
 
-          # Check if token file exists and has valid tokens
           token_file = Auth::AuthenticationManager.default_token_file(username)
-
-          return false unless File.exist?(token_file)
-
-          # Try to load tokens to verify they're valid
-          user_token = Microsoft365UserToken.new
-          user_token.load_tokens_from_file(token_file)
-          user_token.valid_tokens?
+          File.exist?(token_file)
         when 'password'
           !!ENV['CLEANBOX_PASSWORD']
         else

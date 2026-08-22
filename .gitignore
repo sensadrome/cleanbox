@@ -15,7 +15,11 @@ cb
 *.sock
 .idea/
 .vscode/
+.claude/
+.DS_Store
 .cleanbox.yml
+cleanbox.yml
+.cleanbox_version
 .secret
 cache/
 coverage/

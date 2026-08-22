@@ -20,6 +20,13 @@ if [ -t 0 ] && [ -t 1 ]; then
     RUN_CMD="${RUN_CMD} -it"
 fi
 
+# `auth setup`'s automatic OAuth flow runs a local callback listener on this
+# port (see Microsoft365UserToken::DEFAULT_REDIRECT_URI). Publish it, bound
+# to localhost only, so it's reachable via an SSH -L tunnel from your machine.
+if [ "${1:-}" = "auth" ] && [ "${2:-}" = "setup" ]; then
+    RUN_CMD="${RUN_CMD} -p 127.0.0.1:${CLEANBOX_OAUTH_CALLBACK_PORT:-4567}:${CLEANBOX_OAUTH_CALLBACK_PORT:-4567}"
+fi
+
 # Add volume mount
 RUN_CMD="${RUN_CMD} -v \"${DATA_HOST_PATH}:${DATA_CONTAINER_PATH}:Z\""
 

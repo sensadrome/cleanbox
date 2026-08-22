@@ -220,26 +220,21 @@ RSpec.describe CLI::SecretsManager do
         end
       end
 
-      context 'when token file exists but tokens are invalid' do
+      context 'when token file exists but tokens are invalid or expired' do
         let(:config_options) { { username: 'test@example.com', data_dir: temp_dir } }
 
         before do
           token_file = File.join(temp_dir, 'tokens', 'test_example_com.json')
           FileUtils.mkdir_p(File.dirname(token_file))
           File.write(token_file, { access_token: 'invalid', refresh_token: 'invalid' }.to_json)
-
-          # Mock Microsoft365UserToken to avoid HTTP requests
-          allow(Microsoft365UserToken).to receive(:new).and_return(
-            double('Microsoft365UserToken', valid_tokens?: false, load_tokens_from_file: true)
-          )
         end
 
-        it 'returns false' do
-          expect(described_class.auth_secrets_available?('oauth2_microsoft_user', data_dir: temp_dir)).to be false
+        it 'returns true so that auth reset can clear config and allow re-auth' do
+          expect(described_class.auth_secrets_available?('oauth2_microsoft_user', data_dir: temp_dir)).to be true
         end
       end
 
-      context 'when token file exists with valid tokens' do
+      context 'when token file exists' do
         let(:config_options) { { username: 'test@example.com', data_dir: temp_dir } }
 
         before do
@@ -250,11 +245,6 @@ RSpec.describe CLI::SecretsManager do
             refresh_token: 'valid_refresh_token',
             expires_at: (Time.now + 3600).iso8601
           }.to_json)
-
-          # Mock Microsoft365UserToken to avoid HTTP requests
-          allow(Microsoft365UserToken).to receive(:new).and_return(
-            double('Microsoft365UserToken', valid_tokens?: true, load_tokens_from_file: true)
-          )
         end
 
         it 'returns true' do

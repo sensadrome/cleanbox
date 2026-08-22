@@ -497,8 +497,11 @@ module CLI
     end
 
     def check_test_safety!
-      # During tests, prevent writing to real user config files
-      return unless defined?(RSpec) && RSpec.respond_to?(:configuration)
+      # Only run when we're actually inside an RSpec example. When running the
+      # CLI, RSpec may be loaded (development group) but there is no current
+      # example, so we must not block writes to real config in that case.
+      return unless defined?(RSpec) && RSpec.respond_to?(:current_example)
+      return unless RSpec.current_example
 
       real_home_config = File.expand_path('~/.cleanbox.yml')
       real_home_dir = File.expand_path('~/.cleanbox')

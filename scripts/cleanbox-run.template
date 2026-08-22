@@ -3,7 +3,7 @@
 set -euo pipefail
 
 # Configuration - customize these for your environment
-DATA_HOST_PATH="${CLEANBOX_DATA_PATH:-/home/user/cleanbox/data}"
+DATA_HOST_PATH="${CLEANBOX_DATA_PATH:-$HOME/cleanbox/data}"
 DATA_CONTAINER_PATH="${CLEANBOX_CONTAINER_DATA_PATH:-/app/data}"
 CONTAINER_IMAGE="${CLEANBOX_IMAGE:-cleanbox:latest}"
 CONTAINER_USER="${CLEANBOX_USER:-1000:1000}"
@@ -38,9 +38,22 @@ if [ -n "${IMAP_PASSWORD:-}" ]; then
     RUN_CMD="${RUN_CMD} --secret imap_password,type=env,target=IMAP_PASSWORD"
 fi
 
+# Allocate a tty when run from an interactive terminal (needed for `auth setup`,
+# which prompts for input) but not when run from cron/non-interactive contexts.
+if [ -t 0 ] && [ -t 1 ]; then
+    RUN_CMD="${RUN_CMD} -it"
+fi
+
 # Add container image and command
 RUN_CMD="${RUN_CMD} ${CONTAINER_IMAGE}"
-RUN_CMD="${RUN_CMD} bundle exec cleanbox clean -v -l log/cleanbox --data-dir \"${DATA_CONTAINER_PATH}\""
+
+# Forward any arguments to cleanbox so `auth setup`, `-h`, etc. actually run.
+# With no arguments, fall back to the default clean invocation.
+if [ "$#" -gt 0 ]; then
+    RUN_CMD="${RUN_CMD} bundle exec cleanbox $* --data-dir \"${DATA_CONTAINER_PATH}\""
+else
+    RUN_CMD="${RUN_CMD} bundle exec cleanbox clean -v -l log/cleanbox --data-dir \"${DATA_CONTAINER_PATH}\""
+fi
 
 # Execute the command
 eval "${RUN_CMD}" 
